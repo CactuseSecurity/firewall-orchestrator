@@ -155,7 +155,7 @@ internal sealed class WorkflowTicketBuilder
 
     private static string BuildTicketAdditionalInfo(CreateTicketRequest request)
     {
-        Dictionary<string, string> additionalInfo = new();
+        Dictionary<string, string> additionalInfo = [];
         AddAdditionalInfoValue(additionalInfo, AdditionalInfoKeys.RequestContactName, request.RuleContactName);
         AddAdditionalInfoValue(additionalInfo, AdditionalInfoKeys.RequestContactId, request.RuleContactId);
         AddAdditionalInfoValue(additionalInfo, AdditionalInfoKeys.RequestorName, request.RequestorName);
@@ -699,9 +699,11 @@ internal sealed class WorkflowTicketBuilder
 
     private static string BuildGroupAdditionalInfo(string groupName, long groupId)
     {
-        Dictionary<string, string> additionalInfo = new();
-        additionalInfo[AdditionalInfoKeys.GrpName] = groupName;
-        additionalInfo[AdditionalInfoKeys.GroupId] = groupId.ToString(CultureInfo.InvariantCulture);
+        Dictionary<string, string> additionalInfo = new()
+        {
+            [AdditionalInfoKeys.GrpName] = groupName,
+            [AdditionalInfoKeys.GroupId] = groupId.ToString(CultureInfo.InvariantCulture)
+        };
         return JsonSerializer.Serialize(additionalInfo);
     }
 

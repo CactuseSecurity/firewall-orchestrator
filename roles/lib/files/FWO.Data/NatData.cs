@@ -21,7 +21,7 @@ namespace FWO.Data
         public string TranslatedSource { get; set; } = "";
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
-        public NetworkLocation[] TranslatedFroms { get; set; } = new NetworkLocation[] { };
+        public NetworkLocation[] TranslatedFroms { get; set; } = [];
 
         [JsonProperty("rule_dst_neg"), JsonPropertyName("rule_dst_neg")]
         public bool TranslatedDestinationNegated { get; set; }
@@ -30,6 +30,29 @@ namespace FWO.Data
         public string TranslatedDestination { get; set; } = "";
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
-        public NetworkLocation[] TranslatedTos { get; set; } = new NetworkLocation[] { };
+        public NetworkLocation[] TranslatedTos { get; set; } = [];
+
+        /// <summary>
+        /// Creates an empty translation.
+        /// </summary>
+        public NatData()
+        { }
+
+        /// <summary>
+        /// Creates a copy of a translation. The objects and services themselves are shared with the original.
+        /// </summary>
+        /// <param name="natData">Translation to copy.</param>
+        public NatData(NatData natData)
+        {
+            TranslatedServiceNegated = natData.TranslatedServiceNegated;
+            TranslatedService = natData.TranslatedService;
+            TranslatedServices = natData.TranslatedServices;
+            TranslatedSourceNegated = natData.TranslatedSourceNegated;
+            TranslatedSource = natData.TranslatedSource;
+            TranslatedFroms = natData.TranslatedFroms;
+            TranslatedDestinationNegated = natData.TranslatedDestinationNegated;
+            TranslatedDestination = natData.TranslatedDestination;
+            TranslatedTos = natData.TranslatedTos;
+        }
     }
 }

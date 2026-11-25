@@ -53,6 +53,14 @@ namespace FWO.Test
                 return EnforcingGateways.TryGetValue(implTask.Id, out List<int>? gatewayIds) ? gatewayIds : kNoGateways;
             }
 
+            /// <summary>Why a rule cannot be written automatically, by implementation task id.</summary>
+            public Dictionary<long, string> NotWritableReasons { get; } = [];
+
+            public string? GetRuleNotWritableReason(WfImplTask implTask)
+            {
+                return NotWritableReasons.TryGetValue(implTask.Id, out string? reason) ? reason : null;
+            }
+
             /// <summary>
             /// Target managements by implementation task id, as the shared resolver gives them; null for a task whose
             /// management cannot be resolved consistently. Other tasks target their own management, else the one of the
@@ -126,6 +134,12 @@ namespace FWO.Test
         private static ProvisioningWorkList Build(params WfReqTask[] reqTasks)
         {
             return ProvisioningWorkList.Build(reqTasks.ToList(), new FixedModes());
+        }
+
+        /// <summary>Builds the work list with the given settings.</summary>
+        private static ProvisioningWorkList BuildWith(FixedModes modes, params WfReqTask[] reqTasks)
+        {
+            return ProvisioningWorkList.Build(reqTasks.ToList(), modes);
         }
 
         /// <summary>Builds the work list with an active planning phase ending in the planned state.</summary>
@@ -380,6 +394,41 @@ namespace FWO.Test
                 Assert.That(workList.Gaps, Has.Count.EqualTo(1));
                 Assert.That(workList.Gaps[0].Reason, Does.Contain("no rule position"));
             });
+        }
+
+        [TestCase(nameof(WfTaskType.access))]
+        [TestCase(nameof(WfTaskType.rule_modify))]
+        public void Build_RuleNotWritableAutomatically_IsReportedWithItsReason(string taskType)
+        {
+            const string kReason = "placeholder area NA_Users is used in source and destination";
+            WfReqTask reqTask = ReqTask(1, 1, kAutomaticManagementId, taskType);
+            AddRuleImplTask(reqTask, 11, kAutomaticManagementId);
+            AddRuleImplTask(reqTask, 12, kAutomaticManagementId);
+            FixedModes modes = new();
+            modes.NotWritableReasons[11] = kReason;
+
+            ProvisioningWorkList workList = BuildWith(modes, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ImplTaskIds(workList), Is.EqualTo(kSecondImplTask));
+                Assert.That(workList.Gaps, Has.Count.EqualTo(1));
+                Assert.That(workList.Gaps[0].ImplTask?.Id, Is.EqualTo(11));
+                Assert.That(workList.Gaps[0].Reason, Is.EqualTo(kReason));
+            });
+        }
+
+        [Test]
+        public void Build_FinishedRuleNotWritableAutomatically_IsNotReported()
+        {
+            WfReqTask reqTask = ReqTask(1, 1, kAutomaticManagementId, nameof(WfTaskType.access));
+            AddRuleImplTask(reqTask, 11, kAutomaticManagementId, stateId: kDoneStateId);
+            FixedModes modes = new();
+            modes.NotWritableReasons[11] = "placeholder";
+
+            ProvisioningWorkList workList = BuildWith(modes, reqTask);
+
+            Assert.That(workList.Gaps, Is.Empty);
         }
 
         [TestCase(nameof(WfTaskType.rule_modify))]

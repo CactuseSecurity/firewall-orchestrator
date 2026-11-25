@@ -31,7 +31,7 @@ namespace FWO.Report.Filter.Ast
                     ExtractDestinationPortFilter(query);
                     break;
                 case TokenKind.RecertDisplay:
-                    ExtractRecertDisplayFilter(query);
+                    // the recert display token is accepted by the parser but does not restrict the rule query yet
                     break;
                 case TokenKind.Unused:
                     ExtractUnusedFilter(query);
@@ -39,12 +39,6 @@ namespace FWO.Report.Filter.Ast
                 default:
                     break;
             }
-        }
-
-        private void ExtractRecertDisplayFilter(DynGraphqlQuery query)
-        {
-            // string queryVarName = AddVariable<DateTime>(query, "refdate", Operator.Kind, DateTime.Now.AddDays(semanticValue));
-            // query.ruleWhereStatement += $@"  rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: ${queryVarName} }} }} }}";
         }
 
         private void ExtractDestinationPortFilter(DynGraphqlQuery query)

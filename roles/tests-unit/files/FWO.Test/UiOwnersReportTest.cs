@@ -38,10 +38,10 @@ namespace FWO.Test
                 context.Render<CascadingValue<Action<Exception?, string, string, bool>>>(parameters => parameters
                     .Add(p => p.Value, displayMessageInUi)
                     .AddChildContent<OwnersReport>(childParameters => childParameters
-                        .Add(p => p.OwnerData, new List<OwnerConnectionReport>
-                        {
+                        .Add(p => p.OwnerData,
+                        [
                             new() { Owner = new FwoOwner { Name = "App One", ExtAppId = "APP-1" } }
-                        })));
+                        ])));
 
             wrapper.WaitForAssertion(() =>
             {

@@ -46,7 +46,7 @@ internal class AggregatedValidationErrorsAttributeTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(response.Errors.Select(error => error.Path), Is.EquivalentTo(new List<string> { "options", "ticketId" }));
+            Assert.That(response.Errors.Select(error => error.Path), Is.EquivalentTo(["options", "ticketId"]));
             Assert.That(response.Errors, Has.All.Property(nameof(RequestValidationError.Message)).Not.Empty);
         });
     }

@@ -148,7 +148,7 @@ namespace FWO.Test
         {
             MonitorExternalRequestTicketsApiConn apiConn = new();
             MonitorExternalRequestTickets component = RenderComponent(apiConn);
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
 
             SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
@@ -180,7 +180,7 @@ namespace FWO.Test
         {
             MonitorExternalRequestTicketsApiConn apiConn = new();
             MonitorExternalRequestTickets component = RenderComponent(apiConn);
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             TestMiddlewareClient middlewareClient = new();
             middlewareClient.UseHandler(new AlwaysFailMiddlewareHandler());
 
@@ -208,7 +208,7 @@ namespace FWO.Test
         {
             MonitorExternalRequestTicketsApiConn apiConn = new();
             MonitorExternalRequestTickets component = RenderComponent(apiConn);
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             TestMiddlewareClient middlewareClient = new();
             middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.OK, "true"));
             SimulatedUserConfig userConfig = new();
@@ -384,12 +384,12 @@ namespace FWO.Test
         public int WorkflowConfigurationQueryCount { get; private set; }
         public bool ThrowOnOwnerTicketQuery { get; set; }
 
-        public List<WfState> States { get; } = new();
-        public List<FwoOwner> Owners { get; } = new();
-        public List<OwnerTicket> OwnerTickets { get; } = new();
-        public List<ExternalRequest> RelevantRequests { get; } = new();
+        public List<WfState> States { get; } = [];
+        public List<FwoOwner> Owners { get; } = [];
+        public List<OwnerTicket> OwnerTickets { get; } = [];
+        public List<ExternalRequest> RelevantRequests { get; } = [];
         public WfTicket TicketById { get; set; } = new();
-        public List<WfExtState> ExtStates { get; } = new();
+        public List<WfExtState> ExtStates { get; } = [];
 
         public MonitorExternalRequestTicketsApiConn()
         {
@@ -485,14 +485,14 @@ namespace FWO.Test
                     LowestInputState = 0,
                     LowestStartState = 1,
                     LowestEndState = 50,
-                    DerivedStates = new List<StateMatrixDerivedState>
-                    {
+                    DerivedStates =
+                    [
                         new StateMatrixDerivedState
                         {
                             FromStateId = 0,
                             DerivedStateId = 0
                         }
-                    }
+                    ]
                 }
             };
 

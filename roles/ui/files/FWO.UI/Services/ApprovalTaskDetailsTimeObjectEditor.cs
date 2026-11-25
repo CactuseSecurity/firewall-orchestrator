@@ -35,7 +35,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
     private AccessTaskFieldVisibilityConfig AccessTaskVisibility =>
         TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).AccessTask;
 
-    internal Task OpenTargetDatesEditor(WfReqTask task, string fieldKey)
+    internal Task OpenTargetDatesEditor(WfReqTask task, string _)
     {
         state.DisplayElementsEditor = false;
         state.EditingElementsTask = null;

@@ -138,9 +138,9 @@ namespace FWO.Test
             Rule rule = conn.ToRule();
 
             ClassicAssert.AreEqual("Conn1", rule.Name);
-            ClassicAssert.AreEqual(4, rule.Froms.Count());
-            ClassicAssert.AreEqual(4, rule.Tos.Count());
-            ClassicAssert.AreEqual(2, rule.Services.Count());
+            ClassicAssert.AreEqual(4, rule.Froms.Length);
+            ClassicAssert.AreEqual(4, rule.Tos.Length);
+            ClassicAssert.AreEqual(2, rule.Services.Length);
         }
 
         [Test]

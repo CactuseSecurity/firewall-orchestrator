@@ -227,7 +227,7 @@ namespace FWO.Compliance
         /// <param name="objectsWithZones">Network objects enriched by their zones.</param>
         private static Dictionary<NetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<NetworkZone> networkZones)> objectsWithZones)
         {
-            Dictionary<NetworkZone, List<NetworkObject>> map = new();
+            Dictionary<NetworkZone, List<NetworkObject>> map = [];
 
             foreach ((NetworkObject networkObject, List<NetworkZone> networkZones) item in objectsWithZones)
             {

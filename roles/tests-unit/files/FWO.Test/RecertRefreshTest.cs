@@ -67,15 +67,15 @@ namespace FWO.Test
 
         private static List<RecertificationBase> CreateOpenRecerts(int ownerId, int managementId)
         {
-            return new List<RecertificationBase>
-            {
+            return
+            [
                 new()
                 {
                     OwnerId = ownerId,
                     RuleId = managementId * 100,
                     RuleMetadataId = managementId * 1000
                 }
-            };
+            ];
         }
 
         private static OwnerRefresh CreateOwnerRefresh(string status)
@@ -89,10 +89,10 @@ namespace FWO.Test
 
         private sealed class RecordingRecertRefreshApiConnection : SimulatedApiConnection
         {
-            public List<(string Query, object? Variables)> Queries { get; } = new();
-            public List<FwoOwner> Owners { get; } = new();
-            public List<Management> Managements { get; } = new();
-            public Dictionary<(int OwnerId, int ManagementId), List<RecertificationBase>> OpenRecertsByOwnerAndManagement { get; } = new();
+            public List<(string Query, object? Variables)> Queries { get; } = [];
+            public List<FwoOwner> Owners { get; } = [];
+            public List<Management> Managements { get; } = [];
+            public Dictionary<(int OwnerId, int ManagementId), List<RecertificationBase>> OpenRecertsByOwnerAndManagement { get; } = [];
             public string RefreshStatus { get; set; } = "Materialized view refreshed successfully";
             public Action? OnManagementsQuery { get; set; }
 

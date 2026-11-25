@@ -78,7 +78,7 @@ namespace FWO.Report.Data.ViewData
             Enabled = SafeCall(rule, "Enabled", () => RuleDisplayBase.DisplayEnabled(rule, outputLocation));
         }
 
-        private string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)
+        private static string ResolveCompliance(Rule rule, ComplianceViolationType? complianceViolationType)
         {
             return (complianceViolationType ?? rule.Compliance) switch
             {
@@ -88,7 +88,7 @@ namespace FWO.Report.Data.ViewData
             };
         }
 
-        private string ResolveInstallOn(Rule rule, List<Device> devices)
+        private static string ResolveInstallOn(Rule rule, List<Device> devices)
         {
             string installOn = "";
 
@@ -118,7 +118,7 @@ namespace FWO.Report.Data.ViewData
             return installOn;
         }
 
-        private string SafeCall(Rule rule, string column, Func<string> func)
+        private static string SafeCall(Rule rule, string column, Func<string> func)
         {
             try
             {

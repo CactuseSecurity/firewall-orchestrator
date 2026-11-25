@@ -69,6 +69,25 @@ namespace FWO.Test
             throw new MissingFieldException(type.FullName, memberName);
         }
 
+        /// <summary>
+        /// The tooltip of a setting sits on its settings row or, for a single check box, on its form-check wrapper.
+        /// </summary>
+        private static string? GetTooltip(AngleSharp.Dom.IElement label)
+        {
+            return label.Closest("[title]")?.GetAttribute("title");
+        }
+
+        /// <summary>
+        /// Finds the action button in the same settings row as the given label.
+        /// </summary>
+        private static AngleSharp.Dom.IElement FindRowButton(AngleSharp.Dom.IElement label)
+        {
+            AngleSharp.Dom.IElement row = label.Closest(".settings-row")
+                ?? throw new InvalidOperationException("The label is not part of a settings row.");
+            return row.QuerySelector("button")
+                ?? throw new InvalidOperationException("The settings row has no button.");
+        }
+
         private static AngleSharp.Dom.IElement FindElementByText(List<AngleSharp.Dom.IElement> elements, string text)
         {
             foreach (AngleSharp.Dom.IElement element in elements)
@@ -206,11 +225,11 @@ namespace FWO.Test
             SettingsCustomizing component = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = new List<WfState>
-                {
+                States =
+                [
                     new() { Id = 0, Name = "draft" },
                     new() { Id = 17, Name = "requested" }
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -403,18 +422,18 @@ namespace FWO.Test
             await using BunitContext context = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = new List<WfState>
-                {
+                States =
+                [
                     new() { Id = 0, Name = "draft" },
                     new() { Id = 17, Name = "requested" },
                     new() { Id = 50, Name = "approval" }
-                },
-                WorkflowConfigurations = new List<WorkflowConfiguration>
-                {
+                ],
+                WorkflowConfigurations =
+                [
                     CreateWorkflowConfiguration("request-active",
                         CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 101),
                         CreateWorkflowConfigurationPhase(WorkflowPhases.approval, false, 50, 60, 102))
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -642,10 +661,10 @@ namespace FWO.Test
                 string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
                 List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
                 AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
-                Assert.That(sortLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9034")));
+                Assert.That(GetTooltip(sortLabel), Is.EqualTo(userConfig.PureLine("C9034")));
                 string bundledTasksLabelText = userConfig.GetText("reqDisplayBundledTasksAsOne");
                 AngleSharp.Dom.IElement bundledTasksLabel = FindElementByText(sortLabels, bundledTasksLabelText);
-                Assert.That(bundledTasksLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("H5579c")));
+                Assert.That(GetTooltip(bundledTasksLabel), Is.EqualTo(userConfig.PureLine("H5579c")));
                 IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settings.FindComponent<CreateRequestTaskSortConfigPopup>();
                 Assert.That(popup.Instance.Display, Is.False);
             });
@@ -654,7 +673,7 @@ namespace FWO.Test
             string expectedLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
             List<AngleSharp.Dom.IElement> labels = [.. settingsComponent.FindAll("label")];
             AngleSharp.Dom.IElement label = FindElementByText(labels, expectedLabelText);
-            label.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+            FindRowButton(label).Click();
 
             wrapper.WaitForAssertion(() =>
             {
@@ -697,7 +716,7 @@ namespace FWO.Test
                 string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
                 List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
                 AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
-                sortLabel.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+                FindRowButton(sortLabel).Click();
             });
 
             IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = wrapper.FindComponent<CreateRequestTaskSortConfigPopup>();
@@ -1172,22 +1191,22 @@ namespace FWO.Test
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
             public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
             public bool ThrowOnUpsertConfig { get; set; } = false;
-            public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = new List<PathAnalysisAlgorithm>
-            {
+            public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } =
+            [
                 // ordered by name like the query
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmForEachDevice, Name = "For each device" },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "First device (if available)" }
-            };
-            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
-            {
+            ];
+            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } =
+            [
                 new()
                 {
                     Id = 1,
                     Name = "default",
-                    Phases = new List<WorkflowConfigurationPhase>
-                    {
+                    Phases =
+                    [
                         new()
                         {
                             TaskType = WfTaskType.master.ToString(),
@@ -1203,9 +1222,9 @@ namespace FWO.Test
                                 LowestEndState = 0
                             }
                         }
-                    }
+                    ]
                 }
-            };
+            ];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {

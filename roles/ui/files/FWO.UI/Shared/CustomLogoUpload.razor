@@ -63,7 +63,7 @@
             throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} cannot be empty!");
 
         if(string.IsNullOrWhiteSpace(SupportedFileFormats))
-            throw new ArgumentNullException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
+            throw new InvalidOperationException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
 
         base.OnParametersSet();
     }

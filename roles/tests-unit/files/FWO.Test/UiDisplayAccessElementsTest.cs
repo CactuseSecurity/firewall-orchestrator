@@ -51,7 +51,7 @@ namespace FWO.Test
                 .Add(p => p.Sources, sources)
                 .Add(p => p.Destinations, destinations)
                 .Add(p => p.Services, services)
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             Assert.Multiple(() =>
@@ -89,10 +89,10 @@ namespace FWO.Test
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement> { new() { FlowNetworkObjectId = 101, Name = "Flow Source" } })
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [new() { FlowNetworkObjectId = 101, Name = "Flow Source" }])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button")[0].Click();
@@ -114,8 +114,8 @@ namespace FWO.Test
             WfReqTask fallbackTask = new()
             {
                 Id = 77,
-                Elements = new List<WfReqElement>
-                {
+                Elements =
+                [
                     new()
                     {
                         TaskId = 77,
@@ -130,15 +130,15 @@ namespace FWO.Test
                         Name = "Task Destination",
                         Cidr = new Cidr("192.0.2.2/32")
                     }
-                }
+                ]
             };
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement> { new() { Name = "Task Source", IpString = "192.0.2.1/32" } })
-                .Add(p => p.Destinations, new List<NwObjectElement> { new() { Name = "Task Destination", IpString = "192.0.2.2/32" } })
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.TicketTasks, new List<WfReqTask> { fallbackTask })
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [new() { Name = "Task Source", IpString = "192.0.2.1/32" }])
+                .Add(p => p.Destinations, [new() { Name = "Task Destination", IpString = "192.0.2.2/32" }])
+                .Add(p => p.Services, [])
+                .Add(p => p.TicketTasks, [fallbackTask])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button")[0].Click();
@@ -176,10 +176,10 @@ namespace FWO.Test
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement> { new() { FlowNetworkGroupId = 501, GroupName = "Flow Group" } })
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [new() { FlowNetworkGroupId = 501, GroupName = "Flow Group" }])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button").Single().Click();
@@ -208,11 +208,11 @@ namespace FWO.Test
             };
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement> { new() { GroupName = "Local Group" } })
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [new() { GroupName = "Local Group" }])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.TicketTasks, [groupTask])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button").Single().Click();
@@ -246,11 +246,11 @@ namespace FWO.Test
             };
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement> { new() { GroupName = "Local Group" } })
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [new() { GroupName = "Local Group" }])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.TicketTasks, [groupTask])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button").Single().Click();
@@ -283,11 +283,11 @@ namespace FWO.Test
             };
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement> { new() { GroupName = "Destination Group" } })
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [new() { GroupName = "Destination Group" }])
+                .Add(p => p.Services, [])
+                .Add(p => p.TicketTasks, [groupTask])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button").Single().Click();
@@ -329,13 +329,13 @@ namespace FWO.Test
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>
-                {
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services,
+                [
                     new() { FlowServiceGroupId = 601, GroupName = "Flow service group" }
-                })
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                ])
+                .Add(p => p.IpProtos, [new() { Id = 6, Name = "tcp" }])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button").Single().Click();
@@ -379,14 +379,14 @@ namespace FWO.Test
             };
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>
-                {
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services,
+                [
                     new() { GroupName = "Local service group", Name = "Local service group" }
-                })
-                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                ])
+                .Add(p => p.TicketTasks, [groupTask])
+                .Add(p => p.IpProtos, [new() { Id = 6, Name = "tcp" }])
                 .Add(p => p.EditMode, false));
 
             component.FindAll("button").Single().Click();
@@ -421,10 +421,10 @@ namespace FWO.Test
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, true));
 
             List<NetworkObject> loadedObjects = GetMember<List<NetworkObject>>(component.Instance, "nwObjects");
@@ -462,10 +462,10 @@ namespace FWO.Test
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [new() { Id = 6, Name = "tcp" }])
                 .Add(p => p.EditMode, true));
 
             List<NetworkService> loadedServices = GetMember<List<NetworkService>>(component.Instance, "nwServices");
@@ -479,20 +479,20 @@ namespace FWO.Test
             await using BunitContext context = new();
             UiRequestWorkflowTest.RequestWorkflowApiConn apiConn = new()
             {
-                FlowSvcObjects = new List<FlowSvcObject>
-                {
+                FlowSvcObjects =
+                [
                     new FlowSvcObject { Id = 202, Name = "", PortStart = null, PortEnd = null, ProtoId = 6, ShowInRequestModule = true }
-                }
+                ]
             };
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [new() { Id = 6, Name = "tcp" }])
                 .Add(p => p.EditMode, true));
 
             List<NetworkService> loadedServices = GetMember<List<NetworkService>>(component.Instance, "nwServices");
@@ -513,21 +513,21 @@ namespace FWO.Test
             await using BunitContext context = new();
             UiRequestWorkflowTest.RequestWorkflowApiConn apiConn = new()
             {
-                FlowSvcObjects = new List<FlowSvcObject>
-                {
+                FlowSvcObjects =
+                [
                     new FlowSvcObject { Id = 202, Name = "", PortStart = null, PortEnd = null, ProtoId = -1, ShowInRequestModule = true },
                     new FlowSvcObject { Id = 203, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6, ShowInRequestModule = true }
-                }
+                ]
             };
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = -1, Name = "ANY" }, new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [new() { Id = -1, Name = "ANY" }, new() { Id = 6, Name = "tcp" }])
                 .Add(p => p.EditMode, true));
 
             List<NetworkService> loadedServices = GetMember<List<NetworkService>>(component.Instance, "nwServices");
@@ -543,20 +543,20 @@ namespace FWO.Test
             context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
             context.Services.AddSingleton<DomEventService>();
-            List<IpProtocol> displayProtocols = new()
-            {
+            List<IpProtocol> displayProtocols =
+            [
                 new() { Id = -1, Name = "ANY" },
                 new() { Id = 6, Name = "TCP" }
-            };
-            List<IpProtocol> selectableProtocols = new()
-            {
+            ];
+            List<IpProtocol> selectableProtocols =
+            [
                 new() { Id = 6, Name = "TCP" }
-            };
+            ];
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
                 .Add(p => p.IpProtos, displayProtocols)
                 .Add(p => p.SelectableIpProtos, selectableProtocols)
                 .Add(p => p.EditMode, true));
@@ -589,11 +589,11 @@ namespace FWO.Test
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
                 .Add(p => p.Sources, sources)
                 .Add(p => p.SourcesToAdd, sourcesToAdd)
-                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Destinations, [])
                 .Add(p => p.DestinationsToAdd, destinationsToAdd)
                 .Add(p => p.Services, services)
                 .Add(p => p.ServicesToAdd, servicesToAdd)
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, true));
 
             NetworkObject flowObject = GetMember<List<NetworkObject>>(component.Instance, "nwObjects").Single(obj => obj.FlowNetworkObjectId == 101);
@@ -651,12 +651,12 @@ namespace FWO.Test
             List<NwServiceElement> servicesToAdd = [];
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Sources, [])
                 .Add(p => p.SourcesToAdd, sourcesToAdd)
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
                 .Add(p => p.ServicesToAdd, servicesToAdd)
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, true));
 
             NetworkObject flowObject = GetMember<List<NetworkObject>>(component.Instance, "nwObjects").Single();
@@ -697,10 +697,10 @@ namespace FWO.Test
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
-                .Add(p => p.Sources, new List<NwObjectElement>())
-                .Add(p => p.Destinations, new List<NwObjectElement>())
-                .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.Sources, [])
+                .Add(p => p.Destinations, [])
+                .Add(p => p.Services, [])
+                .Add(p => p.IpProtos, [])
                 .Add(p => p.EditMode, true));
 
             IReadOnlyList<IElement> catalogColumns = component.FindAll(".bg-secondary > .form-group.row.col-sm-12 > .col-sm-4");
@@ -748,7 +748,7 @@ namespace FWO.Test
             NwObjectElement address = new() { GroupName = "parent_group", Name = "member_object", IpString = "192.0.2.10" };
 
             IRenderedComponent<IpSelector> component = context.Render<IpSelector>(parameters => parameters
-                .Add(p => p.IpAddresses, new List<NwObjectElement> { address })
+                .Add(p => p.IpAddresses, [address])
                 .Add(p => p.Readonly, true)
                 .Add(p => p.WithLabel, false));
             Assert.That(component.Markup, Does.Contain("parent_group"));
@@ -819,8 +819,8 @@ namespace FWO.Test
             NwServiceElement service = new() { GroupName = "parent_group", Name = "member_service", ProtoId = 6, Port = 443 };
 
             IRenderedComponent<ServiceSelector> component = context.Render<ServiceSelector>(parameters => parameters
-                .Add(p => p.Services, new List<NwServiceElement> { service })
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.Services, [service])
+                .Add(p => p.IpProtos, [new() { Id = 6, Name = "tcp" }])
                 .Add(p => p.Readonly, true)
                 .Add(p => p.WithLabel, false));
             Assert.That(component.Markup, Does.Contain("parent_group"));
@@ -848,7 +848,7 @@ namespace FWO.Test
             ];
 
             IRenderedComponent<ServiceSelector> component = context.Render<ServiceSelector>(parameters => parameters
-                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.Services, [])
                 .Add(p => p.ServicesToAdd, servicesToAdd)
                 .Add(p => p.IpProtos, ipProtos)
                 .Add(p => p.WithLabel, false));
@@ -874,7 +874,7 @@ namespace FWO.Test
             ];
 
             IRenderedComponent<ServiceSelector> component = context.Render<ServiceSelector>(parameters => parameters
-                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.Services, [])
                 .Add(p => p.ServicesToAdd, servicesToAdd)
                 .Add(p => p.IpProtos, ipProtos)
                 .Add(p => p.WithLabel, false));

@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Enums;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -33,7 +34,6 @@ namespace FWO.Test
         private static readonly string[] kOverrideRecipients = ["override@example.test"];
         private static readonly string[] kScopedRecipients = ["scoped@example.test"];
         private static readonly string[] kAliceBobRecipients = ["alice@example.test", "bob@example.test"];
-        private static readonly string[] kAliceRecipients = ["alice@example.test"];
         private static readonly string[] kAliceAndEmptyRecipients = ["alice@example.test", string.Empty];
         private static readonly List<string> kOtherAddressRecipients = ["a@test", "b@test"];
         private static readonly List<string> kJsonOtherAddressList = ["json-a@test", "json-b@test"];
@@ -109,7 +109,8 @@ namespace FWO.Test
                 EmailAddressBcc = "bcc@example.test",
                 EmailSubject = "Subject",
                 EmailBody = "Body",
-                Deadline = NotificationDeadline.RequestDate
+                Deadline = NotificationDeadline.RequestDate,
+                EmailPriority = EmailPriority.High
             };
 
             bool sent = await helper.SendEmailToNotificationRecipients(notification, owner, "Rendered subject", "Rendered body");
@@ -123,6 +124,7 @@ namespace FWO.Test
                 Assert.That(helper.CapturedSubject, Is.EqualTo("Rendered subject"));
                 Assert.That(helper.CapturedBody, Is.EqualTo("Rendered body"));
                 Assert.That(helper.CapturedMailFormatHtml, Is.True);
+                Assert.That(helper.CapturedPriority, Is.EqualTo(EmailPriority.High));
             });
         }
 
@@ -151,7 +153,7 @@ namespace FWO.Test
             {
                 Requester = true,
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "cc@example.test" }
+                OtherAddressList = ["cc@example.test"]
             };
             FwoNotification notification = new()
             {
@@ -386,7 +388,8 @@ namespace FWO.Test
                 RecipientBcc = EmailRecipientOption.OtherAddresses,
                 EmailAddressBcc = "bcc@example.test",
                 EmailSubject = $"{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}",
-                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}"
+                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}",
+                EmailPriority = EmailPriority.Low
             };
             WorkflowEmailContent workflowContent = new()
             {
@@ -418,6 +421,7 @@ namespace FWO.Test
                 Assert.That(helper.CapturedSubject, Is.EqualTo("Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
                 Assert.That(helper.CapturedBody, Is.EqualTo("Body:Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
                 Assert.That(helper.CapturedMailFormatHtml, Is.False);
+                Assert.That(helper.CapturedPriority, Is.EqualTo(EmailPriority.Low));
                 Assert.That(helper.CapturedAttachment, Is.Not.Null);
                 Assert.That(helper.CapturedAttachment!.ContentType, Is.EqualTo("application/html"));
                 Assert.That(helper.CapturedAttachment.FileName, Does.EndWith(".html"));
@@ -542,11 +546,11 @@ namespace FWO.Test
             EmailRecipientSelection selection = new()
             {
                 None = false,
-                OwnerResponsibleTypeIds = new List<int>
-                {
+                OwnerResponsibleTypeIds =
+                [
                     GlobalConst.kOwnerResponsibleTypeSupporting,
                     GlobalConst.kOwnerResponsibleTypeMain
-                }
+                ]
             };
 
             List<string> recipients = await helper.GetRecipients(selection.ToConfigValue(), owner, null);
@@ -557,8 +561,8 @@ namespace FWO.Test
         [Test]
         public async Task GetRecipientsResolvesAssignedGroupUsersThroughOwnerGroups()
         {
-            List<UserGroup> ownerGroups = new()
-            {
+            List<UserGroup> ownerGroups =
+            [
                 new UserGroup
                 {
                     Dn = "cn=network-team,dc=test",
@@ -568,7 +572,7 @@ namespace FWO.Test
                         new UiUser { Dn = "cn=bob,dc=test" }
                     ]
                 }
-            };
+            ];
             EmailHelper helper = CreateEmailHelper(
                 ownerGroups,
                 useDummyEmailAddress: false);
@@ -591,8 +595,8 @@ namespace FWO.Test
         [Test]
         public async Task GetRecipientsReturnsEmptyForUnresolvedAssignedGroupMembers()
         {
-            List<UserGroup> ownerGroups = new()
-            {
+            List<UserGroup> ownerGroups =
+            [
                 new UserGroup
                 {
                     Dn = "cn=network-team,dc=test",
@@ -602,7 +606,7 @@ namespace FWO.Test
                         new UiUser { Dn = "cn=missing,dc=test" }
                     ]
                 }
-            };
+            ];
             EmailHelper helper = CreateEmailHelper(
                 ownerGroups,
                 useDummyEmailAddress: false);
@@ -650,7 +654,7 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 globalConfig,
                 new NotificationServiceWithRecipientsApiConn(),
-                new List<UserGroup>());
+                []);
 
             FwoNotification notification = new()
             {
@@ -737,7 +741,7 @@ namespace FWO.Test
             EmailRecipientSelection selection = new()
             {
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "other@test", "", "dup@test" },
+                OtherAddressList = ["other@test", "", "dup@test"],
                 EnsureAtLeastOneNotification = true,
                 OwnerResponsibleTypeIds = [99]
             };
@@ -1203,10 +1207,10 @@ namespace FWO.Test
         public async Task GetRecipientsFallbackUsesMainWhenSupportingHasNoUsableEmail(string? supportingEmail)
         {
             EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
-            List<UiUser> users = new()
-            {
+            List<UiUser> users =
+            [
                 new() { Dn = "cn=main,dc=test", Email = "main@example.test" }
-            };
+            ];
             if (supportingEmail != null)
             {
                 users.Add(new UiUser { Dn = "cn=support,dc=test", Email = supportingEmail });
@@ -1444,6 +1448,7 @@ namespace FWO.Test
             public List<string>? CapturedBcc { get; private set; }
             public string CapturedSubject { get; private set; } = "";
             public string CapturedBody { get; private set; } = "";
+            public EmailPriority CapturedPriority { get; private set; }
             public bool CapturedMailFormatHtml { get; private set; }
             public FormFile? CapturedAttachment { get; private set; }
 
@@ -1452,9 +1457,13 @@ namespace FWO.Test
             {
             }
 
-            protected override Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, bool mailFormatHtml = true, Microsoft.AspNetCore.Http.FormFile? attachment = null)
+            protected override Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, EmailSendOptions? options = null)
             {
+                EmailSendOptions sendOptions = options ?? new();
+                bool mailFormatHtml = sendOptions.MailFormatHtml;
+                Microsoft.AspNetCore.Http.FormFile? attachment = sendOptions.Attachment;
                 SendEmailCallCount++;
+                CapturedPriority = sendOptions.Priority;
                 CapturedTo = [.. tos];
                 CapturedCc = ccs == null ? null : [.. ccs];
                 CapturedBcc = bccs == null ? null : [.. bccs];

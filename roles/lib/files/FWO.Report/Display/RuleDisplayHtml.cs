@@ -251,7 +251,7 @@ namespace FWO.Ui.Display
         {
             int count = 0;
             return string.Join("", Array.ConvertAll<Recertification, string>(ruleMetadata.RuleRecertification.ToArray(),
-                recert => GetLastRecertifierDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+                _ => GetLastRecertifierDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count))));
         }
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
@@ -262,14 +262,14 @@ namespace FWO.Ui.Display
             string? userOutput = null;
             if (!isResolved && networkLocation.User != null)
             {
-                string userLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.User, chapterNumber, networkLocation.User.Id, reportType);
+                string userLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.User, chapterNumber, networkLocation.User.Id);
                 userOutput = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.user, networkLocation.User.Type.Name), networkLocation.User.Name, style, userLink);
             }
 
             string? objectLink = null;
             if (!isResolved)
             {
-                string objLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, networkLocation.Object.Id, reportType);
+                string objLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, networkLocation.Object.Id);
                 objectLink = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Name, style, objLink);
             }
 
@@ -287,7 +287,7 @@ namespace FWO.Ui.Display
             else
             {
                 // Construct link for unresolved report types
-                string serviceLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.Svc, chapterNumber, service.Id, reportType);
+                string serviceLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.Svc, chapterNumber, service.Id);
                 string serviceName = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Name, style, serviceLink);
                 return DisplayServiceHtml(service, reportType, serviceName);
             }
@@ -372,7 +372,7 @@ namespace FWO.Ui.Display
             return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? HtmlOutputEncoder.EncodeText(recert.IpMatch) : "&#8208;") + "</p>";
         }
 
-        private static string GetLastRecertifierDisplayString(string countString, Recertification recert)
+        private static string GetLastRecertifierDisplayString(string countString)
         {
             return "<p>" + countString + "</p>"; // TODO: fetch last recertifier
         }

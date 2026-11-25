@@ -12,10 +12,12 @@
 @inject ApiConnection ApiConnection
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
+@inject UiClientAddress clientAddress
 
+<div class="login-page">
 @if (showLoginForm)
 {
-    <div class="row text-center mt-2">
+    <div class="row text-center">
         <div class="col-xl col-lg col-md col-sm col"></div>
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-8 col-10">
             @if (globalConfig.UseCustomLogo)
@@ -80,7 +82,7 @@
 {
     <div class="row m-4 justify-content-center">
         <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
-        <div class="shadow-sm card p-3" style="width: 250px;">
+        <div class="shadow-sm card p-3 password-change-card">
             <form class="d-flex flex-column">
                 <div class="form-group">
                     <input type="password" class="form-control @InputClass" id="OldPasswordInput"
@@ -113,6 +115,7 @@
         </div>
     </div>
 }
+</div>
 
 @code
 {
@@ -229,21 +232,21 @@
                         errorMessage = userConfig.GetApiText(authResponse.Content);
                         // Visualisize the error by making border of all inputboxes red
                         InputClass = "is-invalid";
-                        Log.WriteInfo("Login", $"Login of user {Username} failed: " + errorMessage);
+                        Log.WriteInfo("Login", $"Login of user {Username} from client address {clientAddress.Description} failed: " + errorMessage);
                     }
                     else
                     {
                         // Probably the middleware server is unreachable. The details name internal hosts and
                         // errors, so they only go to the log and the not yet authenticated visitor gets a generic text.
                         errorMessage = userConfig.GetText("E0012");
-                        Log.WriteError("Login", $"Login of user {Username} failed: Middleware Api Error: {authResponse.ErrorMessage}");
+                        Log.WriteError("Login", $"Login of user {Username} from client address {clientAddress.Description} failed: Middleware Api Error: {authResponse.ErrorMessage}");
                     }
 
                     await focusInput();
                     StateHasChanged();
                 }
             }
-            // Authentication exception (raised by us)
+            // Authentication exception (raised by us, already logged with the client address by AuthStateProvider)
             catch (AuthenticationException e)
             {
                 errorMessage = userConfig.GetText(e.Message);
@@ -252,7 +255,7 @@
             catch (Exception exception)
             {
                 errorMessage = userConfig.GetText("E0012");
-                Log.WriteError("Login error", $"An unexpected exception was thrown during the log in process for user: \"{Username}\".",
+                Log.WriteError("Login error", $"An unexpected exception was thrown during the log in process for user: \"{Username}\" from client address {clientAddress.Description}.",
                 exception);
             }
 

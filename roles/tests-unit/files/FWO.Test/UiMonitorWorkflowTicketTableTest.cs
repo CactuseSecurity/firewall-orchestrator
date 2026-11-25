@@ -40,7 +40,7 @@ namespace FWO.Test
         [Test]
         public void Render_NoTickets_ShowsNoRowsText()
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket>());
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([]);
 
             Assert.Multiple(() =>
             {
@@ -52,7 +52,7 @@ namespace FWO.Test
         [Test]
         public void FirstRender_RequestsPage1WithDefaultPageSize()
         {
-            RenderTable(new List<WfTicket> { CreateTicket() });
+            RenderTable([CreateTicket()]);
 
             FancyItemsRequest request = requests.Single();
             Assert.That((request.Page, request.PageSize, request.SearchText, request.SortColumnKey), Is.EqualTo((1, kDefaultPageSize, "", (string?)null)));
@@ -62,7 +62,7 @@ namespace FWO.Test
         [TestCase(false)]
         public void NextPage_EnabledOnlyWhenHasMore(bool hasMore)
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() }, hasMore: hasMore);
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()], hasMore: hasMore);
 
             List<IElement> enabledNextButtons = [.. component.FindAll(".fancy-pagination button")
                 .Where(button => button.TextContent.Contains(new MonitorWorkflowUserConfig().GetText("next")) && !button.HasAttribute("disabled"))];
@@ -89,7 +89,7 @@ namespace FWO.Test
         [Test]
         public void SortHeaderClick_SendsSortKey()
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()]);
 
             component.Find("th[data-column-key='name'] button[aria-label]:has(i.bi-arrow-down-up)").Click();
 
@@ -99,7 +99,7 @@ namespace FWO.Test
         [Test]
         public async Task RefreshAsync_ResetToFirstPage_RequestsPage1()
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() }, hasMore: true);
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()], hasMore: true);
             component.FindAll(".fancy-pagination button").Single(button => button.TextContent.Contains(new MonitorWorkflowUserConfig().GetText("next"))).Click();
 
             await component.InvokeAsync(() => component.Instance.RefreshAsync(false));
@@ -112,7 +112,7 @@ namespace FWO.Test
         [Test]
         public void Render_OffersNoFreeTextSearch()
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()]);
 
             string searchPlaceholder = new MonitorWorkflowUserConfig().GetText("search");
             Assert.That(component.FindAll($"input[placeholder='{searchPlaceholder}']"), Is.Empty);
@@ -129,7 +129,7 @@ namespace FWO.Test
         [TestCase("actions", false, false)]
         public void ColumnFlags_OfferOnlyWhatTheServerSupports(string columnKey, bool sortable, bool filterable)
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()]);
 
             string header = $"th[data-column-key='{columnKey}']";
             Assert.Multiple(() =>
@@ -147,7 +147,7 @@ namespace FWO.Test
         [TestCase("requester", "Equals,NotEquals,Contains,NotContains,StartsWith,EndsWith,IsEmpty,IsNotEmpty")]
         public void FilterPopup_OffersOnlyOperatorsTheServerSupports(string columnKey, string expectedOperators)
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()]);
 
             string header = $"th[data-column-key='{columnKey}']";
             component.Find($"{header} button.fancy-filter-button").Click();
@@ -159,7 +159,7 @@ namespace FWO.Test
         [Test]
         public void DateFilter_Between_SendsBothDaysToTheServer()
         {
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([CreateTicket()]);
             string header = "th[data-column-key='start_time']";
 
             component.Find($"{header} button.fancy-filter-button").Click();
@@ -180,7 +180,7 @@ namespace FWO.Test
             WfTicket ticket = CreateTicket();
             ticket.CreationDate = new DateTime(2026, 11, 10, 8, 30, 0);
 
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { ticket });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([ticket]);
 
             List<string?> columnKeys = [.. component.FindAll("thead th").Select(header => header.GetAttribute("data-column-key"))];
             IElement startCell = component.FindAll("tbody tr td")[columnKeys.IndexOf("start_time")];
@@ -192,7 +192,7 @@ namespace FWO.Test
         {
             WfTicket ticket = CreateTicket();
 
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { ticket });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([ticket]);
 
             Assert.Multiple(() =>
             {
@@ -208,7 +208,7 @@ namespace FWO.Test
         public void ExpandAll_ShowsRequestTasksImplementationTasksAndApprovals()
         {
             WfTicket ticket = CreateTicket();
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { ticket });
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([ticket]);
 
             component.Find(kExpandAllButton).Click();
 
@@ -228,7 +228,7 @@ namespace FWO.Test
             WfTicket ticket = CreateTicket();
             WfReqTask reqTask = ticket.Tasks[0];
             List<string> calls = [];
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { ticket }, parameters => parameters
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([ticket], parameters => parameters
                 .Add(p => p.ChangeTicketState, (Func<WfTicket, Task>)(changedTicket =>
                 {
                     calls.Add($"ticket {changedTicket.Id}");
@@ -257,13 +257,12 @@ namespace FWO.Test
                 component.FindAll(kChangeStateButton)[index].Click();
             }
 
-            Assert.That(calls, Is.EquivalentTo(new List<string>
-            {
+            Assert.That(calls, Is.EquivalentTo([
                 "ticket 1",
                 $"reqtask 1/{reqTask.Id}",
                 $"impltask 1/{reqTask.Id}/{reqTask.ImplementationTasks[0].Id}",
                 $"approval 1/{reqTask.Id}/{reqTask.Approvals[0].Id}"
-            }));
+            ]));
         }
 
         [TestCase(true)]
@@ -272,7 +271,7 @@ namespace FWO.Test
         {
             WfTicket ticket = CreateTicket();
             WfReqTask? autoCreatedReqTask = null;
-            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { ticket }, parameters => parameters
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable([ticket], parameters => parameters
                 .Add(p => p.CanAutoCreateImplementationTasks, (Func<WfTicket, WfReqTask, bool>)((_, _) => canAutoCreate))
                 .Add(p => p.AutoCreateImplementationTasks, (Func<WfTicket, WfReqTask, Task>)((_, reqTask) =>
                 {

@@ -24,6 +24,7 @@ mutation addNotification(
   $repetitionsAfterDeadline: Int
   $logging: String
   $active: Boolean!
+  $emailPriority: String!
   ) {
   insert_notification(objects: {
     notification_client: $client
@@ -51,6 +52,7 @@ mutation addNotification(
     repetitions_after_deadline: $repetitionsAfterDeadline
     logging: $logging
     active: $active
+    email_priority: $emailPriority
   }) {
     returning {
       newId: id

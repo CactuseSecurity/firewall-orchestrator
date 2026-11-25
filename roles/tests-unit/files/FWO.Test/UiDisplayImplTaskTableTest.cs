@@ -31,8 +31,7 @@ namespace FWO.Test
             DisplayImplTaskTable component = CreateComponent();
             SetPrivateField(component, "reqTasksById", new Dictionary<long, WfReqTask>
             {
-                { 12, new WfReqTask { Id = 12, Owners = new List<FwoOwnerDataHelper>
-                    { new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7, Name = "Application A" } } } } }
+                { 12, new WfReqTask { Id = 12, Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7, Name = "Application A" } }] } }
             });
 
             WfImplTask implementationTask = new() { ReqTaskId = 12 };
@@ -59,7 +58,7 @@ namespace FWO.Test
         public void GetDeviceName_UsesConfiguredDeviceName()
         {
             DisplayImplTaskTable component = CreateComponent();
-            component.WfHandler.Devices = new List<Device> { new Device { Id = 4, Name = "Gateway A" } };
+            component.WfHandler.Devices = [new Device { Id = 4, Name = "Gateway A" }];
 
             Assert.That(InvokePrivate<string>(component, "GetDeviceName", new WfImplTask { DeviceId = 4 }), Is.EqualTo("Gateway A"));
         }
@@ -74,7 +73,7 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new();
             SetPrivateField(component, "userConfig", userConfig);
             WfReqTask requestTask = new() { Id = 12, TaskType = WfTaskType.access.ToString() };
-            requestTask.SetDeviceList(new List<int> { WfReqTaskBase.kAllDevicesId });
+            requestTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
             SetPrivateField(component, "reqTasksById", new Dictionary<long, WfReqTask> { { 12, requestTask } });
 
             WfImplTask implementationTask = new() { ReqTaskId = 12, TaskType = WfTaskType.access.ToString() };
@@ -138,7 +137,7 @@ namespace FWO.Test
             DisplayImplTaskTable component = CreateComponent();
             SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
             WfReqTask requestTask = new() { Id = 20 };
-            WfTicket ticket = new() { Id = 10, Editable = false, Tasks = new List<WfReqTask> { requestTask } };
+            WfTicket ticket = new() { Id = 10, Editable = false, Tasks = [requestTask] };
             SetPrivateField(component, "userConfig", userConfig);
             SetPrivateField(component, nameof(DisplayImplTaskTable.WfHandler), new WfHandler());
             SetPrivateField(component, "ticketsById", new Dictionary<long, WfTicket> { { ticket.Id, ticket } });

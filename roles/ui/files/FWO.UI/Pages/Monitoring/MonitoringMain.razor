@@ -436,12 +436,9 @@
             foreach (var ldapUserGroup in middlewareServerResponse.Data)
             {
                 string groupName = ( new DistName(ldapUserGroup.GroupDn) ).Group;
-                if (groupName.EndsWith(GlobalConst.k_demo))
+                if (groupName.EndsWith(GlobalConst.k_demo) && await DeleteGroup(groupName))
                 {
-                    if (await DeleteGroup(groupName))
-                    {
-                        deletedSampleGroups++;
-                    }
+                    deletedSampleGroups++;
                 }
             }
         }
@@ -536,11 +533,4 @@
         return text;
     }
 
-    private void Cancel()
-    {
-        RemoveSampleDataMode = false;
-        AckAllMode = false;
-        DetailsMode = false;
-        RollbackMode = false;
-    }
 }

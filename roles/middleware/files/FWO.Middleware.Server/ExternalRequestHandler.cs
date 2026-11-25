@@ -282,7 +282,7 @@ namespace FWO.Middleware.Server
                 extTaskContent = taskContent,
                 extQueryVariables = extQueryVars,
                 extRequestState = ExtStates.ExtReqInitialized.ToString(),
-                waitCycles = waitCycles
+                waitCycles
             };
 
             await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
@@ -501,25 +501,6 @@ namespace FWO.Middleware.Server
             };
         }
 
-
-        private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
-        {
-            if (exception == null)
-            {
-                if (ErrorFlag)
-                {
-                    Log.WriteWarning(title, message);
-                }
-                else
-                {
-                    Log.WriteInfo(title, message);
-                }
-            }
-            else
-            {
-                Log.WriteError(title, message, exception);
-            }
-        }
 
         /// <summary>
         /// Dispose method to clean up resources

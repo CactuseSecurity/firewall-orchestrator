@@ -8,39 +8,45 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
-    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @if (Visibility.ShowHandler)
+    {
+        @ReadOnlyValue(userConfig.GetText("handler"), Handler, ApprovalTaskFieldLayout.StandardColumnClass)
+    }
+    @if (Visibility.ShowAssigned)
+    {
+        @ReadOnlyValue(userConfig.GetText("assigned"), Assigned, ApprovalTaskFieldLayout.StandardColumnClass)
+    }
     @if (ShowOwner)
     {
         @EditableValue(userConfig.GetText("owner"), Owner, CanEditOwner, EditOwner, OwnerColumnClass)
     }
     @if (ShowManagement)
     {
-        @EditableValue(userConfig.GetText("management"), Management, CanEditManagement, EditManagement)
+        @EditableValue(userConfig.GetText("management"), Management, CanEditManagement, EditManagement, ManagementColumnClass)
     }
 </div>
 <div class="form-group row">
     @if (ShowRuleAction)
     {
-        @EditableValue(userConfig.GetText("rule_action"), RuleAction, CanEditRuleAction, EditRuleAction)
+        @EditableValue(userConfig.GetText("rule_action"), RuleAction, CanEditRuleAction, EditRuleAction, ApprovalTaskFieldLayout.StandardColumnClass)
     }
     @if (ShowTracking)
     {
-        @EditableValue(userConfig.GetText("track"), Tracking, CanEditTracking, EditTracking)
+        @EditableValue(userConfig.GetText("track"), Tracking, CanEditTracking, EditTracking, ApprovalTaskFieldLayout.StandardColumnClass)
     }
     @if (ShowValidFrom || ShowValidTo)
     {
-        @EditableValue(userConfig.GetText("time_restriction"), TimeObject, CanEditTimeObject, EditTimeObject, "col-xl-6 col-lg-6 mb-2")
+        @EditableValue(userConfig.GetText("time_restriction"), TimeObject, CanEditTimeObject, EditTimeObject, ApprovalTaskFieldLayout.DoubleColumnClass)
     }
 </div>
 <div class="form-group row">
     @if (ShowReason)
     {
-        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, "col-xl-6 col-lg-6 mb-2")
+        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, ApprovalTaskFieldLayout.DoubleColumnClass)
     }
     @if (ShowFreeText)
     {
-        @EditableValue(userConfig.GetText("free_text"), FreeText, CanEditFreeText, EditFreeText, "col-xl-6 col-lg-6 mb-2")
+        @EditableValue(userConfig.GetText("free_text"), FreeText, CanEditFreeText, EditFreeText, ApprovalTaskFieldLayout.DoubleColumnClass)
     }
 </div>
 <div class="form-group row">
@@ -69,7 +75,11 @@
     private bool ShowRuleAction => Visibility.ShowRuleAction;
     private bool ShowTracking => Visibility.ShowTracking;
     private bool ShowManagement => Visibility.ShowManagement;
-    private string OwnerColumnClass => ShowManagement ? "col-xl-3 col-lg-6 mb-2" : "col-xl-6 col-lg-6 mb-2";
+    /// <summary>Owner and management take columns left free by hidden handler or assigned fields, owner first.</summary>
+    private List<int> FirstRowExtendableWidths => ApprovalTaskFieldLayout.ExtendableWidths(
+        (Visibility.ShowHandler ? 1 : 0) + (Visibility.ShowAssigned ? 1 : 0), (ShowOwner ? 1 : 0) + (ShowManagement ? 1 : 0));
+    private string OwnerColumnClass => ApprovalTaskFieldLayout.ColumnClass(FirstRowExtendableWidths[0]);
+    private string ManagementColumnClass => ApprovalTaskFieldLayout.ColumnClass(FirstRowExtendableWidths[^1]);
     private bool ShowValidFrom => Visibility.ShowValidFrom;
     private bool ShowValidTo => Visibility.ShowValidTo;
     private bool ShowReason => Visibility.ShowReason;
@@ -95,13 +105,12 @@
     private Func<Task> EditDestination => () => Context.EditField(Task, WorkflowEditableFieldKeys.Destination);
     private Func<Task> EditServices => () => Context.EditField(Task, WorkflowEditableFieldKeys.Services);
 
-    private static RenderFragment ReadOnlyValue(string label, string value) => builder =>
+    private static RenderFragment ReadOnlyValue(string label, string value, string cssClass) => builder =>
     {
         builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "col-xl-3 col-lg-6 mb-2 d-flex align-items-start");
+        builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         builder.OpenElement(5, "span");
@@ -111,13 +120,12 @@
         builder.CloseElement();
     };
 
-    private RenderFragment EditableValue(string label, string value, bool canEdit, Func<Task> edit, string? cssClass = null) => builder =>
+    private RenderFragment EditableValue(string label, string value, bool canEdit, Func<Task> edit, string cssClass) => builder =>
     {
         builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", $"{cssClass ?? "col-xl-3 col-lg-6 mb-2"} d-flex align-items-start flex-nowrap");
+        builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start flex-nowrap");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         if (canEdit)
@@ -146,8 +154,7 @@
         builder.OpenElement(2, "div");
         builder.AddAttribute(3, "class", "d-flex align-items-start mb-1");
         builder.OpenElement(4, "label");
-        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(6, "style", "min-width: 10rem;");
+        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(7, label + ":");
         builder.CloseElement();
         if (canEdit)
@@ -164,7 +171,7 @@
         builder.AddAttribute(14, "class", "border bg-secondary d-block text-break");
         builder.OpenElement(15, "table");
         string tableClass = "table table-sm table-borderless mb-0 approval-task-network-table"
-            + (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? " approval-task-network-table-technical" : "");
+            + (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved ? "" : " approval-task-network-table-two-columns");
         builder.AddAttribute(16, "class", tableClass);
         RenderNetworkTableHeader(builder);
         RenderNetworkTableBody(builder, rows);
@@ -184,8 +191,8 @@
         if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.UnresolvedGroups)
         {
             AddTableHeader(builder, 21, "ip_address");
-            AddTableHeader(builder, 23, "zone", "approval-task-zone-column");
         }
+        AddTableHeader(builder, 23, "zone", "approval-task-zone-column");
         builder.CloseElement();
         builder.CloseElement();
     }
@@ -197,7 +204,7 @@
         {
             builder.OpenElement(26, "tr");
             builder.OpenElement(27, "td");
-            builder.AddAttribute(28, "colspan", DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? 2 : 3);
+            builder.AddAttribute(28, "colspan", DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved ? 3 : 2);
             builder.AddContent(29, "-");
             builder.CloseElement();
             builder.CloseElement();
@@ -217,9 +224,9 @@
                 {
                     AddTableCell(builder, sequence, row.Ip);
                     sequence += 2;
-                    AddTableCell(builder, sequence, row.Zone, "approval-task-zone-column");
-                    sequence += 2;
                 }
+                AddTableCell(builder, sequence, row.Zone, "approval-task-zone-column");
+                sequence += 2;
                 builder.CloseElement();
             }
         }
@@ -236,8 +243,7 @@
         builder.OpenElement(2, "div");
         builder.AddAttribute(3, "class", "d-flex align-items-start mb-1");
         builder.OpenElement(4, "label");
-        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(6, "style", "min-width: 10rem;");
+        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(7, label + ":");
         builder.CloseElement();
         if (canEdit)

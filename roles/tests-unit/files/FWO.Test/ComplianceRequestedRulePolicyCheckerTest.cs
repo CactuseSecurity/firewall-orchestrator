@@ -69,6 +69,271 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CheckRequestTasks_ReturnsResultAndReasonsPerTask()
+        {
+            CompliancePolicy policy = new()
+            {
+                Id = 5,
+                Criteria =
+                {
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 1,
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = "443/TCP"
+                        }
+                    }
+                }
+            };
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+            WfReqTask violatingTask = CreateEligibleRequestTask(21);
+            WfReqElement anyService = violatingTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            anyService.Name = "ANY";
+            anyService.Port = null;
+            anyService.PortEnd = null;
+            anyService.ProtoId = GlobalConst.kAnyIpProtocolId;
+            WfReqTask compliantTask = CreateEligibleRequestTask(22);
+            compliantTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = 80;
+            WfReqTask unmappableTask = CreateEligibleRequestTask(23);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+            WfReqTask deleteTask = CreateEligibleRequestTask(24, requestAction: nameof(RequestAction.delete));
+
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> tasks = [violatingTask, compliantTask, unmappableTask, deleteTask];
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(policyIds, tasks);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results.Keys, Is.EquivalentTo(kTasks21To23));
+                Assert.That(results[21].IsCompliant, Is.False);
+                Assert.That(results[21].Reasons, Has.Count.EqualTo(1));
+                Assert.That(results[22].IsCompliant, Is.True);
+                Assert.That(results[22].Reasons, Is.Empty);
+                Assert.That(results[23].IsCompliant, Is.False);
+                Assert.That(results[23].Reasons, Is.EqualTo(NotAssessableReasons()));
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_PolicyWithoutCriteria_ReportsFailedCheck()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(new CompliancePolicy { Id = 5 });
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kPolicyId5, Tasks(CreateEligibleRequestTask(31)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[31].IsCompliant, Is.False);
+                Assert.That(results[31].Reasons, Is.EqualTo(CheckFailedReasons()));
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_OnlyUnmappableTasks_ReportsNotAssessableWithoutRunningTheCheck()
+        {
+            WfReqTask unmappableTask = CreateEligibleRequestTask(32);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kPolicyId5, Tasks(unmappableTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[32].IsCompliant, Is.False);
+                Assert.That(results[32].Reasons, Is.EqualTo(NotAssessableReasons()));
+                ApiConnection.AsSub().DidNotReceive().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>());
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_UnresolvedGroupTaskIsNotAssessableWhileOtherTasksAreChecked()
+        {
+            SetUpEmptyFlowGroups();
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(ForbiddenServicePolicy("other-service-uid"));
+            WfReqTask groupTask = CreateEligibleRequestTask(33);
+            WfReqElement destination = groupTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "missing-group";
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kPolicyId5,
+                Tasks(groupTask, CreateEligibleRequestTask(34)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[33].IsCompliant, Is.False);
+                Assert.That(results[33].Reasons, Is.EqualTo(NotAssessableReasons()));
+                Assert.That(results[34].IsCompliant, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task BuildRuleAssessment_UnresolvedGroupMakesWholeAssessmentUnassessable()
+        {
+            SetUpEmptyFlowGroups();
+            WfReqTask groupTask = CreateEligibleRequestTask(35);
+            WfReqElement destination = groupTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "missing-group";
+
+            object assessment = await InvokeRuleAssessment(checker, groupTask, CreateEligibleRequestTask(36));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That((List<Rule>)AssessmentProperty(assessment, "Rules"), Is.Empty);
+                Assert.That((bool)AssessmentProperty(assessment, "HasUnassessableTasks"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task BuildRuleAssessment_UnmappableTaskKeepsOtherRulesButIsUnassessable()
+        {
+            WfReqTask unmappableTask = CreateEligibleRequestTask(37);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            object assessment = await InvokeRuleAssessment(checker, unmappableTask, CreateEligibleRequestTask(38));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(((List<Rule>)AssessmentProperty(assessment, "Rules")).Select(rule => rule.Id), Is.EqualTo(kTask38));
+                Assert.That((bool)AssessmentProperty(assessment, "HasUnassessableTasks"), Is.True);
+            });
+        }
+
+        [TestCase("violation details", "criterion name", 7, "violation details")]
+        [TestCase("", "criterion name", 7, "criterion name")]
+        [TestCase(" ", null, 7, "7")]
+        public void ViolationReason_UsesDetailsThenCriterionNameThenCriterionId(string details, string? criterionName, int criterionId, string expected)
+        {
+            ComplianceViolation violation = new()
+            {
+                Details = details,
+                CriterionId = criterionId,
+                Criterion = criterionName == null ? null : new ComplianceCriterion { Name = criterionName }
+            };
+            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("ViolationReason", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new AssertionException("ViolationReason method not found.");
+
+            object[] arguments = [violation];
+            string reason = (string)method.Invoke(null, arguments)!;
+
+            Assert.That(reason, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public async Task DefaultCheckRequestTasks_ReturnsNoResults()
+        {
+            IRequestedRulePolicyChecker boolOnlyChecker = new BoolOnlyPolicyChecker();
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await boolOnlyChecker.CheckRequestTasks(kPolicyId5, Tasks(CreateEligibleRequestTask(39)));
+
+            Assert.That(results, Is.Empty);
+        }
+
+        private void SetUpEmptyFlowGroups()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, Arg.Any<object>())
+                .Returns([]);
+        }
+
+        private static readonly int[] kPolicyId5 = [5];
+        private static readonly List<int> kNoPolicyIds = [];
+        private static readonly long[] kTasks21To23 = [21, 22, 23];
+        private static readonly long[] kTask38 = [38];
+
+        private static List<WfReqTask> Tasks(params WfReqTask[] tasks) => [.. tasks];
+
+        private List<string> NotAssessableReasons()
+        {
+            List<string> reasons = [UserConfig.GetText("compliance_task_not_assessable")];
+            return reasons;
+        }
+
+        private List<string> CheckFailedReasons()
+        {
+            List<string> reasons = [UserConfig.GetText("compliance_task_check_failed")];
+            return reasons;
+        }
+
+        private static CompliancePolicy ForbiddenServicePolicy(string serviceUid)
+        {
+            return new CompliancePolicy
+            {
+                Id = 5,
+                Criteria =
+                {
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 1,
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = serviceUid
+                        }
+                    }
+                }
+            };
+        }
+
+        private static async Task<object> InvokeRuleAssessment(ComplianceRequestedRulePolicyChecker policyChecker, params WfReqTask[] requestTasks)
+        {
+            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRuleAssessmentFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new AssertionException("BuildRuleAssessmentFromRequestTasks method not found.");
+            object[] arguments = [requestTasks.AsEnumerable()];
+            Task task = (Task)method.Invoke(policyChecker, arguments)!;
+            await task;
+            return task.GetType().GetProperty("Result")!.GetValue(task)!;
+        }
+
+        private static object AssessmentProperty(object assessment, string propertyName)
+        {
+            return assessment.GetType().GetProperty(propertyName)?.GetValue(assessment)
+                ?? throw new AssertionException($"Rule assessment property {propertyName} was missing.");
+        }
+
+        /// <summary>A checker that only implements the boolean check and relies on the default per-task check.</summary>
+        private sealed class BoolOnlyPolicyChecker : IRequestedRulePolicyChecker
+        {
+            public Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+            {
+                return Task.FromResult(true);
+            }
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_NoPolicies_ReturnsNoResults()
+        {
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kNoPolicyIds, Tasks(CreateEligibleRequestTask(25)));
+
+            Assert.That(results, Is.Empty);
+        }
+
+        [Test]
         public async Task AreRequestTasksCompliant_CanonicalAnyServiceViolatesTechnicalForbiddenService()
         {
             CompliancePolicy policy = new()
@@ -87,10 +352,10 @@ namespace FWO.Test
                     }
                 }
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Name = "Mgmt1" }
-            };
+            ];
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
                 .Returns(managements);
@@ -103,8 +368,8 @@ namespace FWO.Test
             service.Port = null;
             service.PortEnd = null;
             service.ProtoId = GlobalConst.kAnyIpProtocolId;
-            List<int> policyIds = new() { policy.Id };
-            List<WfReqTask> requestTasks = new() { task };
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> requestTasks = [task];
 
             bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 
@@ -134,11 +399,11 @@ namespace FWO.Test
                     }
                 }
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Name = "Mgmt1" },
                 new Management { Id = 2, Name = "Mgmt2" }
-            };
+            ];
             ApiConnection.AsSub().SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames).Returns(managements);
             ApiConnection.AsSub().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>()).Returns(policy);
             WfReqTask forwardTask = CreateEligibleRequestTask(17);
@@ -147,8 +412,8 @@ namespace FWO.Test
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = "10.0.1.1/32";
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString()).IpString = "10.0.0.1/32";
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = reversePort;
-            List<int> policyIds = new() { policy.Id };
-            List<WfReqTask> requestTasks = new() { forwardTask, reverseTask };
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> requestTasks = [forwardTask, reverseTask];
 
             bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 
@@ -209,6 +474,108 @@ namespace FWO.Test
                 Assert.That(rules[0].Froms[0].Object.Type.Name, Is.EqualTo(ObjectType.IPRange));
                 Assert.That(rules[0].Froms[0].Object.IpEnd, Is.EqualTo("10.0.0.9/32"));
             });
+        }
+
+        [TestCase(true, RuleActions.Accept)]
+        [TestCase(false, RuleActions.Drop)]
+        public async Task BuildRulesFromRequestTasks_MapsSelectedRuleActionByAllowedFlag(bool allowed, string expectedAction)
+        {
+            SetUpRuleActions(new RuleAction { Id = 7, Name = "selected", Allowed = allowed });
+            WfReqTask task = CreateEligibleRequestTask(25);
+            task.RuleAction = 7;
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
+
+            Assert.That(rules.Single().Action, Is.EqualTo(expectedAction));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_WithoutSelectedRuleActionAcceptsWithoutLoadingTheCatalog()
+        {
+            List<Rule> rules = await BuildRulesFromRequestTasks(CreateEligibleRequestTask(26));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rules.Single().Action, Is.EqualTo(RuleActions.Accept));
+                ApiConnection.AsSub().DidNotReceive().SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_BlockedRuleActionIsNotEvaluatedAsAllowRule()
+        {
+            SetUpRuleActions(new RuleAction { Id = 1, Name = "accept", Allowed = true }, new RuleAction { Id = 2, Name = "drop", Allowed = false });
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(ForbiddenServicePolicy("443/TCP"));
+            WfReqTask allowedTask = CreateAnyServiceTask(27);
+            allowedTask.RuleAction = 1;
+            WfReqTask blockedTask = CreateAnyServiceTask(28);
+            blockedTask.RuleAction = 2;
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kPolicyId5, Tasks(allowedTask, blockedTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[27].IsCompliant, Is.False);
+                Assert.That(results[28].IsCompliant, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_UnknownRuleActionIsNotAssessable()
+        {
+            SetUpRuleActions(new RuleAction { Id = 1, Name = "accept", Allowed = true });
+            WfReqTask task = CreateEligibleRequestTask(29);
+            task.RuleAction = 99;
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kPolicyId5, Tasks(task));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[29].IsCompliant, Is.False);
+                Assert.That(results[29].Reasons, Is.EqualTo(NotAssessableReasons()));
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_RuleActionsThatCannotBeLoadedMakeTheTaskNotAssessable()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions)
+                .Returns(Task.FromException<List<RuleAction>>(new InvalidOperationException("catalog unavailable")));
+            WfReqTask task = CreateEligibleRequestTask(30);
+            task.RuleAction = 1;
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks(kPolicyId5, Tasks(task));
+            bool compliant = await checker.AreRequestTasksCompliant(kPolicyId5, Tasks(task));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[30].Reasons, Is.EqualTo(NotAssessableReasons()));
+                Assert.That(compliant, Is.False);
+            });
+        }
+
+        private void SetUpRuleActions(params RuleAction[] ruleActions)
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions)
+                .Returns(ruleActions.ToList());
+        }
+
+        private static WfReqTask CreateAnyServiceTask(long id)
+        {
+            WfReqTask task = CreateEligibleRequestTask(id);
+            WfReqElement anyService = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            anyService.Name = "ANY";
+            anyService.Port = null;
+            anyService.PortEnd = null;
+            anyService.ProtoId = GlobalConst.kAnyIpProtocolId;
+            return task;
         }
 
         [Test]

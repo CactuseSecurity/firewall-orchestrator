@@ -85,7 +85,15 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (reportSchedule.Active)
                 {
+                    if (!reportSchedule.HasValidRepeatOffset())
+                    {
+                        // an offset below 1 never moves the start time forward, so the loop below would not end
+                        Log.WriteError(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" is skipped: " +
+                            $"repeat offset {reportSchedule.RepeatOffset} is not positive for interval {reportSchedule.RepeatInterval}.");
+                        return;
+                    }
                     TimeZoneInfo zone = timeProvider.LocalTimeZone;
+                    reportSchedule.StartTime = SkipElapsedDayIntervals(reportSchedule, nowRounded, zone);
                     // Add schedule interval as long as schedule time is smaller than current time
                     while (GetDueInstant(reportSchedule.StartTime, zone) < nowRounded)
                     {
@@ -116,6 +124,43 @@ namespace FWO.Middleware.Server.Jobs
             {
                 Log.WriteError(LogMessageTitle, "Checking scheduled reports lead to exception.", exception);
             }
+        }
+
+        /// <summary>
+        /// Moves the start time of a daily or weekly schedule forward by whole intervals to shortly before the current check,
+        /// so that the stepping loop runs only a few times even for a start time far in the past.
+        /// </summary>
+        /// <remarks>
+        /// Adding days is exact in wall-clock time, so the result is a run time that stepping one interval at a time reaches as well.
+        /// One interval (at least one day) is kept as margin, so the result stays before the current check across DST changes.
+        /// Months and years are not skipped: AddMonths clamps the day of month, so a jump could give another run time than stepping.
+        /// </remarks>
+        /// <param name="reportSchedule">Schedule whose start time is advanced.</param>
+        /// <param name="nowRounded">Current check time, rounded down to the check interval.</param>
+        /// <param name="zone">Time zone of the schedule's wall clock.</param>
+        /// <returns>The advanced start time, or the unchanged start time if nothing can be skipped.</returns>
+        private static DateTime SkipElapsedDayIntervals(ReportSchedule reportSchedule, DateTimeOffset nowRounded, TimeZoneInfo zone)
+        {
+            DateTime startTime = reportSchedule.StartTime;
+            long intervalDays = reportSchedule.RepeatInterval switch
+            {
+                SchedulerInterval.Days => reportSchedule.RepeatOffset,
+                SchedulerInterval.Weeks => (long)reportSchedule.RepeatOffset * GlobalConst.kDaysPerWeek,
+                _ => 0
+            };
+            DateTime localNow = TimeZoneInfo.ConvertTime(nowRounded, zone).DateTime;
+            if (intervalDays <= 0 || startTime >= localNow)
+            {
+                return startTime;
+            }
+
+            long elapsedDays = (localNow - startTime).Ticks / TimeSpan.TicksPerDay;
+            long skippedIntervals = (elapsedDays / intervalDays) - 1;
+            if (skippedIntervals <= 0)
+            {
+                return startTime;
+            }
+            return startTime.AddDays(skippedIntervals * intervalDays);
         }
 
         private async Task GenerateReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken token)
@@ -163,7 +208,7 @@ namespace FWO.Middleware.Server.Jobs
                         await SaveReportToArchive(reportFile, report.SetDescription(), apiConnectionUserContext);
                     }
 
-                    if (reportSchedule.Notifications.Any())
+                    if (reportSchedule.Notifications.Count != 0)
                     {
                         token.ThrowIfCancellationRequested();
                         await TrySendReportViaEmail(reportSchedule, report, userConfig);

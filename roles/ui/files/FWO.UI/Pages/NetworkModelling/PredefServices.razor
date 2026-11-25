@@ -58,7 +58,7 @@
 
 
     public ModellingServiceGroupHandler? SvcGrpHandler;
-    private FwoOwner dummyApplication = new();  // Todo: Special App for predef Services?
+    private readonly FwoOwner dummyApplication = new();  // Todo: Special App for predef Services?
     public List<ModellingServiceGroup> PredefServiceGroups { get; set; } = new();
     public List<ModellingService> AvailableServices { get; set; } = new();
     public List<KeyValuePair<int, int>> AvailableSvcElems { get; set; } = new();

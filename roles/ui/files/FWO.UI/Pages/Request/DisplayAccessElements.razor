@@ -925,21 +925,4 @@ else
         return $"{portLabel}/{protocolLabel}";
     }
 
-    private void DeleteSource(NwObjectElement obj)
-    {
-        Sources.Remove(obj);
-        StateHasChanged();
-    }
-
-    private void DeleteDestination(NwObjectElement obj)
-    {
-        Destinations.Remove(obj);
-        StateHasChanged();
-    }
-
-    private void DeleteService(NwServiceElement obj)
-    {
-        Services.Remove(obj);
-        StateHasChanged();
-    }
 }

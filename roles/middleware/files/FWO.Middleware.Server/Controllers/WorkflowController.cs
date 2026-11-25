@@ -424,7 +424,7 @@ namespace FWO.Middleware.Server.Controllers
             var claimVariables = new
             {
                 objectScope = scope.ToString(),
-                objectId = objectId,
+                objectId,
                 fromStateId = parameters.OldStateId,
                 toStateId = parameters.NewStateId,
                 executedBy = User.FindFirstValue("x-hasura-uuid") ?? "",

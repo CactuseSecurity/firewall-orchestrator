@@ -14,7 +14,7 @@ namespace FWO.Test
         private const string kPopUpCssResource = "FWO.Test.PopUp.css";
         private const string kSiteCssResource = "FWO.Test.site.css";
         private const string kModalMarginVariable = "--bs-custom-modal-margin-top";
-        private const string kModalPaddingVariable = "--fwo-modal-content-padding-top";
+        private const string kModalPaddingVariable = "--fwo-modal-body-padding-top";
         private const int knMilliseconds = 1000;
 
         /// <summary>
@@ -78,40 +78,37 @@ namespace FWO.Test
                 Assert.That(contentDeclarations, Does.Contain("flex: 1 1 auto"));
                 Assert.That(contentDeclarations, Does.Contain("min-height: 0"),
                     "Without min-height: 0 the content box keeps its automatic minimum size and overflows the modal.");
-                Assert.That(contentDeclarations, Does.Contain("scrollbar-gutter: stable"),
-                    "The modal is only as wide as its content, so the scrollbar needs a reserved gutter.");
                 Assert.That(PixelConstantRegex().IsMatch(contentDeclarations), Is.False,
                     "The room for the footer must not be reserved with a pixel constant.");
             });
+
+            Match bodyRule = AutoBodyRuleRegex().Match(popUpCss);
+            Assert.That(bodyRule.Success, Is.True, "The body rule of the auto sized modal is missing.");
+            Assert.That(NormalizeWhitespace(bodyRule.Groups["body"].Value), Does.Contain("scrollbar-gutter: stable"),
+                "The modal is only as wide as its content, so the scrollbar of the body needs a reserved gutter.");
         }
 
         /// <summary>
-        /// The content box of an auto sized popup scrolls, so its header has to be pinned to keep the title
-        /// and the close button reachable. It shares the scroll container with the sticky headers of the
-        /// tables inside the popup and therefore has to be stacked above them.
+        /// The content box stacks the fixed header above the scrolling body: the header must neither
+        /// shrink nor grow, and it must not be sticky, because a sticky header would cover the sticky
+        /// table headers inside the popup.
         /// </summary>
         [Test]
-        public void PopUpCss_PinsTheHeaderOfTheAutoSizedPopupAboveTheStickyTableHeaders()
+        public void PopUpCss_KeepsTheHeaderAboveTheScrollingBody()
         {
             string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
-            string siteCss = ReadStyleSheetWithoutComments(kSiteCssResource);
 
-            Match headerRule = AutoModalHeaderRuleRegex().Match(popUpCss);
-            Match tableHeaderRule = StickyTableHeaderRuleRegex().Match(siteCss);
-            Assert.Multiple(() =>
-            {
-                Assert.That(headerRule.Success, Is.True, "The header of the auto sized modal is not pinned.");
-                Assert.That(tableHeaderRule.Success, Is.True, "The sticky table header rule is missing.");
-            });
+            Match headerRule = PopupHeaderRuleRegex().Match(popUpCss);
+            Assert.That(headerRule.Success, Is.True, "The rule of the popup header is missing.");
 
             string headerDeclarations = NormalizeWhitespace(headerRule.Groups["body"].Value);
             Assert.Multiple(() =>
             {
-                Assert.That(headerDeclarations, Does.Contain("position: sticky"));
-                Assert.That(headerDeclarations, Does.Contain("background-color"),
-                    "The scrolling content would shine through a transparent header.");
-                Assert.That(ReadZIndex(headerDeclarations), Is.GreaterThan(ReadZIndex(NormalizeWhitespace(tableHeaderRule.Groups["body"].Value))),
-                    "The pinned modal header has to stay above the sticky table headers inside the popup.");
+                Assert.That(headerDeclarations, Does.Contain("flex: 0 0 auto"));
+                Assert.That(headerDeclarations, Does.Contain("margin: 0 -2em"),
+                    "The header has to span the side padding of the content box, so the whole top strip can be grabbed.");
+                Assert.That(headerDeclarations, Does.Not.Contain("position: sticky"),
+                    "A sticky header inside the scroll container would cover the sticky table headers.");
             });
         }
 
@@ -133,24 +130,36 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// The .modal-content box is the scroll container of a popup and its top padding belongs to the
+        /// The .modal-body box is the scroll container of a popup and its top padding belongs to the
         /// scrollport. The sticky table headers have to compensate it, so the padding has to stay
         /// readable for them through a custom property instead of being written as a literal length.
+        /// The .modal-content box around it stacks the header above the body and must not scroll itself.
         /// </summary>
         [Test]
         public void PopUpCss_PublishesTheTopPaddingOfTheScrollContainer()
         {
             string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
 
-            Match scrollContainerRule = ModalContentRuleRegex().Match(popUpCss);
-            Assert.That(scrollContainerRule.Success, Is.True, "The rule of the popup scroll container is missing.");
-
-            string declarations = NormalizeWhitespace(scrollContainerRule.Groups["body"].Value);
+            Match contentRule = ModalContentRuleRegex().Match(popUpCss);
+            Match scrollContainerRule = ModalBodyRuleRegex().Match(popUpCss);
             Assert.Multiple(() =>
             {
-                Assert.That(declarations, Does.Contain($"{kModalPaddingVariable}:"),
+                Assert.That(contentRule.Success, Is.True, "The rule of the popup content box is missing.");
+                Assert.That(scrollContainerRule.Success, Is.True, "The rule of the popup scroll container is missing.");
+            });
+
+            string contentDeclarations = NormalizeWhitespace(contentRule.Groups["body"].Value);
+            string bodyDeclarations = NormalizeWhitespace(scrollContainerRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(contentDeclarations, Does.Contain($"{kModalPaddingVariable}:"),
                     $"'{kModalPaddingVariable}' has to define the top padding of the popup scroll container.");
-                Assert.That(declarations, Does.Contain($"padding: var({kModalPaddingVariable})"),
+                Assert.That(contentDeclarations, Does.Contain("overflow: hidden"),
+                    "Only the body may scroll, a scrolling content box would move the header out of view.");
+                Assert.That(bodyDeclarations, Does.Contain("overflow-y: auto"));
+                Assert.That(bodyDeclarations, Does.Contain("min-height: 0"),
+                    "Without min-height: 0 the body keeps its automatic minimum size and never scrolls.");
+                Assert.That(bodyDeclarations, Does.Contain($"padding-top: var({kModalPaddingVariable})"),
                     "The top padding of the popup scroll container has to be taken from its custom property.");
             });
         }
@@ -177,6 +186,66 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// The content box has to follow a dialog resized by popup.js, so every dialog is a column flex
+        /// box whose content box may grow and shrink. The resize handle sits in the lower right corner of
+        /// the dialog, and a minimum size keeps a resized popup usable.
+        /// </summary>
+        [Test]
+        public void PopUpCss_LetsTheContentFollowAResizedDialog()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Match dialogRule = PopupDialogRuleRegex().Match(popUpCss);
+            Match contentRule = PopupDialogContentRuleRegex().Match(popUpCss);
+            Match resizableRule = PopupResizableRuleRegex().Match(popUpCss);
+            Match handleRule = PopupResizeHandleRuleRegex().Match(popUpCss);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dialogRule.Success, Is.True, "The rule of the popup dialog is missing.");
+                Assert.That(contentRule.Success, Is.True, "The rule of the popup dialog content is missing.");
+                Assert.That(resizableRule.Success, Is.True, "The rule of the resizable popup is missing.");
+                Assert.That(handleRule.Success, Is.True, "The rule of the resize handle is missing.");
+            });
+
+            string dialogDeclarations = NormalizeWhitespace(dialogRule.Groups["body"].Value);
+            string contentDeclarations = NormalizeWhitespace(contentRule.Groups["body"].Value);
+            string resizableDeclarations = NormalizeWhitespace(resizableRule.Groups["body"].Value);
+            string handleDeclarations = NormalizeWhitespace(handleRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dialogDeclarations, Does.Contain("display: flex"));
+                Assert.That(dialogDeclarations, Does.Contain("flex-direction: column"));
+                Assert.That(contentDeclarations, Does.Contain("flex: 1 1 auto"));
+                Assert.That(contentDeclarations, Does.Contain("min-height: 0"),
+                    "Without min-height: 0 the content box cannot shrink with the resized dialog.");
+                Assert.That(resizableDeclarations, Does.Contain("min-width"));
+                Assert.That(resizableDeclarations, Does.Contain("min-height"));
+                Assert.That(resizableDeclarations, Does.Not.Contain("overflow: hidden"),
+                    "Clipping the dialog would cut off absolutely positioned menus in the footer.");
+                Assert.That(handleDeclarations, Does.Contain("position: absolute"));
+                Assert.That(handleDeclarations, Does.Contain("right: 0"));
+                Assert.That(handleDeclarations, Does.Contain("bottom: 0"));
+                Assert.That(handleDeclarations, Does.Contain("touch-action: none"),
+                    "Without touch-action: none a touch drag on the handle scrolls the page instead of resizing.");
+            });
+        }
+
+        /// <summary>
+        /// The close button needs a visible hover state and a focus ring for keyboard users.
+        /// </summary>
+        [Test]
+        public void PopUpCss_GivesTheCloseButtonHoverAndFocusStates()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(CloseHoverRuleRegex().IsMatch(popUpCss), Is.True, "The close button has no hover state.");
+                Assert.That(CloseFocusRuleRegex().IsMatch(popUpCss), Is.True, "The close button has no keyboard focus state.");
+            });
+        }
+
         private static string ReadStyleSheetWithoutComments(string resourceName)
         {
             Assembly assembly = typeof(UiPopUpStyleTest).Assembly;
@@ -189,13 +258,6 @@ namespace FWO.Test
         private static string NormalizeWhitespace(string declarations)
         {
             return WhitespaceRegex().Replace(declarations, " ");
-        }
-
-        private static int ReadZIndex(string declarations)
-        {
-            Match zIndex = ZIndexRegex().Match(declarations);
-            Assert.That(zIndex.Success, Is.True, $"No z-index found in '{declarations}'.");
-            return int.Parse(zIndex.Groups["value"].Value);
         }
 
         [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline, knMilliseconds)]
@@ -213,23 +275,41 @@ namespace FWO.Test
         [GeneratedRegex(@"\.custom-modal-content-auto\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex AutoContentRuleRegex();
 
-        [GeneratedRegex(@"\.custom-modal-content-auto\s+\.modal-header\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
-        private static partial Regex AutoModalHeaderRuleRegex();
-
-        [GeneratedRegex(@"\.sticky-header\s+thead\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
-        private static partial Regex StickyTableHeaderRuleRegex();
-
-        [GeneratedRegex(@"z-index\s*:\s*(?<value>-?\d+)", RegexOptions.None, knMilliseconds)]
-        private static partial Regex ZIndexRegex();
-
         [GeneratedRegex(@"\d+\s*px", RegexOptions.None, knMilliseconds)]
         private static partial Regex PixelConstantRegex();
 
         [GeneratedRegex(@"\.modal-content\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex ModalContentRuleRegex();
 
+        [GeneratedRegex(@"\.modal-content\s*>\s*\.modal-body\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex ModalBodyRuleRegex();
+
+        [GeneratedRegex(@"\.custom-modal-content-auto\s*>\s*\.modal-body\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex AutoBodyRuleRegex();
+
         [GeneratedRegex(@"\.modal-content\s+\.sticky-header\s+thead\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex ModalStickyHeaderRuleRegex();
+
+        [GeneratedRegex(@"\.popup-close:hover\s*\{[^}]*background-color[^}]*\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex CloseHoverRuleRegex();
+
+        [GeneratedRegex(@"\.popup-close:focus-visible\s*\{[^}]*box-shadow[^}]*\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex CloseFocusRuleRegex();
+
+        [GeneratedRegex(@"\.popup-header\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupHeaderRuleRegex();
+
+        [GeneratedRegex(@"\.popup-dialog\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupDialogRuleRegex();
+
+        [GeneratedRegex(@"\.popup-dialog\s*>\s*\.modal-content\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupDialogContentRuleRegex();
+
+        [GeneratedRegex(@"\.popup-resizable\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupResizableRuleRegex();
+
+        [GeneratedRegex(@"\.popup-resize-handle\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupResizeHandleRuleRegex();
 
         [GeneratedRegex(@"\s+", RegexOptions.None, knMilliseconds)]
         private static partial Regex WhitespaceRegex();

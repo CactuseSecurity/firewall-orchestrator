@@ -36,8 +36,8 @@ namespace FWO.Test
             userConfig.AllowServiceInConn = true;
             ModellingServiceGroup group = new() { Id = 201, Name = "group201" };
             ModellingService service = new() { Id = 202, Name = "service202" };
-            apiConn.GlobalServiceGroups = new List<ModellingServiceGroup> { group };
-            apiConn.GlobalServices = new List<ModellingService> { service };
+            apiConn.GlobalServiceGroups = [group];
+            apiConn.GlobalServices = [service];
 
             IRenderedComponent<PredefServices> component = RenderPredefServices(context, true);
 
@@ -47,7 +47,7 @@ namespace FWO.Test
                 {
                     Assert.That(component.Instance.PredefServiceGroups.Select(item => item.Id), Is.EquivalentTo(new List<long> { group.Id }));
                     Assert.That(component.Instance.AvailableServices.Select(item => item.Id), Is.EquivalentTo(new List<long> { service.Id }));
-                    Assert.That(component.Instance.AvailableSvcElems.Select(item => item.Value), Is.EquivalentTo(new List<int> { (int)group.Id, (int)service.Id }));
+                    Assert.That(component.Instance.AvailableSvcElems.Select(item => item.Value), Is.EquivalentTo([(int)group.Id, (int)service.Id]));
                 });
             });
         }
@@ -76,9 +76,9 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
             userConfig.AllowServiceInConn = true;
             ModellingServiceGroup group = new() { Id = 301, Name = "group301" };
-            apiConn.GlobalServiceGroups = new List<ModellingServiceGroup> { group };
-            apiConn.GlobalServices = new List<ModellingService>();
-            apiConn.ConnectionsForServiceGroup = new List<ModellingConnection>();
+            apiConn.GlobalServiceGroups = [group];
+            apiConn.GlobalServices = [];
+            apiConn.ConnectionsForServiceGroup = [];
 
             IRenderedComponent<PredefServices> component = RenderPredefServices(context, true);
             component.WaitForAssertion(() => Assert.That(component.Instance.PredefServiceGroups, Has.Count.EqualTo(1)));
@@ -99,9 +99,9 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
             userConfig.AllowServiceInConn = true;
             ModellingServiceGroup group = new() { Id = 302, Name = "group302" };
-            apiConn.GlobalServiceGroups = new List<ModellingServiceGroup> { group };
-            apiConn.GlobalServices = new List<ModellingService>();
-            apiConn.ConnectionsForServiceGroup = new List<ModellingConnection>();
+            apiConn.GlobalServiceGroups = [group];
+            apiConn.GlobalServices = [];
+            apiConn.ConnectionsForServiceGroup = [];
 
             IRenderedComponent<PredefServices> component = RenderPredefServices(context, true);
             component.WaitForAssertion(() => Assert.That(component.Instance.PredefServiceGroups, Has.Count.EqualTo(1)));

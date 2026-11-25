@@ -1,5 +1,5 @@
 subscription subscribeVarianceAnalysisConfigChanges {
-  config (where: { _or: [
+  config (where: { config_user: {_eq: 0}, _or: [
     {config_key: {_eq: "varianceAnalysisSleepTime"}}, 
     {config_key: {_eq: "varianceAnalysisStartAt"}},
     {config_key: {_eq: "ModModelledMarkerLocation"}},

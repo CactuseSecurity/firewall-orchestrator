@@ -6,6 +6,8 @@ namespace FWO.Data.Workflow
         /// <summary>Uses the existing task editor.</summary>
         Classic,
         /// <summary>Uses the consolidated access-task details view.</summary>
-        AccessTaskView
+        AccessTaskView,
+        /// <summary>Uses the consolidated task view with one request task per table row.</summary>
+        ListView
     }
 }

@@ -30,6 +30,18 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
     /// <summary>Rules with the gateways they take effect on, returned for the query of the enforcing gateways.</summary>
     public List<Rule> EnforcingRules { get; } = [];
 
+    /// <summary>Modelling connections returned for the query of a connection by id.</summary>
+    public List<FWO.Data.Modelling.ModellingConnection> Connections { get; } = [];
+
+    /// <summary>Network areas returned for the query of network areas, filtered by the ids of its where variable.</summary>
+    public List<FWO.Data.Modelling.ModellingNetworkArea> NetworkAreas { get; } = [];
+
+    /// <summary>Imported network objects returned for the query of imported objects of given types, filtered by management and type.</summary>
+    public List<(int ManagementId, NetworkObject Object)> ImportedObjects { get; } = [];
+
+    /// <summary>Management ids of the imported object queries, one list per query.</summary>
+    public List<List<int>> ImportedObjectManagementIds { get; } = [];
+
     public string? FailingQuery { get; set; }
 
     public Exception? Failure { get; set; }
@@ -53,6 +65,33 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
     {
         object? id = variables?.GetType().GetProperty("gatewayId")?.GetValue(variables);
         return [.. Managements.SelectMany(management => management.Devices).Where(device => Equals(device.Id, id))];
+    }
+
+    /// <summary>Connections with the id of the getConnectionById variables.</summary>
+    private List<FWO.Data.Modelling.ModellingConnection> ConnectionsById(object? variables)
+    {
+        object? id = variables?.GetType().GetProperty("id")?.GetValue(variables);
+        return [.. Connections.Where(connection => Convert.ToInt64(id) == connection.Id)];
+    }
+
+    /// <summary>Network areas whose id is in the id filter of the getNetworkAreas where variable.</summary>
+    private List<FWO.Data.Modelling.ModellingNetworkArea> NetworkAreasByIds(object? variables)
+    {
+        object? where = variables?.GetType().GetProperty("where")?.GetValue(variables);
+        object? idFilter = where?.GetType().GetProperty("id")?.GetValue(where);
+        List<long> ids = idFilter?.GetType().GetProperty("_in")?.GetValue(idFilter) as List<long> ?? [];
+        return [.. NetworkAreas.Where(area => ids.Contains(area.Id))];
+    }
+
+    /// <summary>Imported objects of the managements and types of the getImportedObjectsOfTypes variables.</summary>
+    private List<NetworkObject> ImportedObjectsOfTypes(object? variables)
+    {
+        List<int> managementIds = RequiredProperty<List<int>>(RequiredVariables(variables), "mgmIds");
+        List<string> objectTypes = RequiredProperty<List<string>>(RequiredVariables(variables), "objTypes");
+        ImportedObjectManagementIds.Add(managementIds);
+        return [.. ImportedObjects
+            .Where(imported => managementIds.Contains(imported.ManagementId) && objectTypes.Contains(imported.Object.Type.Name))
+            .Select(imported => imported.Object)];
     }
 
     /// <summary>Optional test hook that can pause a query after it has been recorded and before it is applied.</summary>
@@ -155,6 +194,9 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ when query == DeviceSpecificSettingsQueries.upsertNode => UpsertNode(variables),
             _ when query == DeviceSpecificSettingsQueries.applyPatch => ApplyPatch(variables),
             _ when query == DeviceSpecificSettingsQueries.deleteOverrides => DeleteOverrides(variables),
+            _ when query == ModellingQueries.getConnectionById => ConnectionsById(variables),
+            _ when query == ModellingQueries.getNetworkAreas => NetworkAreasByIds(variables),
+            _ when query == ObjectQueries.getImportedObjectsOfTypes => ImportedObjectsOfTypes(variables),
             _ when query == MonitorQueries.getOpenAlerts => new List<Alert>(),
             _ when query == MonitorQueries.addAlert => new ReturnIdWrapper(),
             _ => throw new InvalidOperationException("Unexpected device specific settings query.")

@@ -7,6 +7,8 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowNamingHelperTest
     {
+        private static readonly int[] kExpectedRanking = [3, 1, 2, 4];
+
         [Test]
         public void ResolvePreferredName_UsesPreferredManagementName()
         {
@@ -86,7 +88,7 @@ namespace FWO.Test
                 [3, 1, 3, 9],
                 [1, 2, 3, 4]);
 
-            Assert.That(ranking, Is.EqualTo(new[] { 3, 1, 2, 4 }));
+            Assert.That(ranking, Is.EqualTo(kExpectedRanking));
         }
 
         [Test]

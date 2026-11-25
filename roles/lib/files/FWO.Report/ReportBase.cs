@@ -9,6 +9,7 @@ using FWO.Report.Data;
 using FWO.Report.Filter;
 using FWO.Services;
 using FWO.Services.RuleTreeBuilder;
+using System.Globalization;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
@@ -149,6 +150,16 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Returns the imports of a management this report was generated for.
+        /// </summary>
+        /// <param name="managementId">Management id.</param>
+        /// <returns>The range of imports, null if the report was not generated for the management.</returns>
+        public virtual ImportRange? GetImportRange(int managementId)
+        {
+            return null;
+        }
+
         public virtual bool NoRuleFound()
         {
             return true;
@@ -241,18 +252,19 @@ namespace FWO.Report
             return effectiveWorkflowFilter;
         }
 
-        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
+        /// <summary>
+        /// Builds the link from an object shown in a report to its entry in the report tab of the right sidebar.
+        /// </summary>
+        /// <param name="location">Output location of the report.</param>
+        /// <param name="reportId">Id of the report part (e.g. "m{management id}").</param>
+        /// <param name="type">Object category string.</param>
+        /// <param name="chapterNumber">Chapter number.</param>
+        /// <param name="id">Object id.</param>
+        /// <returns>The link address.</returns>
+        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
-            string link;
-            if (reportType.IsChangeReport())
-            {
-                link = location == OutputLocation.export ? $"#" : $"{page}#goto-all-{reportId}-";
-            }
-            else
-            {
-                link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
-            }
+            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
             return $"{link}{type}{chapterNumber}x{id}";
         }
 
@@ -398,13 +410,17 @@ namespace FWO.Report
 
         protected static string ToUtcString(string? timestring)
         {
+            if (timestring == null)
+            {
+                return "";
+            }
             try
             {
-                return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
+                return DateTime.Parse(timestring, CultureInfo.InvariantCulture).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK");
             }
-            catch (Exception)
+            catch (FormatException)
             {
-                return timestring ?? "";
+                return timestring;
             }
         }
 

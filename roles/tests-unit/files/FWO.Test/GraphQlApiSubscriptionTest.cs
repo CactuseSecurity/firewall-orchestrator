@@ -130,7 +130,7 @@ namespace FWO.Test
             TestApiConnection apiConnection = new();
             using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
 
-            Assert.Throws<Exception>(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject() }));
+            Assert.Throws<Newtonsoft.Json.JsonSerializationException>(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject() }));
         }
 
         [Test]
@@ -208,10 +208,6 @@ namespace FWO.Test
 
         private sealed class TestGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
         {
-            private readonly ApiConnection apiConnection;
-            private readonly Action<Exception> exceptionHandler;
-            private readonly SubscriptionUpdate onUpdate;
-
             public int CreateSubscriptionCount { get; private set; }
             public int DisposeCount { get; private set; }
 
@@ -219,9 +215,6 @@ namespace FWO.Test
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
             {
-                this.apiConnection = apiConnection;
-                this.exceptionHandler = exceptionHandler;
-                this.onUpdate = onUpdate;
             }
 
             protected override void CreateSubscription()
@@ -246,17 +239,11 @@ namespace FWO.Test
         private sealed class StreamBackedGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
         {
             public static Queue<ManualGraphQlObservable> Streams { get; } = [];
-            private readonly ApiConnection apiConnection;
-            private readonly Action<Exception> exceptionHandler;
-            private readonly SubscriptionUpdate onUpdate;
 
             public StreamBackedGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
             {
-                this.apiConnection = apiConnection;
-                this.exceptionHandler = exceptionHandler;
-                this.onUpdate = onUpdate;
             }
 
             protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)

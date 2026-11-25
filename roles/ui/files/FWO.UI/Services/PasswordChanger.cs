@@ -11,7 +11,7 @@ namespace FWO.Ui.Services
     public class PasswordChanger
     {
         private string errorMsg = "";
-        private MiddlewareClient middlewareClient;
+        private readonly MiddlewareClient middlewareClient;
 
         public PasswordChanger(MiddlewareClient MiddlewareClient)
         {

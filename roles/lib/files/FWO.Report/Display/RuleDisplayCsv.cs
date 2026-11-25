@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayCsv : RuleDisplayBase
+    public partial class RuleDisplayCsv : RuleDisplayBase
     {
         public RuleDisplayCsv(UserConfig userConfig) : base(userConfig)
         { }
@@ -129,7 +129,7 @@ namespace FWO.Ui.Display
             StringBuilder result = new StringBuilder();
             if (reportType.IsResolvedReport())
             {
-                List<string> displayedServices = new List<string>();
+                List<string> displayedServices = [];
                 foreach (NetworkService service in GetNetworkServices(rule.Services))
                 {
                     displayedServices.Add(DisplayService(service, reportType).ToString());
@@ -148,37 +148,25 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string SanitizeComment(string inputString)
+        private static string SanitizeComment(string inputString)
         {
-            string output = Regex.Replace(inputString, @"[""'']", "").Trim();
-            output = Regex.Replace(output, @"[\n]", ", ").Trim();
+            string output = QuotesRegex().Replace(inputString, "").Trim();
+            output = output.Replace("\n", ", ").Trim();
             return output;
         }
 
         private string DisplaySourceOrDestination(Rule rule, ReportType reportType, bool isSource)
         {
-            StringBuilder result = new StringBuilder("");
-
-            if (reportType.IsResolvedReport())
+            if (!reportType.IsResolvedReport())
             {
-                List<string> displayedLocations = new List<string>();
-                foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
-                {
-                    displayedLocations.Add(DisplayNetworkLocation(networkLocation, reportType).ToString());
-                }
-
-                if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
-                {
-                    result.Append($"{userConfig.GetText("negated")}(");
-                }
-                result.Append(string.Join(",", displayedLocations));
-                if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
-                {
-                    result.Append(")");
-                }
+                return "";
             }
 
-            return result.ToString();
+            NetworkLocation[] networkLocations = isSource ? rule.Froms : rule.Tos;
+            string displayedLocations = string.Join(",", GetResolvedNetworkLocations(networkLocations)
+                .Select(networkLocation => DisplayNetworkLocation(networkLocation, reportType).ToString()));
+            bool negated = isSource ? rule.SourceNegated : rule.DestinationNegated;
+            return negated ? $"{userConfig.GetText("negated")}({displayedLocations})" : displayedLocations;
         }
 
         public static string DisplayEnforcingGateways(Rule rule)
@@ -191,12 +179,15 @@ namespace FWO.Ui.Display
 
         protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
-            List<string> displayedZones = new List<string>();
+            List<string> displayedZones = [];
             foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(Quote(networkZone.Name));
             }
             return string.Join(",", displayedZones);
         }
+
+        [GeneratedRegex(@"[""'']")]
+        private static partial Regex QuotesRegex();
     }
 }

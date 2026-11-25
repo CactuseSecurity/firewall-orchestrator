@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Api.Client
 {
-    internal class ApiConstants
+    internal static class ApiConstants
     {
         public static readonly bool UseSystemTextJsonSerializer = false;
     }

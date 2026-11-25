@@ -1,6 +1,9 @@
-import requests
-import json
 import argparse
+import json
+from collections.abc import Mapping
+from typing import Any
+
+import requests
 
 
 parser = argparse.ArgumentParser(description='Create configuration from Check Point R8x management via API calls')
@@ -12,11 +15,13 @@ parser.add_argument('-p', '--port', metavar='api_port', default='443',
                     help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True,
                     help='name of policy layer to create rules in')
-parser.add_argument('-n', '--number_of_test_objs', metavar='number_of_objs_to_create', default=3,
+parser.add_argument('-n', '--number_of_test_objs', metavar='number_of_objs_to_create', type=int, default=3,
                     help='How many objects and rules to generate; default=3')
 parser.add_argument('-d', '--delete_all_test_data', action="store_true",
                     help='delete all test data (all objects and rules with name fworch_test_*')
 args = parser.parse_args()
+
+NOT_DEFINED = "error, not defined"
 
 api_host = args.hostname
 api_password = args.password
@@ -30,18 +35,17 @@ obj_types = ['hosts', 'networks', 'services-tcp']
 base_ip = '10.88.99.'
 
 
-def api_call(ip_addr, port, command, json_payload, sid_a):
-    url = 'https://' + ip_addr + ':' + port + '/web_api/' + command
-    if sid_a == '':
-        request_headers = {'Content-Type': 'application/json'}
-    else:
-        request_headers = {'Content-Type': 'application/json', 'X-chkp-sid': sid_a}
+def api_call(ip_addr: str, port: str, command: str, json_payload: Mapping[str, object] | str, sid_a: str) -> dict[str, Any]:
+    url: str = 'https://' + ip_addr + ':' + port + '/web_api/' + command
+    request_headers: dict[str, str] = {'Content-Type': 'application/json'}
+    if sid_a != '':
+        request_headers['X-chkp-sid'] = sid_a
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification)
     return r.json()
 
 
-def login(user, password, api_host_a, api_port):
-    payload = {'user': user, 'password': password}
+def login(user: str, password: str, api_host_a: str, api_port: str) -> str:
+    payload: dict[str, str] = {'user': user, 'password': password}
     response = api_call(api_host_a, api_port, 'login', payload, '')
     return response["sid"]
 
@@ -52,8 +56,8 @@ if args.delete_all_test_data:  # delete
     for obj_type in obj_types:
         current = 0
         while current < args.number_of_test_objs:
-            del_cmd = "error, not defined"
-            del_req = "error, not defined"
+            del_cmd = NOT_DEFINED
+            del_req = NOT_DEFINED
             if obj_type == 'networks':
                 del_cmd = 'delete-network'
                 del_req = {'name': name_prefix + 'net_' + str(current)}
@@ -77,8 +81,8 @@ else:  # create
     for obj_type in obj_types:
         current = 0
         while current < args.number_of_test_objs:
-            create_cmd = "error, not defined"
-            create_req = "error, not defined"
+            create_cmd = NOT_DEFINED
+            create_req = NOT_DEFINED
             if obj_type == 'networks':
                 create_cmd = 'add-network'
                 create_req = {'name': name_prefix + 'net_' + str(current),

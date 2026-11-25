@@ -21,7 +21,22 @@ namespace FWO.Services.Workflow
         /// Evaluates the requested workflow rules against the selected compliance policies.
         /// </summary>
         Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks);
+
+        /// <summary>
+        /// Evaluates the requested workflow rules against the selected compliance policies and returns the result
+        /// with the violation reasons per checked request task. Tasks that are not checked (e.g. deletions) are not contained.
+        /// </summary>
+        Task<IReadOnlyDictionary<long, RequestTaskComplianceResult>> CheckRequestTasks(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+        {
+            return Task.FromResult<IReadOnlyDictionary<long, RequestTaskComplianceResult>>(new Dictionary<long, RequestTaskComplianceResult>());
+        }
     }
+
+    /// <summary>Compliance result of one request task.</summary>
+    /// <param name="TaskId">Id of the checked request task.</param>
+    /// <param name="IsCompliant">Whether the task complies with all selected policies.</param>
+    /// <param name="Reasons">Reasons of the violations; empty if compliant.</param>
+    public sealed record RequestTaskComplianceResult(long TaskId, bool IsCompliant, IReadOnlyList<string> Reasons);
 
     public interface IRequestedRulePolicyCheckerFactory
     {

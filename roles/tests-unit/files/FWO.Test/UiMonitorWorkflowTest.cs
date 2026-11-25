@@ -692,12 +692,12 @@ namespace FWO.Test
             bool autoCreateClicked = false;
 
             IRenderedComponent<ReportedTickets> component = context.Render<ReportedTickets>(parameters => parameters
-                .Add(p => p.Tickets, new List<WfTicket> { ticket })
+                .Add(p => p.Tickets, [ticket])
                 .Add(p => p.StateNames, new Dictionary<int, string> { [2] = "Approved", [3] = "Implementation" })
                 .Add(p => p.SelectedReportType, ReportType.TicketReport)
                 .Add(p => p.DetailedView, true)
                 .Add(p => p.ShowFullTicket, true)
-                .Add(p => p.TaskTypes, new List<WfTaskType> { WfTaskType.access })
+                .Add(p => p.TaskTypes, [WfTaskType.access])
                 .Add(p => p.ShowStateChangeButtons, true)
                 .Add(p => p.SortDescendingById, true)
                 .Add(p => p.CanAutoCreateImplementationTasks, (Func<WfTicket, WfReqTask, bool>)((_, _) => true))
@@ -867,7 +867,7 @@ namespace FWO.Test
                     .Add(p => p.ObjectName, "Ticket 42")
                     .Add(p => p.TargetStateId, 3)
                     .Add(p => p.StateChangeMode, MonitoringStateChangeMode.LocalOnly)
-                    .Add(p => p.AvailableTargetStateIds, new List<int> { 2, 3 })
+                    .Add(p => p.AvailableTargetStateIds, [2, 3])
                     .Add(p => p.StateNames, new Dictionary<int, string> { [2] = "Approved", [3] = "Implementation" })
                     .Add(p => p.ApplyStateChange, applyStateChange ?? (() => Task.CompletedTask))
                     .Add(p => p.CloseStateDialog, closeStateDialog ?? (() => { }))));

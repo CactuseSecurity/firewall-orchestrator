@@ -129,14 +129,11 @@ public class RulePositioningManagerTest
     [TestCase(InvalidContextCase.MissingImplementationGateway)]
     [TestCase(InvalidContextCase.ImplementationGatewayMismatch)]
     [TestCase(InvalidContextCase.SuppliedGatewayMismatch)]
-    [TestCase(InvalidContextCase.MissingRequestManagement)]
-    [TestCase(InvalidContextCase.RequestManagementMismatch)]
     [TestCase(InvalidContextCase.InvalidImplementationManagement)]
     [TestCase(InvalidContextCase.ImplementationManagementMismatch)]
     [TestCase(InvalidContextCase.InvalidSuppliedManagement)]
     [TestCase(InvalidContextCase.MissingGatewayManagement)]
     [TestCase(InvalidContextCase.GatewayManagementMismatch)]
-    [TestCase(InvalidContextCase.LoadedRequestManagementMismatch)]
     public async Task CalculateAsync_RejectsContextMismatchBeforeStrategyWork(
         InvalidContextCase invalidContextCase)
     {
@@ -148,6 +145,23 @@ public class RulePositioningManagerTest
 
         AssertFailure(result, RulePositioningFailureCategory.InvalidInput);
         AssertStrategyCalls(strategy, 0, 0);
+    }
+
+    [TestCase(InvalidContextCase.MissingRequestManagement)]
+    [TestCase(InvalidContextCase.RequestManagementMismatch)]
+    [TestCase(InvalidContextCase.LoadedRequestManagementMismatch)]
+    public async Task CalculateAsync_IgnoresLegacyRequestManagementContext(
+        InvalidContextCase contextCase)
+    {
+        RulePositioningContext context = InvalidContext(contextCase);
+        RecordingStrategy strategy = CheckPointStrategy();
+        List<IRulePositioningStrategy> strategies = [strategy];
+        RulePositioningManager manager = new(strategies);
+
+        RulePositioningResult result = await manager.CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
+        AssertStrategyCalls(strategy, 1, 1);
     }
 
     [TestCase(ParentGatewaySelection.Empty)]

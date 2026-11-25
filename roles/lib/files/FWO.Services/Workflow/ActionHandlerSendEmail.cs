@@ -44,7 +44,7 @@ namespace FWO.Services.Workflow
                     return true;
                 }
 
-                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, placeholderData);
+                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, WithStateChangeComment(placeholderData));
             }
             catch (Exception exc)
             {
@@ -248,6 +248,25 @@ namespace FWO.Services.Workflow
                 Log.WriteWarning("SendEmail", $"Could not load full ticket {ticket.Id} for workflow email content. Falling back to current ticket data. {exc.Message}");
                 return ticket;
             }
+        }
+
+        /// <summary>
+        /// Adds the comment of the state change currently processed by the workflow handler to the placeholder values,
+        /// unless the caller already provided one. The caller's object is not changed.
+        /// </summary>
+        /// <param name="placeholderData">Caller-provided values for notification placeholders; null if there are none.</param>
+        /// <returns>The values including the state change comment; the given values if there is nothing to add.</returns>
+        public NotificationPlaceholderData? WithStateChangeComment(NotificationPlaceholderData? placeholderData)
+        {
+            string stateChangeComment = wfHandler.StateChangeComment;
+            if (string.IsNullOrWhiteSpace(stateChangeComment) || !string.IsNullOrWhiteSpace(placeholderData?.StateChangeComment))
+            {
+                return placeholderData;
+            }
+
+            NotificationPlaceholderData extendedData = placeholderData?.Copy() ?? new();
+            extendedData.StateChangeComment = stateChangeComment;
+            return extendedData;
         }
 
         private WfStatefulObject WorkflowPlaceholderObject(WfStatefulObject statefulObject)

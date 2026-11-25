@@ -208,6 +208,7 @@ namespace FWO.Services.Workflow
             }
 
             int promotedCount = 0;
+            using IDisposable stateChangeCommentScope = wfHandler.BeginStateChangeComment(comment);
             foreach (WfImplTask implTask in implTasks)
             {
                 await wfHandler.ContinueImplPhase(implTask);

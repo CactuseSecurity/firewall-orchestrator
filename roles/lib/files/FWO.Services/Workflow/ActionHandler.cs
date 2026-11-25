@@ -372,7 +372,7 @@ namespace FWO.Services.Workflow
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
-                NotificationPlaceholders = placeholderData,
+                NotificationPlaceholders = WithStateChangeComment(placeholderData),
                 EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
         }

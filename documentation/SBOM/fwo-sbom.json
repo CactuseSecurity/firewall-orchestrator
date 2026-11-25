@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:cd2972e2-f61c-4723-9061-ae3e46f89fd2",
+  "serialNumber": "urn:uuid:1224b1ff-1e20-4f64-ac90-c43df171f220",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-16T15:10:11Z",
+    "timestamp": "2026-11-25T10:03:28Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.10.4",
+      "bom-ref": "pkg:nuget/AngleSharp@1.11.0",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.10.4",
+      "version": "1.11.0",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "8BE1D605EE1C1A46BAD7D1F3AE21147D71E3CAB44DCF9410AC5A1CE1ACA83A5E698D32A5A484598D63CB446E27C89231717EE3537EFDC2661776FD6355F741F5"
+          "content": "5569337395D63479CFFCA8394474F11853A0563DEF119706680D2466D7C761BEA1AA6E72FAC23F7EA89651AB80C06C0B240E01CE01A4721B05198982F52291EC"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.10.4",
+      "purl": "pkg:nuget/AngleSharp@1.11.0",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -1502,6 +1502,44 @@
         },
         {
           "url": "https://github.com/dotnet/aspnetcore",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@10.0.15",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Bcl.AsyncInterfaces",
+      "version": "10.0.15",
+      "description": "Provides the IAsyncEnumerable\u003CT\u003E and IAsyncDisposable interfaces and helper types for .NET Standard 2.0. This package is not required starting with .NET Standard 2.1 and .NET Core 3.0.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4C88C88A32ADE1383AD517F25A6C22972C1FF37955BCFE2ADB702AAA320A8F02E9A555A10FAFAA437ED30BA903075442D45149AEBBE7189617DDAE2B74D6449D"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@10.0.15",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
           "type": "vcs"
         }
       ]
@@ -3675,20 +3713,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.OpenApi@2.13.0",
+      "bom-ref": "pkg:nuget/Microsoft.OpenApi@2.13.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.OpenApi",
-      "version": "2.13.0",
+      "version": "2.13.1",
       "description": ".NET models with JSON and YAML writers for OpenAPI specification",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "9ECEA280EF788787A1B2591ECF1B2A0D16C39AAF1F9266F7AFF61C80D37D189E9567B8305BC4E367F58118C6D6A2A437F669C71BC9893F22A0D321B8C3A0E587"
+          "content": "DF2CC70A6A10774631463ED50A715D831C2C5D533FB105DEC94160EC681CEC319A780BA47915737885AFF4C6ABD2B2897D1ACFB740AA87AD6A9514751D0D056F"
         }
       ],
       "licenses": [
@@ -3699,7 +3737,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.OpenApi@2.13.0",
+      "purl": "pkg:nuget/Microsoft.OpenApi@2.13.1",
       "externalReferences": [
         {
           "url": "https://github.com/Microsoft/OpenAPI.NET",
@@ -3713,20 +3751,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Playwright@1.64.1",
+      "bom-ref": "pkg:nuget/Microsoft.Playwright@1.65.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Playwright",
-      "version": "1.64.1",
+      "version": "1.65.1",
       "description": "Playwright enables reliable end-to-end testing for modern web apps. It is built to enable cross-browser web automation that is ever-green, capable, reliable and fast. Learn more at https://playwright.dev/dotnet/.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2707C195EFDD0F4EC1BE6B24B61991B061FD16898E27E7A76F193C8B2E64284680F66ADF8B1DF7210DA11F8A01A5C2F980B8EDF9DD2EF11AC7D60B9FC836D916"
+          "content": "D174C1B33EB901E7133B9A45CD19C9CD64E9F5A7259DDF81C9B4E8863FC6D90214C2E33DEDFFC96833F90F2410A7C20DBFA290EFE3B18635D725365A666DBA78"
         }
       ],
       "licenses": [
@@ -3737,7 +3775,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Playwright@1.64.1",
+      "purl": "pkg:nuget/Microsoft.Playwright@1.65.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/playwright-dotnet",
@@ -4284,20 +4322,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
+      "bom-ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.1.0",
       "authors": [
         {
           "name": "Novell,dsbenghe"
         }
       ],
       "name": "Novell.Directory.Ldap.NETStandard",
-      "version": "4.0.0",
-      "description": "LDAP client library - .NET Standard 2.0/2.1, - compatible .NET platforms: .NET \u003E= NET6, NET8, NET9, .NET Framework \u003E= 4.6, Universal Windows Platform, Xamarin. Works with any LDAP server (including Microsoft Active Directory - AD)",
+      "version": "4.1.0",
+      "description": "LDAP client library - .NET Standard 2.0/2.1, - compatible .NET platforms: .NET \u003E= NET6, NET8, NET10, .NET Framework \u003E= 4.6, Universal Windows Platform, Xamarin. Works with any LDAP server (including Microsoft Active Directory - AD)",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "CBA13A23E39B192DA58081C7052211A3695446D59C88D260D02DF01707ECBA214E934C5E36132722FDE03C62ED93952A37D48FA5A64A5FB182C29A29502F4DBF"
+          "content": "568A7DF43AE450B2AF707E6C2E98EA72351EF16E593187FF87CE36C5D3C22E481D0D602A28C5B0A39B66C8032BE2936C6BB074984B86E928502D8116E6E286F9"
         }
       ],
       "licenses": [
@@ -4307,7 +4345,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
+      "purl": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.1.0",
       "externalReferences": [
         {
           "url": "https://github.com/dsbenghe/Novell.Directory.Ldap.NETStandard",
@@ -4430,20 +4468,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.17.1",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.18.1",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.17.1",
+      "version": "25.18.1",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "133BB478E475911EC7ED01086B44737A859EC7AA871FA767F1BADDDC8223CCDF6FC68C071E4BC26A800923536239A307703A7A2CE2F1D8FC12E35353FCC11A8F"
+          "content": "F1BECD8BBD4DF084F86ED023BA01B90BE93D11C113F0ECE85E4CDF1908F353AF054A50EB61E3E441C393B32E99D885F475BC1648615ACE36E72B00F894007DE3"
         }
       ],
       "licenses": [
@@ -4453,7 +4491,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.17.1",
+      "purl": "pkg:nuget/PuppeteerSharp@25.18.1",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4467,20 +4505,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.7.3",
+      "bom-ref": "pkg:nuget/Quartz@4.8.1",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.7.3",
+      "version": "4.8.1",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "99A9883A75A57532CCD7305BFC841F16E0DDBD7DFF2D9F3B7463D1722BAB9F6D71FA2950793F18EE810ED4B9115BCC6F4FA5C115C0F3A15F5281061A5BA3FE31"
+          "content": "626DAA9D93CBF02008E6C1D7C4FC67781E955BBE017D9BDD5AE75F5EC7B8338DF112DA76899D2BC04181852AF732E5358CFE37FD2492F83F2A6131D09578A73A"
         }
       ],
       "licenses": [
@@ -4491,7 +4529,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.7.3",
+      "purl": "pkg:nuget/Quartz@4.8.1",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4618,20 +4656,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@3.0.0",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@3.2.0",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "3.0.0",
+      "version": "3.2.0",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "AA872A9118F5381CE529A263DFA3CEF00FA942AED94C02954F3FBE3B75BDA81669B622F10F2BD41E1095D8D2292E19C80BFFA1249347CE7EEBDA90058A485106"
+          "content": "B2D7B2657A9B147303578F4C23B5BF3854EEC4A35DA5DA3F836C6FFD970CE163341367C0B8F045EDD18686772937D945C85BF2E112F4908A119A5476A64108F7"
         }
       ],
       "licenses": [
@@ -4641,7 +4679,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@3.0.0",
+      "purl": "pkg:nuget/Scalar.AspNetCore@3.2.0",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4655,20 +4693,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.7.0",
+      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.7.1",
       "authors": [
         {
           "name": "SolidProgramming"
         }
       ],
       "name": "SoPro.FancyTable",
-      "version": "1.7.0",
+      "version": "1.7.1",
       "description": "Reusable Blazor table components with sorting, search, column visibility, and tree table support.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "35E5FA4EDCC835F68590B51C9113CC8EE905643887513C29C6694AF44F91A79CF93441D33F8360E38D5625A45A240A6A4C873240DBD2DD08D1CB7A7635B7BC84"
+          "content": "789DB1173157811730D3BB4166003686A431CA9532C8A76DB8A0853ECE27C8B8BD916757CD575883AD1EF0827D3DF1848052AFCAB42BFED17AC920A561DEF1BE"
         }
       ],
       "licenses": [
@@ -4678,7 +4716,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/SoPro.FancyTable@1.7.0",
+      "purl": "pkg:nuget/SoPro.FancyTable@1.7.1",
       "externalReferences": [
         {
           "url": "https://github.com/SolidProgramming/SoPro.FancyTable",
@@ -4939,17 +4977,17 @@
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
         "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
         "pkg:nuget/MimeKit@5.0.0",
-        "pkg:nuget/PuppeteerSharp@25.17.1",
+        "pkg:nuget/PuppeteerSharp@25.18.1",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.15",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.15",
-        "pkg:nuget/Microsoft.OpenApi@2.13.0",
-        "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.7.3",
-        "pkg:nuget/Scalar.AspNetCore@3.0.0",
+        "pkg:nuget/Microsoft.OpenApi@2.13.1",
+        "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.1.0",
+        "pkg:nuget/Quartz@4.8.1",
+        "pkg:nuget/Scalar.AspNetCore@3.2.0",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
-        "pkg:nuget/SoPro.FancyTable@1.7.0",
-        "pkg:nuget/AngleSharp@1.10.4",
+        "pkg:nuget/SoPro.FancyTable@1.7.1",
+        "pkg:nuget/AngleSharp@1.11.0",
         "pkg:nuget/bunit@2.15.2",
         "pkg:nuget/coverlet.collector@10.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.15",
@@ -4958,24 +4996,24 @@
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
         "pkg:nuget/NUnit3TestAdapter@6.3.1",
-        "pkg:nuget/Microsoft.Playwright@1.64.1"
+        "pkg:nuget/Microsoft.Playwright@1.65.1"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Css@1.4.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.4"
+        "pkg:nuget/AngleSharp@1.11.0"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.4",
+        "pkg:nuget/AngleSharp@1.11.0",
         "pkg:nuget/AngleSharp.Css@1.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.10.4",
+      "ref": "pkg:nuget/AngleSharp@1.11.0",
       "dependsOn": []
     },
     {
@@ -4991,7 +5029,7 @@
     {
       "ref": "pkg:nuget/bunit@2.15.2",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.4",
+        "pkg:nuget/AngleSharp@1.11.0",
         "pkg:nuget/AngleSharp.Css@1.4.1",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.15",
@@ -5190,7 +5228,7 @@
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.15",
       "dependsOn": [
-        "pkg:nuget/Microsoft.OpenApi@2.13.0"
+        "pkg:nuget/Microsoft.OpenApi@2.13.1"
       ]
     },
     {
@@ -5202,6 +5240,10 @@
       "dependsOn": [
         "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13"
       ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@10.0.15",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
@@ -5604,11 +5646,11 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.OpenApi@2.13.0",
+      "ref": "pkg:nuget/Microsoft.OpenApi@2.13.1",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Playwright@1.64.1",
+      "ref": "pkg:nuget/Microsoft.Playwright@1.65.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
         "pkg:nuget/System.ComponentModel.Annotations@5.0.0"
@@ -5696,8 +5738,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-      "dependsOn": []
+      "ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.1.0",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@10.0.15"
+      ]
     },
     {
       "ref": "pkg:nuget/NSubstitute@6.2.0",
@@ -5719,7 +5763,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.17.1",
+      "ref": "pkg:nuget/PuppeteerSharp@25.18.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
@@ -5728,7 +5772,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz@4.7.3",
+      "ref": "pkg:nuget/Quartz@4.8.1",
       "dependsOn": []
     },
     {
@@ -5747,11 +5791,11 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@3.0.0",
+      "ref": "pkg:nuget/Scalar.AspNetCore@3.2.0",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/SoPro.FancyTable@1.7.0",
+      "ref": "pkg:nuget/SoPro.FancyTable@1.7.1",
       "dependsOn": []
     },
     {

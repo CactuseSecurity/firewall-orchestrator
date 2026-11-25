@@ -1,0 +1,10 @@
+query getUserDetailsByIds(
+  $userIds: [bigint!]!
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+) {
+  firewall_nw_user(where: { user_id: { _in: $userIds } }) {
+    ...userDetails
+  }
+}

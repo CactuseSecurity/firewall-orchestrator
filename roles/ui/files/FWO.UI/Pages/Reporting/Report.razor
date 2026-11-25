@@ -263,7 +263,7 @@
     @if (_showRightSidebar)
     {
         <RightSidebar @bind-Width="sidebarRightWidth" CurrentReport="currentReport"
-                    @bind-SelectedRules="selectedItemsRuleReportTable"
+                    SelectedRules="GetRulesSelectedForSidebar()" SelectedRulesChanged="OnSidebarSelectedRulesChanged"
                     AllTabVisible="(tenantFilteringAllowed && actReportFilters.SelectedTenant == null)"
                     SelectedReportType="actReportFilters.ReportType"
                     LSBTime="actReportFilters.TimeFilter" />
@@ -295,6 +295,32 @@
 
     private List<Rule> selectedItemsRuleReportTable = [];
     private List<RuleChange> selectedItemsChangeReportTable = [];
+
+    /// <summary>
+    /// Rules shown in the rule tab of the right sidebar: the selected rules, or for change reports the rule versions of the selected changes.
+    /// </summary>
+    private List<Rule> GetRulesSelectedForSidebar()
+    {
+        if (currentReport?.ReportType.IsChangeReport() ?? false)
+        {
+            return ChangeReportRuleSelection.GetRuleVersions(selectedItemsChangeReportTable,
+                userConfig.GetText("rule_version_before_change"), userConfig.GetText("rule_version_after_change"));
+        }
+        return selectedItemsRuleReportTable;
+    }
+
+    /// <summary>
+    /// Takes over the selection changed in the right sidebar (clear all).
+    /// </summary>
+    private void OnSidebarSelectedRulesChanged(List<Rule> rules)
+    {
+        if (currentReport?.ReportType.IsChangeReport() ?? false)
+        {
+            selectedItemsChangeReportTable.Clear();
+            return;
+        }
+        selectedItemsRuleReportTable = rules;
+    }
     private List<RuleViewData> _selectedItemsComplianceReportTable = [];
 
     private List<ReportType> availableReportTypes { get; set; } = [];

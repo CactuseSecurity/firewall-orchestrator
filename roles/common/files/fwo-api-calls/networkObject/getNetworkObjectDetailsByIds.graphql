@@ -1,0 +1,10 @@
+query getNetworkObjectDetailsByIds(
+  $nwObjIds: [bigint!]!
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+) {
+  firewall_nw_object(where: { obj_id: { _in: $nwObjIds } }) {
+    ...networkObjectDetails
+  }
+}

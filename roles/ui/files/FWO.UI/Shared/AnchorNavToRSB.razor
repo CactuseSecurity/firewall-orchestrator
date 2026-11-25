@@ -13,6 +13,17 @@
     [Parameter]
     public FWO.Ui.Data.CollapseState CollapseState { get; set; } = default!;
 
+    /// <summary>
+    /// True while the object a report link points to has not been found in the right sidebar yet,
+    /// e.g. because its objects are still being fetched.
+    /// </summary>
+    public bool HasPendingScrollTarget { get; private set; }
+
+    /// <summary>
+    /// Right sidebar element the last report link pointed to, kept until <see cref="ScrollToLastTarget"/> was called.
+    /// </summary>
+    private string? lastTargetElementId;
+
     protected override void OnInitialized()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -83,23 +94,51 @@
             else
                 return;
 
+            HasPendingScrollTarget = true;
+            lastTargetElementId = elementId;
             CollapseState.Expand(elementId);
 
-            await ScrollToFragment(elementId);
+            // smooth if the object is already loaded; if not, the scroll is retried instantly once it is fetched
+            await ScrollToFragment(elementId, true);
         }
     }
 
-    public async Task ScrollToFragment(string? elementId = null)
+    /// <summary>
+    /// Scrolls once more to the element the last report link pointed to. Used after lazily fetched objects are
+    /// rendered completely: a scroll started while they were still being added gets cancelled by the next render.
+    /// </summary>
+    public async Task ScrollToLastTarget()
+    {
+        string? elementId = lastTargetElementId;
+        lastTargetElementId = null;
+        if (string.IsNullOrEmpty(elementId))
+        {
+            return;
+        }
+        if (await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId, false))
+        {
+            HasPendingScrollTarget = false;
+            await JSRuntime.InvokeVoidAsync("removeUrlFragment");
+        }
+    }
+
+    /// <summary>
+    /// Scrolls the right sidebar to the object the current link (url fragment) points to, if it is rendered already.
+    /// </summary>
+    /// <param name="elementId">Element to scroll to, taken from the url if not given.</param>
+    /// <param name="smooth">Smooth scrolling; only safe if no render follows, which would cancel the scroll.</param>
+    public async Task ScrollToFragment(string? elementId = null, bool smooth = false)
     {
         if (elementId == null)
             elementId = await GetIdFromURI();
         
         if (!string.IsNullOrEmpty(elementId))
         {
-            bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
+            bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId, smooth);
 
             if (foundObj)
             {
+                HasPendingScrollTarget = false;
                 // remove #goto-{obj-link} fragment from uri
                 await JSRuntime.InvokeVoidAsync("removeUrlFragment");
             }

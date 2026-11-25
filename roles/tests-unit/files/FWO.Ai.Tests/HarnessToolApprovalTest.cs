@@ -32,12 +32,14 @@ internal class HarnessToolApprovalTest
     private const string kRejectionReason = "Not now.";
     private const string kForgedRequestId = "forged-request";
     private const string kForgedCallId = "forged-call";
+    private const string kProviderFailure = "provider unavailable";
 
     private static readonly List<string> kApprovedValues = [kValue];
     private static readonly List<string> kNoValues = [];
     private static readonly List<string> kOtherValues = [kOtherValue];
     private static readonly List<string> kApprovedCallOnly = [kCallId];
     private static readonly List<string> kQuestionOnly = [kQuestion];
+    private static readonly List<ChatRole> kToolCallRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool];
 
     /// <summary>
     /// Verifies that an MCP tool the MCP server marks as read-only is taken over as it is.
@@ -255,6 +257,40 @@ internal class HarnessToolApprovalTest
     }
 
     /// <summary>
+    /// Verifies that a run failing after it ran the approved tool sends the conversation up to the tool result before it
+    /// fails, so that the client keeps the call, and that the next turn continues with it without running the tool again.
+    /// </summary>
+    [Test]
+    public async Task RunStreamingAsync_ProviderFailingAfterApprovedToolRan_ReturnsConversationWithToolCall()
+    {
+        McpTestToolCalls toolCalls = new();
+        await using WebApplication app = await StartWithWriteTool(toolCalls);
+        ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
+            .RespondWithFunctionCall(kCallId, McpTestWriteTools.kStoreValueTool, CreateArguments(kValue))
+            .Respond((_, _, _) => Task.FromException<ChatResponse>(new InvalidOperationException(kProviderFailure)))
+            .RespondWithText(kNextAnswer);
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient);
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
+        List<AgentResponseUpdate> requestUpdates = await HarnessTestSetup.RunStreamingAsync(agent, kQuestion);
+        ToolApprovalRequestContent approvalRequest = HarnessTestSetup.GetContents<ToolApprovalRequestContent>(requestUpdates.ToAgentResponse().Messages).Single();
+        List<ChatMessage> answerMessages = WithApproval(HarnessTestSetup.GetSnapshot(requestUpdates), approvalRequest,
+            approvalRequest.CreateResponse(true));
+
+        (List<AgentResponseUpdate> answerUpdates, InvalidOperationException? failure) = await RunStreamingUntilFailureAsync(agent, answerMessages);
+        List<ChatMessage> conversation = HarnessTestSetup.GetSnapshot(answerUpdates);
+        List<ChatMessage> nextMessages = [.. conversation, new ChatMessage(ChatRole.User, kNextQuestion)];
+        AgentResponse nextResponse = await agent.RunAsync(nextMessages);
+
+        Assert.That(failure?.Message, Is.EqualTo(kProviderFailure));
+        Assert.That(conversation.Select(message => message.Role), Is.EqualTo(kToolCallRoles));
+        Assert.That(HarnessTestSetup.GetCallIds(conversation), Is.EqualTo(kApprovedCallOnly));
+        Assert.That(HarnessTestSetup.GetResultCallIds(conversation), Is.EqualTo(kApprovedCallOnly));
+        Assert.That(nextResponse.Text, Is.EqualTo(kNextAnswer));
+        Assert.That(toolCalls.StoredValues, Is.EqualTo(kApprovedValues));
+        Assert.That(chatClient.Rejections, Is.Empty);
+    }
+
+    /// <summary>
     /// Verifies that a request the user does not answer, sending a new message instead, is dropped: the tool does not
     /// run, and the turn and the one after it work.
     /// </summary>
@@ -368,6 +404,27 @@ internal class HarnessToolApprovalTest
 
         Assert.That(options.DisableApprovalResponseBinding, Is.True);
         Assert.That(options.DisableApprovalNotRequiredFunctionBypassing, Is.False);
+    }
+
+    /// <summary>
+    /// Runs a streaming turn expected to fail and returns the updates sent before the failure, and the failure.
+    /// </summary>
+    private static async Task<(List<AgentResponseUpdate> Updates, InvalidOperationException? Failure)> RunStreamingUntilFailureAsync(AIAgent agent,
+        List<ChatMessage> messages)
+    {
+        List<AgentResponseUpdate> updates = [];
+        try
+        {
+            await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(messages))
+            {
+                updates.Add(update);
+            }
+        }
+        catch (InvalidOperationException exception)
+        {
+            return (updates, exception);
+        }
+        return (updates, null);
     }
 
     /// <summary>

@@ -87,7 +87,7 @@ namespace FWO.DeviceAutoDiscovery
         /// <returns>The token client; the caller disposes it.</returns>
         protected virtual OAuthTokenClient CreateTokenClient()
         {
-            return new OAuthTokenClient(checkCertificates: true);
+            return new OAuthTokenClient();
         }
 
         /// <summary>

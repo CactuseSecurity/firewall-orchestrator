@@ -6,8 +6,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
 using NUnit.Framework;
 using OllamaSharp;
+using System.Globalization;
 using System.Text.Json;
+using AnthropicClientOptions = Anthropic.Core.ClientOptions;
+using GoogleHttpOptions = Google.GenAI.Types.HttpOptions;
 using OllamaOption = OllamaSharp.Models.OllamaOption;
+using OpenAIClientOptions = OpenAI.OpenAIClientOptions;
 
 namespace FWO.Ai.Tests;
 
@@ -48,8 +52,33 @@ internal class HarnessChatClientFactoryTest
     private const int kRequestContextWindowTokens = 2048;
     private const int kConfiguredMaxOutputTokens = 123;
     private const int kExplicitMaxOutputTokens = 45;
+    private const int kTestRequestTimeoutSeconds = 900;
+    private const int kMillisecondsPerSecond = 1000;
+    private const string kAnthropicMessagesPath = "/v1/messages";
+    private const string kAnthropicMaxTokensProperty = "max_tokens";
+    private const string kAnthropicTimeoutHeader = "X-Stainless-Timeout";
+    private const string kAnthropicOpus4Model = "claude-opus-4-0";
+    private const int kAnthropicOpus4NonStreamingTokenLimit = 8192;
+    private const int kAnthropicDefaultMaxTokens = 1024;
+    private const int kAnthropicContextWindowTokens = 200000;
+    private const string kAnthropicAnswer = "anthropic stub answer";
+    private const string kAnthropicResponse = """
+        {
+          "id": "msg_stub",
+          "type": "message",
+          "role": "assistant",
+          "model": "test-model",
+          "content": [ { "type": "text", "text": "anthropic stub answer" } ],
+          "stop_reason": "end_turn",
+          "stop_sequence": null,
+          "usage": { "input_tokens": 1, "output_tokens": 1 }
+        }
+        """;
 
     private static readonly List<string> kOtherAdditionalPropertyKeys = [kOtherAdditionalProperty];
+    private static readonly TimeSpan kTestRequestTimeout = TimeSpan.FromSeconds(kTestRequestTimeoutSeconds);
+    private static readonly TimeSpan kShortRequestTimeout = TimeSpan.FromMilliseconds(200);
+    private static readonly TimeSpan kSlowAnswerDelay = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Verifies that each provider gets a chat client for the configured model, which can be disposed.
@@ -417,6 +446,187 @@ internal class HarnessChatClientFactoryTest
     }
 
     /// <summary>
+    /// Verifies that the provider settings default to the request timeout of the AI settings.
+    /// </summary>
+    [Test]
+    public void RequestTimeout_DefaultsToTimeoutOfAiSettings()
+    {
+        AiProviderSettings settings = new();
+
+        Assert.That(settings.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(AiSettings.kDefaultRequestTimeoutSeconds)));
+    }
+
+    /// <summary>
+    /// Verifies that a request timeout that is not positive or longer than allowed is refused for every provider.
+    /// </summary>
+    [TestCase(AiProvider.Ollama, 0)]
+    [TestCase(AiProvider.OpenAi, -1)]
+    [TestCase(AiProvider.Anthropic, AiSettings.kMaxRequestTimeoutSeconds + 1)]
+    [TestCase(AiProvider.Google, AiSettings.kMaxRequestTimeoutSeconds + 1)]
+    public void Create_WithRequestTimeoutOutOfRange_Throws(AiProvider provider, int timeoutSeconds)
+    {
+        AiProviderSettings settings = CreateSettings(provider);
+        settings.RequestTimeout = TimeSpan.FromSeconds(timeoutSeconds);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChatClientFactory.Create(settings));
+    }
+
+    /// <summary>
+    /// Verifies that the longest request timeout is accepted for every provider; Google takes it in milliseconds.
+    /// </summary>
+    [TestCase(AiProvider.Ollama)]
+    [TestCase(AiProvider.OpenAi)]
+    [TestCase(AiProvider.Anthropic)]
+    [TestCase(AiProvider.Google)]
+    public void Create_WithLongestRequestTimeout_ReturnsClient(AiProvider provider)
+    {
+        AiProviderSettings settings = CreateSettings(provider);
+        settings.RequestTimeout = TimeSpan.FromSeconds(AiSettings.kMaxRequestTimeoutSeconds);
+
+        using IChatClient chatClient = ChatClientFactory.Create(settings);
+
+        Assert.That(chatClient.GetService<ChatClientMetadata>()?.DefaultModelId, Is.EqualTo(kModel));
+    }
+
+    /// <summary>
+    /// Verifies that the HTTP client of Ollama gets the request timeout instead of the default of 100 seconds, for the
+    /// local Ollama server if no endpoint is given.
+    /// </summary>
+    [Test]
+    public void CreateOllamaHttpClient_SetsRequestTimeout()
+    {
+        AiProviderSettings settings = CreateSettings(AiProvider.Ollama);
+        settings.RequestTimeout = kTestRequestTimeout;
+
+        using HttpClient httpClient = ChatClientFactory.CreateOllamaHttpClient(settings);
+
+        Assert.That(httpClient.Timeout, Is.EqualTo(kTestRequestTimeout));
+        Assert.That(httpClient.BaseAddress, Is.EqualTo(new Uri(ChatClientFactory.kDefaultOllamaEndpoint)));
+    }
+
+    /// <summary>
+    /// Verifies that the OpenAI client gets the request timeout instead of the default of 100 seconds.
+    /// </summary>
+    [Test]
+    public void CreateOpenAiClientOptions_SetsRequestTimeout()
+    {
+        AiProviderSettings settings = CreateSettings(AiProvider.OpenAi);
+        settings.RequestTimeout = kTestRequestTimeout;
+
+        OpenAIClientOptions clientOptions = ChatClientFactory.CreateOpenAiClientOptions(settings);
+
+        Assert.That(clientOptions.NetworkTimeout, Is.EqualTo(kTestRequestTimeout));
+    }
+
+    /// <summary>
+    /// Verifies that the Anthropic client gets the request timeout, so that the SDK does not derive one from the
+    /// maximum number of output tokens.
+    /// </summary>
+    [Test]
+    public void CreateAnthropicClientOptions_SetsRequestTimeout()
+    {
+        AiProviderSettings settings = CreateSettings(AiProvider.Anthropic);
+        settings.RequestTimeout = kTestRequestTimeout;
+
+        AnthropicClientOptions clientOptions = ChatClientFactory.CreateAnthropicClientOptions(settings);
+
+        Assert.That(clientOptions.Timeout, Is.EqualTo(kTestRequestTimeout));
+    }
+
+    /// <summary>
+    /// Verifies that the Google client gets the request timeout in milliseconds, without which it waits without limit,
+    /// and neither a base URL nor headers unless they are given, so that the SDK defaults apply.
+    /// </summary>
+    [Test]
+    public void CreateGoogleHttpOptions_WithoutEndpointAndHeaders_SetsRequestTimeoutOnly()
+    {
+        AiProviderSettings settings = CreateSettings(AiProvider.Google);
+        settings.RequestTimeout = kTestRequestTimeout;
+
+        GoogleHttpOptions httpOptions = ChatClientFactory.CreateGoogleHttpOptions(settings);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(httpOptions.Timeout, Is.EqualTo(kTestRequestTimeoutSeconds * kMillisecondsPerSecond));
+            Assert.That(httpOptions.BaseUrl, Is.Null);
+            Assert.That(httpOptions.Headers, Is.Null);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that an Ollama request answered later than the request timeout fails with a timeout instead of waiting
+    /// for the answer.
+    /// </summary>
+    [Test]
+    public async Task Create_Ollama_FailsRequestLongerThanTimeout()
+    {
+        await using WebApplication slowStub = await StartStub(kOllamaChatPath, async context =>
+        {
+            await Task.Delay(kSlowAnswerDelay, context.RequestAborted);
+            return Results.Ok();
+        });
+        AiProviderSettings settings = CreateOllamaStubSettings(slowStub, null);
+        settings.RequestTimeout = kShortRequestTimeout;
+        using IChatClient chatClient = ChatClientFactory.Create(settings);
+
+        OperationCanceledException? exception = Assert.CatchAsync<OperationCanceledException>(() => chatClient.GetResponseAsync(kPrompt));
+
+        Assert.That(exception!.InnerException, Is.InstanceOf<TimeoutException>());
+    }
+
+    /// <summary>
+    /// Verifies that disposing the Ollama chat client disposes its HTTP client too, which OllamaSharp leaves to its owner.
+    /// </summary>
+    [Test]
+    public void Create_Ollama_DisposeFreesHttpClient()
+    {
+        IChatClient chatClient = ChatClientFactory.Create(CreateSettings(AiProvider.Ollama));
+
+        chatClient.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(() => chatClient.GetResponseAsync(kPrompt));
+    }
+
+    /// <summary>
+    /// Verifies that the Anthropic client sends a request that is not streamed, like the summary of a long history, with
+    /// the request timeout: without it the SDK allows only 30 seconds for the default of 1024 output tokens, and refuses
+    /// the request for Claude Opus 4 with more output tokens than it allows without streaming.
+    /// </summary>
+    [TestCase(kModel, null, kAnthropicDefaultMaxTokens)]
+    [TestCase(kAnthropicOpus4Model, 2 * kAnthropicOpus4NonStreamingTokenLimit, 2 * kAnthropicOpus4NonStreamingTokenLimit)]
+    public async Task Create_Anthropic_SendsRequestWithRequestTimeout(string model, int? maxOutputTokens, int expectedMaxTokens)
+    {
+        List<JsonElement> requests = [];
+        List<string> timeoutHeaders = [];
+        await using WebApplication anthropicStub = await StartStub(kAnthropicMessagesPath, async context =>
+        {
+            using JsonDocument request = await JsonDocument.ParseAsync(context.Request.Body);
+            lock (requests)
+            {
+                requests.Add(request.RootElement.Clone());
+                timeoutHeaders.Add(context.Request.Headers[kAnthropicTimeoutHeader].ToString());
+            }
+            return Results.Text(kAnthropicResponse, kJsonContentType);
+        });
+        AiProviderSettings settings = CreateSettings(AiProvider.Anthropic);
+        settings.Model = model;
+        settings.Endpoint = McpTestServer.GetBaseAddress(anthropicStub);
+        settings.ContextWindowTokens = kAnthropicContextWindowTokens;
+        settings.MaxOutputTokens = maxOutputTokens;
+        settings.RequestTimeout = kTestRequestTimeout;
+        using IChatClient chatClient = ChatClientFactory.Create(settings);
+
+        ChatResponse response = await chatClient.GetResponseAsync(kPrompt);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Text, Is.EqualTo(kAnthropicAnswer));
+            Assert.That(requests.Single().GetProperty(kAnthropicMaxTokensProperty).GetInt32(), Is.EqualTo(expectedMaxTokens));
+            Assert.That(timeoutHeaders.Single(), Is.EqualTo(kTestRequestTimeoutSeconds.ToString(CultureInfo.InvariantCulture)));
+        });
+    }
+
+    /// <summary>
     /// Creates valid settings of the given provider with the context window of the tests.
     /// </summary>
     private static AiProviderSettings CreateSettings(AiProvider provider)
@@ -458,12 +668,9 @@ internal class HarnessChatClientFactoryTest
     /// Starts a stub of the chat API of a provider on a free loopback port, answering requests to the given path with
     /// the given response and recording the request bodies.
     /// </summary>
-    private static async Task<WebApplication> StartProviderStub(List<JsonElement> requests, string chatPath, Func<IResult> createResponse)
+    private static Task<WebApplication> StartProviderStub(List<JsonElement> requests, string chatPath, Func<IResult> createResponse)
     {
-        WebApplicationBuilder builder = WebApplication.CreateBuilder();
-        builder.WebHost.UseUrls(kLoopbackUrlWithFreePort);
-        WebApplication app = builder.Build();
-        app.MapPost(chatPath, async (HttpContext context) =>
+        return StartStub(chatPath, async context =>
         {
             using JsonDocument request = await JsonDocument.ParseAsync(context.Request.Body);
             lock (requests)
@@ -472,6 +679,17 @@ internal class HarnessChatClientFactoryTest
             }
             return createResponse();
         });
+    }
+
+    /// <summary>
+    /// Starts a stub on a free loopback port, answering POST requests to the given path with the given handler.
+    /// </summary>
+    private static async Task<WebApplication> StartStub(string chatPath, Func<HttpContext, Task<IResult>> handleRequest)
+    {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls(kLoopbackUrlWithFreePort);
+        WebApplication app = builder.Build();
+        app.MapPost(chatPath, handleRequest);
         await app.StartAsync();
         return app;
     }

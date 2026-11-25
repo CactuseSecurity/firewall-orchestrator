@@ -24,6 +24,8 @@ public static class ChatClientFactory
     private const string kProviderEndpointPurpose = "AI provider endpoint";
     private const string kTokenUrlPurpose = "token URL";
 
+    private static readonly TimeSpan kMaxRequestTimeout = TimeSpan.FromSeconds(AiSettings.kMaxRequestTimeoutSeconds);
+
     /// <summary>
     /// Creates the chat client of the configured provider. Disposing the returned client frees the SDK client too.
     /// </summary>
@@ -62,6 +64,7 @@ public static class ChatClientFactory
             throw new ArgumentException("A model is required.", nameof(settings));
         }
         ValidateTokenLimits(settings);
+        ValidateRequestTimeout(settings);
         ValidateCustomHeaders(settings);
         if (settings.OAuthClient != null)
         {
@@ -124,6 +127,20 @@ public static class ChatClientFactory
         if (settings.MaxOutputTokens is int maxOutputTokens && maxOutputTokens >= settings.ContextWindowTokens)
         {
             throw new ArgumentOutOfRangeException(nameof(settings), "The maximum number of output tokens must be smaller than the context window.");
+        }
+    }
+
+    /// <summary>
+    /// Checks the request timeout: positive and at most <see cref="AiSettings.kMaxRequestTimeoutSeconds"/> seconds, which
+    /// also keeps it within the milliseconds the Google client takes as int.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The request timeout is not positive or too long.</exception>
+    private static void ValidateRequestTimeout(AiProviderSettings settings)
+    {
+        if (settings.RequestTimeout <= TimeSpan.Zero || settings.RequestTimeout > kMaxRequestTimeout)
+        {
+            throw new ArgumentOutOfRangeException(nameof(settings),
+                $"The request timeout must be positive and at most {AiSettings.kMaxRequestTimeoutSeconds} seconds.");
         }
     }
 
@@ -196,34 +213,42 @@ public static class ChatClientFactory
     }
 
     /// <summary>
-    /// Creates an Ollama client with the additional headers; the OllamaSharp client is a chat client itself.
+    /// Creates an Ollama client with the request timeout and the additional headers; the OllamaSharp client is a chat
+    /// client itself. OllamaSharp takes the timeout only with an HTTP client of the caller, which it does not dispose,
+    /// so the returned client owns that HTTP client and disposes it.
     /// </summary>
     private static IChatClient CreateOllamaClient(AiProviderSettings settings)
     {
-        Uri endpoint = settings.Endpoint ?? new Uri(kDefaultOllamaEndpoint);
-        OllamaApiClient ollamaClient = new(endpoint, settings.Model);
+        HttpClient httpClient = CreateOllamaHttpClient(settings);
+        OllamaApiClient ollamaClient = new(httpClient, settings.Model);
         foreach (KeyValuePair<string, string> header in settings.CustomHeaders)
         {
             ollamaClient.DefaultRequestHeaders[header.Key] = header.Value;
         }
-        return ollamaClient;
+        return new ProviderChatClient(ollamaClient, httpClient);
     }
 
     /// <summary>
-    /// Creates an OpenAI client with the additional headers, for a custom OpenAI compatible endpoint if one is given; with
-    /// the access token of OAuth 2.0 if configured, else with the API key.
+    /// Creates the HTTP client of the Ollama client, for the endpoint (the local Ollama server if none is given) and with
+    /// the request timeout instead of the default of 100 seconds. Ollama answers a request that is not streamed, e.g.
+    /// the summary of a long history, only once the whole answer is generated, so the timeout bounds the generation.
+    /// </summary>
+    internal static HttpClient CreateOllamaHttpClient(AiProviderSettings settings)
+    {
+        return new HttpClient
+        {
+            BaseAddress = settings.Endpoint ?? new Uri(kDefaultOllamaEndpoint),
+            Timeout = settings.RequestTimeout
+        };
+    }
+
+    /// <summary>
+    /// Creates an OpenAI client with the request timeout and the additional headers, for a custom OpenAI compatible
+    /// endpoint if one is given; with the access token of OAuth 2.0 if configured, else with the API key.
     /// </summary>
     private static IChatClient CreateOpenAiClient(AiProviderSettings settings)
     {
-        OpenAIClientOptions clientOptions = new();
-        if (settings.Endpoint != null)
-        {
-            clientOptions.Endpoint = settings.Endpoint;
-        }
-        if (settings.CustomHeaders.Count > 0)
-        {
-            clientOptions.AddPolicy(new CustomHeadersPolicy(settings.CustomHeaders), PipelinePosition.PerCall);
-        }
+        OpenAIClientOptions clientOptions = CreateOpenAiClientOptions(settings);
         if (settings.OAuthClient != null)
         {
             return CreateOpenAiOAuthClient(settings.Model, settings.OAuthClient, clientOptions);
@@ -233,13 +258,31 @@ public static class ChatClientFactory
     }
 
     /// <summary>
+    /// Returns the options of the OpenAI client: the request timeout instead of the default of 100 seconds (per attempt,
+    /// for a streamed answer per read of the stream), the custom endpoint if one is given, and the additional headers.
+    /// </summary>
+    internal static OpenAIClientOptions CreateOpenAiClientOptions(AiProviderSettings settings)
+    {
+        OpenAIClientOptions clientOptions = new() { NetworkTimeout = settings.RequestTimeout };
+        if (settings.Endpoint != null)
+        {
+            clientOptions.Endpoint = settings.Endpoint;
+        }
+        if (settings.CustomHeaders.Count > 0)
+        {
+            clientOptions.AddPolicy(new CustomHeadersPolicy(settings.CustomHeaders), PipelinePosition.PerCall);
+        }
+        return clientOptions;
+    }
+
+    /// <summary>
     /// Creates an OpenAI client that sends an access token of OAuth 2.0 instead of an API key. The token is kept until
     /// shortly before it expires; its provider, with the connections to the token endpoint, is disposed with the client.
     /// The certificate of the token endpoint is always checked.
     /// </summary>
     private static IChatClient CreateOpenAiOAuthClient(string model, OAuthClientCredentials oauthClient, OpenAIClientOptions clientOptions)
     {
-        CachedOAuthTokenProvider tokenProvider = new(new OAuthTokenClient(checkCertificates: true), oauthClient);
+        CachedOAuthTokenProvider tokenProvider = new(new OAuthTokenClient(), oauthClient);
         // the constructor taking an authentication policy is experimental in the OpenAI SDK 2.14 (OPENAI001); it is the
         // only way to authenticate without an API key, and a change in a later SDK version shows up when building
 #pragma warning disable OPENAI001
@@ -250,29 +293,43 @@ public static class ChatClientFactory
     }
 
     /// <summary>
-    /// Creates an Anthropic client with the additional headers, for a custom base URL if one is given. The SDK adds the
-    /// headers after the authentication headers and never lets them replace these.
+    /// Creates an Anthropic client with the request timeout and the additional headers, for a custom base URL if one is
+    /// given.
     /// </summary>
     private static IChatClient CreateAnthropicClient(AiProviderSettings settings)
+    {
+        AnthropicClient anthropicClient = new(CreateAnthropicClientOptions(settings));
+        IChatClient chatClient = anthropicClient.AsIChatClient(settings.Model, settings.MaxOutputTokens);
+        return new ProviderChatClient(chatClient, anthropicClient);
+    }
+
+    /// <summary>
+    /// Returns the options of the Anthropic client: the API key, the additional headers, which the SDK adds after the
+    /// authentication headers and never lets them replace these, the request timeout (per attempt) and the custom base
+    /// URL if one is given. Without a timeout of its own, the SDK derives the timeout of a request that is not streamed,
+    /// e.g. the summary of a long history, from its maximum number of output tokens: 30 seconds per 1000 tokens, so only
+    /// 30 seconds for the default of 1024 tokens, and for Claude Opus 4 and 4.1 it refuses such a request with more than
+    /// 8192 tokens.
+    /// </summary>
+    internal static AnthropicClientOptions CreateAnthropicClientOptions(AiProviderSettings settings)
     {
         AnthropicClientOptions clientOptions = new()
         {
             ApiKey = GetApiKey(settings),
-            ExtraHeaders = new Dictionary<string, string>(settings.CustomHeaders)
+            ExtraHeaders = new Dictionary<string, string>(settings.CustomHeaders),
+            Timeout = settings.RequestTimeout
         };
         // BaseUrl must only be set if a custom one is given, otherwise the SDK default applies
         if (settings.Endpoint != null)
         {
             clientOptions.BaseUrl = settings.Endpoint.ToString();
         }
-        AnthropicClient anthropicClient = new(clientOptions);
-        IChatClient chatClient = anthropicClient.AsIChatClient(settings.Model, settings.MaxOutputTokens);
-        return new ProviderChatClient(chatClient, anthropicClient);
+        return clientOptions;
     }
 
     /// <summary>
-    /// Creates a Google client for the Gemini Developer API (not Vertex AI), for a custom base URL and with the additional
-    /// headers if given.
+    /// Creates a Google client for the Gemini Developer API (not Vertex AI), with the request timeout, and for a custom
+    /// base URL and with the additional headers if given.
     /// </summary>
     private static IChatClient CreateGoogleClient(AiProviderSettings settings)
     {
@@ -282,16 +339,13 @@ public static class ChatClientFactory
     }
 
     /// <summary>
-    /// Returns the HTTP options of the Google client: the custom base URL and the additional headers, each only if given,
-    /// so that the SDK defaults apply otherwise; null if neither is given.
+    /// Returns the HTTP options of the Google client: the request timeout in milliseconds, without which the SDK waits
+    /// without limit (for a streamed answer it bounds the whole answer), and the custom base URL and the additional
+    /// headers, each only if given, so that the SDK defaults apply otherwise.
     /// </summary>
-    private static HttpOptions? CreateGoogleHttpOptions(AiProviderSettings settings)
+    internal static HttpOptions CreateGoogleHttpOptions(AiProviderSettings settings)
     {
-        if (settings.Endpoint == null && settings.CustomHeaders.Count == 0)
-        {
-            return null;
-        }
-        HttpOptions httpOptions = new();
+        HttpOptions httpOptions = new() { Timeout = (int)Math.Ceiling(settings.RequestTimeout.TotalMilliseconds) };
         if (settings.Endpoint != null)
         {
             httpOptions.BaseUrl = settings.Endpoint.ToString();

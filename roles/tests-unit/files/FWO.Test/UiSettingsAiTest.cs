@@ -37,6 +37,13 @@ internal class UiSettingsAiTest
     private const string kAnthropicCredentialName = "anthropic-key";
     private const int kUnknownCredentialId = 99;
     private const string kCredentialInputSelector = "#dropdown-input-aiCredential";
+    private const string kProviderInputSelector = "#dropdown-input-aiProvider";
+    private const string kProviderChoiceSelector = "button[id^='dropdown-menu-element-aiProvider']";
+    private const string kAuthMethodInputSelector = "#dropdown-input-aiAuthMethod";
+    private const string kAuthMethodChoiceSelector = "button[id^='dropdown-menu-element-aiAuthMethod']";
+    private const string kTokenUrlSelector = "#aiTokenUrl";
+    private const string kOAuthTextKey = "ai_auth_oauth2_client_credentials";
+    private static readonly string kSaveIconSelector = "span." + Icons.Save.Replace(' ', '.');
     private const string kCredentialChoiceSelector = "button[id^='dropdown-menu-element-aiCredential']";
     private const string kSelectedCredentialSelector = "button[id^='dropdown-menu-selected-aiCredential']";
     private const string kChatRolesInputSelector = "#dropdown-input-aiChatRoles";
@@ -58,11 +65,14 @@ internal class UiSettingsAiTest
     private const string kCustomHeaderNamePrefix = "aiCustomHeaderName";
     private const string kCustomHeaderValuePrefix = "aiCustomHeaderValue";
     private const string kCustomHeaderRemovePrefix = "aiCustomHeaderRemove";
-    private const string kProfileHeader = "ki-services-profile-name";
-    private const string kProfileValue = "com_1659_test";
+    private const string kProfileHeader = "x-gateway-profile";
+    private const string kProfileValue = "my-profile";
     private const string kIssuerHeader = "token-issuer";
     private const string kIssuerValue = "keycloak";
     private static readonly List<string> kProfileAndIssuerHeaders = [kProfileHeader, kIssuerHeader];
+    private const string kRequestTimeoutSelector = "#aiRequestTimeoutSeconds";
+    private const int kStoredRequestTimeoutSeconds = 900;
+    private const int kChangedRequestTimeoutSeconds = 1800;
 
     /// <summary>
     /// Verifies that an admin can save.
@@ -141,6 +151,30 @@ internal class UiSettingsAiTest
             Assert.That(wrapper.Find(GetCustomHeaderSelector(kCustomHeaderValuePrefix, 0)).GetAttribute("value"), Is.EqualTo(kMarkupPayload));
             Assert.That(wrapper.FindAll("img"), Is.Empty);
             Assert.That(wrapper.Find(kCustomHeaderAddSelector).HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the stored request timeout is shown with its bounds and that a changed value reaches the settings.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_ShowsAndEditsRequestTimeout()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiRequestTimeoutSeconds = kStoredRequestTimeoutSeconds;
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+        wrapper.WaitForState(() => wrapper.FindAll(kChatRolesInputSelector).Count == 1);
+
+        string shownValue = wrapper.Find(kRequestTimeoutSelector).GetAttribute("value") ?? "";
+        wrapper.Find(kRequestTimeoutSelector).Change(kChangedRequestTimeoutSeconds.ToString());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shownValue, Is.EqualTo(kStoredRequestTimeoutSeconds.ToString()));
+            Assert.That(wrapper.Find(kRequestTimeoutSelector).GetAttribute("min"), Is.EqualTo(AiSettings.kMinRequestTimeoutSeconds.ToString()));
+            Assert.That(wrapper.Find(kRequestTimeoutSelector).GetAttribute("max"), Is.EqualTo(AiSettings.kMaxRequestTimeoutSeconds.ToString()));
+            Assert.That(GetAiSettings(wrapper).RequestTimeoutSeconds, Is.EqualTo(kChangedRequestTimeoutSeconds));
         });
     }
 
@@ -398,7 +432,7 @@ internal class UiSettingsAiTest
         RecordingSettingsApiConn apiConnection = CreateApiConnection();
         SettingsAi component = CreateComponent(apiConnection, CreateGlobalConfig(), messages);
         await InvokePrivateTask(component, "OnInitializedAsync");
-        SetMember(component, "aiSettings", new AiSettings { Provider = AiProvider.OpenAi, ContextWindowTokens = 1000 });
+        SetMember(component, "aiSettings", new AiSettings { Provider = AiProvider.OpenAi, ContextWindowTokens = 1000, RequestTimeoutSeconds = 0 });
 
         await InvokePrivateTask(component, "Save");
 
@@ -408,6 +442,7 @@ internal class UiSettingsAiTest
             Assert.That(messages.Single().IsError, Is.True);
             Assert.That(messages.Single().Message, Does.Contain(AiSettingsProblemTexts.GetTextKey(AiSettingsProblem.ModelMissing)));
             Assert.That(messages.Single().Message, Does.Contain(AiSettingsProblemTexts.GetTextKey(AiSettingsProblem.CredentialMissing)));
+            Assert.That(messages.Single().Message, Does.Contain(AiSettingsProblemTexts.GetTextKey(AiSettingsProblem.RequestTimeoutInvalid)));
         });
     }
 
@@ -427,6 +462,7 @@ internal class UiSettingsAiTest
             Model = $" {kModel} ",
             CredentialId = kApiKeyCredentialId,
             ContextWindowTokens = 200000,
+            RequestTimeoutSeconds = kChangedRequestTimeoutSeconds,
             ChatEnabled = true
         });
 
@@ -441,11 +477,85 @@ internal class UiSettingsAiTest
             Assert.That(storedValues[AiSettings.kModelKey], Is.EqualTo(kModel));
             Assert.That(storedValues[AiSettings.kCredentialIdKey], Is.EqualTo(kApiKeyCredentialId.ToString()));
             Assert.That(storedValues[AiSettings.kContextWindowTokensKey], Is.EqualTo("200000"));
+            Assert.That(storedValues[AiSettings.kRequestTimeoutSecondsKey], Is.EqualTo(kChangedRequestTimeoutSeconds.ToString()));
             Assert.That(storedValues[AiSettings.kChatKey], Is.EqualTo("True").IgnoreCase);
             Assert.That(AiSettings.FromConfigValues(storedValues).Provider, Is.EqualTo(AiProvider.Anthropic));
             Assert.That(AiSettings.FromConfigValues(storedValues).ChatEnabled, Is.True);
             Assert.That(AiSettings.FromConfigValues(storedValues).ReasonCheckEnabled, Is.False);
         });
+    }
+
+    /// <summary>
+    /// Verifies that the dropdowns of provider and authentication method show the stored settings, and that the token
+    /// URL field is shown for OAuth 2.0.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_DropdownsShowStoredProviderAndAuthMethod()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiProvider = AiProvider.OpenAi;
+        globalConfig.AiAuthMethod = AiAuthMethod.OAuth2ClientCredentials;
+        string oauthText = CreateUserConfig(Roles.Admin).GetText(kOAuthTextKey);
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForState(() => GetInputText(wrapper, kProviderInputSelector) == nameof(AiProvider.OpenAi)
+            && GetInputText(wrapper, kAuthMethodInputSelector) == oauthText);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(GetInputText(wrapper, kProviderInputSelector), Is.EqualTo(nameof(AiProvider.OpenAi)));
+            Assert.That(GetInputText(wrapper, kAuthMethodInputSelector), Is.EqualTo(oauthText));
+            Assert.That(wrapper.FindAll(kTokenUrlSelector), Has.Count.EqualTo(1));
+            Assert.That(GetAiSettings(wrapper).Provider, Is.EqualTo(AiProvider.OpenAi));
+            Assert.That(GetAiSettings(wrapper).AuthMethod, Is.EqualTo(AiAuthMethod.OAuth2ClientCredentials));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that choosing a provider and an authentication method in their dropdowns sets them, and that choosing
+    /// OAuth 2.0 shows the token URL field.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_ChoosingProviderAndAuthMethodSetsThem()
+    {
+        string oauthText = CreateUserConfig(Roles.Admin).GetText(kOAuthTextKey);
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), CreateGlobalConfig());
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+        // the role dropdowns are rendered once the settings are loaded, which would replace an earlier choice
+        wrapper.WaitForState(() => wrapper.FindAll(kChatRolesInputSelector).Count == 1);
+        int tokenUrlFieldsBefore = wrapper.FindAll(kTokenUrlSelector).Count;
+
+        await OpenDropdown(wrapper, kProviderInputSelector, kProviderChoiceSelector);
+        wrapper.FindAll(kProviderChoiceSelector).Single(choice => choice.TextContent.Trim() == nameof(AiProvider.Anthropic)).Click();
+        wrapper.WaitForState(() => GetAiSettings(wrapper).Provider == AiProvider.Anthropic);
+        await OpenDropdown(wrapper, kAuthMethodInputSelector, kAuthMethodChoiceSelector);
+        wrapper.FindAll(kAuthMethodChoiceSelector).Single(choice => choice.TextContent.Trim() == oauthText).Click();
+        wrapper.WaitForState(() => wrapper.FindAll(kTokenUrlSelector).Count == 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tokenUrlFieldsBefore, Is.Zero);
+            Assert.That(GetAiSettings(wrapper).Provider, Is.EqualTo(AiProvider.Anthropic));
+            Assert.That(GetAiSettings(wrapper).AuthMethod, Is.EqualTo(AiAuthMethod.OAuth2ClientCredentials));
+            Assert.That(GetInputText(wrapper, kProviderInputSelector), Is.EqualTo(nameof(AiProvider.Anthropic)));
+            Assert.That(GetInputText(wrapper, kAuthMethodInputSelector), Is.EqualTo(oauthText));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the save button shows the save icon, for admins (enabled) and auditors (disabled).
+    /// </summary>
+    [TestCase(Roles.Admin)]
+    [TestCase(Roles.Auditor)]
+    public async Task SettingsAi_SaveButtonShowsSaveIcon(string role)
+    {
+        await using BunitContext context = CreateContext(role, CreateApiConnection(), CreateGlobalConfig());
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForState(() => wrapper.FindAll(kSaveButtonSelector).Count == 1);
+
+        Assert.That(wrapper.Find(kSaveButtonSelector).QuerySelector(kSaveIconSelector), Is.Not.Null);
     }
 
     /// <summary>
@@ -461,7 +571,8 @@ internal class UiSettingsAiTest
         await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
-        wrapper.WaitForAssertion(() =>
+        wrapper.WaitForState(() => IsChecked(wrapper, "#aiChat") == chatEnabled && IsChecked(wrapper, "#aiReasonCheck") == reasonCheckEnabled);
+        Assert.Multiple(() =>
         {
             Assert.That(wrapper.Find("#aiChat").HasAttribute("checked"), Is.EqualTo(chatEnabled));
             Assert.That(wrapper.Find("#aiReasonCheck").HasAttribute("checked"), Is.EqualTo(reasonCheckEnabled));
@@ -483,7 +594,9 @@ internal class UiSettingsAiTest
         await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
-        wrapper.WaitForAssertion(() =>
+        wrapper.WaitForState(() => IsDisabled(wrapper, kChatRolesInputSelector) == !chatEnabled
+            && IsDisabled(wrapper, kReasonCheckRolesInputSelector) == !reasonCheckEnabled && IsDisabled(wrapper, kCredentialInputSelector) == false);
+        Assert.Multiple(() =>
         {
             Assert.That(wrapper.Find(kChatRolesInputSelector).Matches(":disabled"), Is.EqualTo(!chatEnabled));
             Assert.That(wrapper.Find(kReasonCheckRolesInputSelector).Matches(":disabled"), Is.EqualTo(!reasonCheckEnabled));
@@ -754,6 +867,22 @@ internal class UiSettingsAiTest
     }
 
     /// <summary>
+    /// Tells whether a checkbox is checked, null while it is not rendered; for waits, which must not assert or throw.
+    /// </summary>
+    private static bool? IsChecked(IRenderedComponent<CascadingAuthenticationState> wrapper, string checkboxSelector)
+    {
+        return wrapper.FindAll(checkboxSelector).SingleOrDefault()?.HasAttribute("checked");
+    }
+
+    /// <summary>
+    /// Tells whether an input is disabled, null while it is not rendered; for waits, which must not assert or throw.
+    /// </summary>
+    private static bool? IsDisabled(IRenderedComponent<CascadingAuthenticationState> wrapper, string inputSelector)
+    {
+        return wrapper.FindAll(inputSelector).SingleOrDefault()?.Matches(":disabled");
+    }
+
+    /// <summary>
     /// Opens the menu of the role dropdown of the chat by focusing its input and waits until it shows roles.
     /// </summary>
     private static async Task OpenChatRolesDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper)
@@ -784,11 +913,19 @@ internal class UiSettingsAiTest
     /// <summary>
     /// Opens the menu of the credential dropdown by focusing its input and waits until it offers credentials.
     /// </summary>
-    private static async Task OpenCredentialDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper)
+    private static Task OpenCredentialDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper)
     {
-        wrapper.WaitForState(() => wrapper.FindAll(kCredentialInputSelector).Count == 1);
-        await wrapper.InvokeAsync(() => wrapper.Find(kCredentialInputSelector).Focus());
-        wrapper.WaitForState(() => wrapper.FindAll(kCredentialChoiceSelector).Count > 0);
+        return OpenDropdown(wrapper, kCredentialInputSelector, kCredentialChoiceSelector);
+    }
+
+    /// <summary>
+    /// Opens the menu of a single-select dropdown by focusing its input and waits until it offers choices.
+    /// </summary>
+    private static async Task OpenDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper, string inputSelector, string choiceSelector)
+    {
+        wrapper.WaitForState(() => wrapper.FindAll(inputSelector).Count == 1);
+        await wrapper.InvokeAsync(() => wrapper.Find(inputSelector).Focus());
+        wrapper.WaitForState(() => wrapper.FindAll(choiceSelector).Count > 0);
     }
 
     private static BunitContext CreateContext(string role, RecordingSettingsApiConn apiConnection, SimulatedGlobalConfig globalConfig)

@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Middleware;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace FWO.Ai.Tests;
@@ -231,4 +232,32 @@ internal sealed class RecordingLogger : ILogger
             entries.Add((logLevel, formatter(state, exception)));
         }
     }
+}
+
+/// <summary>
+/// Logger factory handing out one <see cref="RecordingLogger"/> per category, so that a test can read the entries of
+/// one class.
+/// </summary>
+internal sealed class RecordingLoggerFactory : ILoggerFactory
+{
+    private readonly ConcurrentDictionary<string, RecordingLogger> loggers = new();
+
+    /// <summary>
+    /// Returns the logger of the category of the given class.
+    /// </summary>
+    internal RecordingLogger GetLogger<T>() => GetLogger(typeof(T).FullName!);
+
+    public ILogger CreateLogger(string categoryName) => GetLogger(categoryName);
+
+    public void AddProvider(ILoggerProvider provider)
+    {
+        throw new NotSupportedException("The recording logger factory takes no providers.");
+    }
+
+    public void Dispose()
+    {
+        // nothing to release, the loggers only keep their entries in memory
+    }
+
+    private RecordingLogger GetLogger(string categoryName) => loggers.GetOrAdd(categoryName, _ => new RecordingLogger());
 }

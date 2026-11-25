@@ -79,14 +79,14 @@ namespace FWO.Test
             IRenderedComponent<AiChatNavButton> button = context.Render<AiChatNavButton>();
 
             Task run = Session.SendAsync(kQuestion);
-            button.WaitForAssertion(() => Assert.That(button.FindAll(kRunningBadge), Has.Count.EqualTo(1)));
+            button.WaitForState(() => button.FindAll(kRunningBadge).Count == 1);
             updates.Writer.TryWrite(ScriptedChatClient.Text(kAnswer));
             updates.Writer.TryComplete();
             await run;
 
-            button.WaitForAssertion(() =>
+            button.WaitForState(() => button.FindAll(kAnswerBadge).Count == 1);
+            Assert.Multiple(() =>
             {
-                Assert.That(button.FindAll(kAnswerBadge), Has.Count.EqualTo(1));
                 Assert.That(button.FindAll(kRunningBadge), Is.Empty);
                 Assert.That(button.Find(kAnswerBadge).GetAttribute("title"), Is.EqualTo(AiChatDisplay.kNewAnswerTextKey));
             });
@@ -104,11 +104,8 @@ namespace FWO.Test
 
             await Session.SendAsync(kQuestion);
 
-            button.WaitForAssertion(() =>
-            {
-                Assert.That(button.FindAll(kApprovalBadge), Has.Count.EqualTo(1));
-                Assert.That(button.Find(kApprovalBadge).GetAttribute("title"), Is.EqualTo(AiChatDisplay.kApprovalPendingTextKey));
-            });
+            button.WaitForState(() => button.FindAll(kApprovalBadge).Count == 1);
+            Assert.That(button.Find(kApprovalBadge).GetAttribute("title"), Is.EqualTo(AiChatDisplay.kApprovalPendingTextKey));
         }
 
         [Test]

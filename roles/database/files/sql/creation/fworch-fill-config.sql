@@ -77,6 +77,7 @@ insert into config (config_key, config_value, config_user) VALUES ('aiEndpoint',
 insert into config (config_key, config_value, config_user) VALUES ('aiCredentialId', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiContextWindowTokens', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiMaxOutputTokens', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('aiRequestTimeoutSeconds', '600', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiMaxIterationsPerRequest', '10', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiMaxConsecutiveErrorsPerRequest', '3', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiCompactionReserveTokens', '0', 0);

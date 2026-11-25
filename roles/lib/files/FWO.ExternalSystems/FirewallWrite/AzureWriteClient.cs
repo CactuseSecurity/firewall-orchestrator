@@ -47,18 +47,17 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static readonly HashSet<string> AzureThrottlingCodes = new(StringComparer.OrdinalIgnoreCase)
             { "TooManyRequests", "Throttled", "SubscriptionRequestsThrottled" };
 
-        private readonly bool checkCertificates;
         private readonly TimeSpan? tokenRequestTimeout;
         private string? accessToken;
 
         /// <summary>Creates a client for Azure Resource Manager.</summary>
         /// <param name="management">Management with tenant id and export credentials.</param>
-        /// <param name="checkCertificates">False accepts any server certificate, of Resource Manager and of the Entra ID login.</param>
+        /// <param name="checkCertificates">False accepts any server certificate of Resource Manager; the certificate of the
+        /// Entra ID login is always checked, as the client secret is sent there.</param>
         /// <param name="responseTimeout">Request timeout in seconds, when configured.</param>
         public AzureWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
             : base(kArmBaseUrl, management, checkCertificates, responseTimeout)
         {
-            this.checkCertificates = checkCertificates;
             tokenRequestTimeout = responseTimeout is > 0 ? TimeSpan.FromSeconds(responseTimeout.Value) : null;
         }
 
@@ -89,13 +88,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
-        /// Creates the client of the Entra ID token endpoint with this client's certificate checking and timeout.
-        /// Unit tests override this to simulate the token endpoint.
+        /// Creates the client of the Entra ID token endpoint with this client's timeout. Its certificate is always
+        /// checked, whatever the certificate setting of the firewall write clients. Unit tests override this to simulate
+        /// the token endpoint.
         /// </summary>
         /// <returns>The token client; the caller disposes it.</returns>
         protected virtual OAuthTokenClient CreateTokenClient()
         {
-            return new OAuthTokenClient(checkCertificates, requestTimeout: tokenRequestTimeout);
+            return new OAuthTokenClient(requestTimeout: tokenRequestTimeout);
         }
 
         /// <inheritdoc/>

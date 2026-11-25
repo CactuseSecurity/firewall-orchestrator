@@ -24,6 +24,8 @@ namespace FWO.Test
         private const string kSecondRequest = "request-2";
         private const string kValueArgument = "value";
         private const string kValue = "42";
+        private const string kStoreCallId = "call-request-1";
+        private const string kStoredResult = "stored 42";
 
         private static readonly TimeSpan kWaitTimeout = TimeSpan.FromSeconds(5);
         private static readonly List<string> kQuestionOnly = [kQuestion];
@@ -35,6 +37,8 @@ namespace FWO.Test
         private static readonly List<bool> kApprovalAnswers = [true, false];
         private static readonly List<string> kApprovalRequestIds = [kFirstRequest, kSecondRequest];
         private static readonly Dictionary<string, object?> kStoreArguments = new() { { kValueArgument, kValue } };
+        private static readonly List<ChatRole> kToolCallThenNextQuestionRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool, ChatRole.User];
+        private static readonly List<string> kStoreCallIds = [kStoreCallId];
 
         private static readonly List<TestCaseData> kIgnoredMessages =
         [
@@ -249,6 +253,61 @@ namespace FWO.Test
             await Session.SendAsync(kQuestion);
 
             Assert.That(Session.GetEntries()[1].State, Is.EqualTo(AiChatAnswerState.Failed));
+        }
+
+        [Test]
+        public async Task SendAsync_RunWithoutAnswerOrToolCall_KeepsThePreviousConversation()
+        {
+            test.ChatClient = ScriptedChatClient.Returning(AiChatTestUpdates.Snapshot(AiChatTestUpdates.Conversation(kQuestion)));
+            await Session.SendAsync(kQuestion);
+            test.ChatClient = CreateAnsweringClient(kNextQuestion, kNextAnswer);
+
+            await Session.SendAsync(kNextQuestion);
+
+            Assert.That(AiChatTestUpdates.GetTexts(test.ChatClient.Calls.Single().Messages), Is.EqualTo(kNextQuestionOnly));
+        }
+
+        [Test]
+        public async Task SendAsync_RunWithoutAnswerAfterToolCall_KeepsTheToolCallWithoutTheEmptyAnswer()
+        {
+            List<ChatMessage> conversationWithEmptyAnswer = [.. CreateToolCallConversation(), new ChatMessage(ChatRole.Assistant, "")];
+            test.ChatClient = ScriptedChatClient.Returning(AiChatTestUpdates.Snapshot(conversationWithEmptyAnswer));
+            await Session.SendAsync(kQuestion);
+            test.ChatClient = CreateAnsweringClient(kNextQuestion, kNextAnswer);
+
+            await Session.SendAsync(kNextQuestion);
+
+            List<ChatMessage> nextMessages = test.ChatClient.Calls.Single().Messages;
+            Assert.Multiple(() =>
+            {
+                Assert.That(Session.GetEntries()[1].State, Is.EqualTo(AiChatAnswerState.Failed));
+                Assert.That(nextMessages.Select(message => message.Role), Is.EqualTo(kToolCallThenNextQuestionRoles));
+                Assert.That(GetCallIds(nextMessages), Is.EqualTo(kStoreCallIds));
+            });
+        }
+
+        [Test]
+        public async Task Approvals_ResumedRunFailingAfterTheToolRan_KeepsTheToolCall()
+        {
+            test.ChatClient = ScriptedChatClient.Returning(AiChatTestUpdates.RunStarted(kThreadId),
+                AiChatTestUpdates.ApprovalRequest(kFirstRequest, kStoreTool, kStoreArguments),
+                AiChatTestUpdates.Snapshot(AiChatTestUpdates.Conversation(kQuestion)));
+            await Session.SendAsync(kQuestion);
+            test.ChatClient = ScriptedChatClient.Returning(AiChatTestUpdates.Snapshot(CreateToolCallConversation()),
+                AiChatTestUpdates.RunError("provider unavailable"));
+            await Session.AnswerApprovalAsync(kFirstRequest, true);
+            test.ChatClient = CreateAnsweringClient(kNextQuestion, kNextAnswer);
+
+            await Session.SendAsync(kNextQuestion);
+
+            List<ChatMessage> nextMessages = test.ChatClient.Calls.Single().Messages;
+            Assert.Multiple(() =>
+            {
+                Assert.That(Session.GetEntries()[2].State, Is.EqualTo(AiChatAnswerState.Failed));
+                Assert.That(nextMessages.Select(message => message.Role), Is.EqualTo(kToolCallThenNextQuestionRoles));
+                Assert.That(GetCallIds(nextMessages), Is.EqualTo(kStoreCallIds));
+                Assert.That(nextMessages.SelectMany(message => message.Contents).OfType<ToolApprovalResponseContent>(), Is.Empty);
+            });
         }
 
         [Test]
@@ -531,6 +590,29 @@ namespace FWO.Test
         public void IsSameUser_ComparesTheDistinguishedNames(string leftDn, string rightDn, bool expected)
         {
             Assert.That(AiChatSession.IsSameUser(leftDn, rightDn), Is.EqualTo(expected));
+        }
+
+        /// <summary>
+        /// Returns the conversation of a run that called the store tool: the question, the call and its result.
+        /// </summary>
+        private static List<ChatMessage> CreateToolCallConversation()
+        {
+            List<AIContent> callContents = [new FunctionCallContent(kStoreCallId, kStoreTool, kStoreArguments)];
+            List<AIContent> resultContents = [new FunctionResultContent(kStoreCallId, kStoredResult)];
+            return
+            [
+                new ChatMessage(ChatRole.User, kQuestion),
+                new ChatMessage(ChatRole.Assistant, callContents),
+                new ChatMessage(ChatRole.Tool, resultContents)
+            ];
+        }
+
+        /// <summary>
+        /// Returns the ids of the tool calls in the messages.
+        /// </summary>
+        private static List<string> GetCallIds(IEnumerable<ChatMessage> messages)
+        {
+            return messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Select(call => call.CallId).ToList();
         }
 
         /// <summary>

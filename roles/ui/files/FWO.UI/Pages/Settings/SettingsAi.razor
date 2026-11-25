@@ -19,14 +19,14 @@
 
 <form>
     <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5371"))">
-        <label for="aiProvider" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_provider")):</label>
+        <label for="@($"dropdown-input-{kProviderDropdownId}")" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_provider")):</label>
         <div class="col-sm-4">
-            <select id="aiProvider" class="form-control form-control-sm" @bind="aiSettings.Provider">
-                @foreach (AiProvider provider in kProviders)
-                {
-                    <option value="@provider">@(GetProviderName(provider))</option>
-                }
-            </select>
+            <Dropdown Id="@kProviderDropdownId" ElementType="AiProvider" ElementToString="@(provider => GetProviderName(provider))"
+                      @bind-SelectedElement="aiSettings.Provider" Elements="kProviders">
+                <ElementTemplate Context="provider">
+                    @(GetProviderName(provider))
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </div>
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5372"))">
@@ -42,14 +42,14 @@
         </div>
     </div>
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5382"))">
-        <label for="aiAuthMethod" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_auth_method")):</label>
+        <label for="@($"dropdown-input-{kAuthMethodDropdownId}")" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_auth_method")):</label>
         <div class="col-sm-4">
-            <select id="aiAuthMethod" class="form-control form-control-sm" @bind="aiSettings.AuthMethod">
-                @foreach (KeyValuePair<AiAuthMethod, string> authMethod in kAuthMethodTextKeys)
-                {
-                    <option value="@authMethod.Key">@(userConfig.GetText(authMethod.Value))</option>
-                }
-            </select>
+            <Dropdown Id="@kAuthMethodDropdownId" ElementType="AiAuthMethod" ElementToString="@(authMethod => GetAuthMethodName(authMethod))"
+                      @bind-SelectedElement="aiSettings.AuthMethod" Elements="kAuthMethods">
+                <ElementTemplate Context="authMethod">
+                    @(GetAuthMethodName(authMethod))
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </div>
     @if (aiSettings.AuthMethod == AiAuthMethod.OAuth2ClientCredentials)
@@ -110,6 +110,13 @@
         <label for="aiMaxOutputTokens" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_max_output_tokens")):</label>
         <div class="col-sm-2">
             <input id="aiMaxOutputTokens" type="number" min="0" class="form-control form-control-sm" @bind="aiSettings.MaxOutputTokens" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5389"))">
+        <label for="aiRequestTimeoutSeconds" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_request_timeout")):</label>
+        <div class="col-sm-2">
+            <input id="aiRequestTimeoutSeconds" type="number" min="@AiSettings.kMinRequestTimeoutSeconds" max="@AiSettings.kMaxRequestTimeoutSeconds"
+                   class="form-control form-control-sm" @bind="aiSettings.RequestTimeoutSeconds" />
         </div>
     </div>
     <hr />
@@ -180,10 +187,10 @@
 <div class="btn-group">
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </NotAuthorized>
     </ExecutionModeAuthorizeView>
 </div>
@@ -195,6 +202,8 @@
 
     private const int kMaxModelLength = 256;
     private const int kMaxEndpointLength = 2048;
+    private const string kProviderDropdownId = "aiProvider";
+    private const string kAuthMethodDropdownId = "aiAuthMethod";
     private const string kCredentialDropdownId = "aiCredential";
     private const string kChatRolesDropdownId = "aiChatRoles";
     private const string kReasonCheckRolesDropdownId = "aiReasonCheckRoles";
@@ -210,6 +219,8 @@
         [AiAuthMethod.ApiKey] = "ai_auth_api_key",
         [AiAuthMethod.OAuth2ClientCredentials] = "ai_auth_oauth2_client_credentials"
     };
+
+    private static readonly List<AiAuthMethod> kAuthMethods = [.. kAuthMethodTextKeys.Keys];
 
     private ConfigData? editableConfig;
     private AiSettings aiSettings = new();
@@ -353,6 +364,14 @@
     private string GetProviderName(AiProvider provider)
     {
         return provider == AiProvider.None ? userConfig.GetText("none") : provider.ToString();
+    }
+
+    /// <summary>
+    /// Returns the localized name shown for an authentication method.
+    /// </summary>
+    private string GetAuthMethodName(AiAuthMethod authMethod)
+    {
+        return userConfig.GetText(kAuthMethodTextKeys[authMethod]);
     }
 
     /// <summary>

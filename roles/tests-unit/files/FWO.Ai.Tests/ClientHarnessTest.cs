@@ -48,6 +48,7 @@ internal class ClientHarnessTest
     private static readonly List<string> kQuestionOnly = [kQuestion];
     private static readonly List<ChatRole> kPromptAndAnswerRoles = [ChatRole.User, ChatRole.Assistant];
     private static readonly List<ChatRole> kToolTurnRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool, ChatRole.Assistant];
+    private static readonly List<ChatRole> kToolCallRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool];
     private static readonly List<ChatMessage> kNoMessages = [];
 
     /// <summary>
@@ -188,6 +189,38 @@ internal class ClientHarnessTest
 
         Assert.That(next.Text, Is.EqualTo(kNextAnswer));
         Assert.That(chatClient.Rejections, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies that a resumed run failing after the approved tool ran ends with an error and with the conversation up
+    /// to the tool result, so that the client keeps the call that was made.
+    /// </summary>
+    [Test]
+    public async Task Resume_WhenProviderFailsAfterApprovedToolRan_ReturnsErrorAndConversationWithToolCall()
+    {
+        McpTestToolCalls toolCalls = new();
+        await using WebApplication mcpApp = await McpTestServer.StartWith(mcpServer => McpTestWriteTools.Register(mcpServer, toolCalls));
+        ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
+            .RespondWithFunctionCall(kCallId, McpTestWriteTools.kStoreValueTool, CreateArguments(kValue))
+            .Respond((_, _, _) => Task.FromException<ChatResponse>(new InvalidOperationException(kProviderFailure)));
+        await using WebApplication app = await HarnessTestServer.Start(mcpApp, chatClient);
+        using HttpClient httpClient = app.GetTestClient();
+        using FwoAgentChatClientFactory factory = new(httpClient, kTestServerUri);
+        using IChatClient client = CreateClient(factory, McpTestServer.CreateMiddlewareToken(Roles.Reporter));
+        List<ChatMessage> questionMessages = [new ChatMessage(ChatRole.User, kQuestion)];
+        ClientRun interrupted = await ClientRun.RunAsync(client, questionMessages, new ChatOptions { ConversationId = kThreadId });
+        ToolApprovalRequestContent request = interrupted.ApprovalRequests.Single();
+        List<AIContent> approvalAnswer = [request.CreateResponse(true)];
+        List<ChatMessage> resumeMessages = [.. interrupted.Conversation!, new ChatMessage(ChatRole.User, approvalAnswer)];
+
+        ClientRun resumed = await ClientRun.RunAsync(client, resumeMessages, new ChatOptions { ConversationId = kThreadId });
+
+        Assert.That(resumed.Errors, Has.Count.EqualTo(1));
+        Assert.That(resumed.Errors.Single().Message, Does.Not.Contain(kProviderFailure));
+        Assert.That(resumed.Conversation?.Select(message => message.Role), Is.EqualTo(kToolCallRoles));
+        Assert.That(HarnessTestSetup.GetCallIds(resumed.Conversation!), Is.EqualTo(kCallIds));
+        Assert.That(HarnessTestSetup.GetResultCallIds(resumed.Conversation!), Is.EqualTo(kCallIds));
+        Assert.That(toolCalls.StoredValues, Is.EqualTo(kApprovedValues));
     }
 
     /// <summary>

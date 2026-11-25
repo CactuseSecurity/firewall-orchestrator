@@ -22,13 +22,14 @@ internal class HarnessAiRuntimeSettingsTest
     private const string kClientId = "fwo-ai-client";
     private const int kContextWindowTokens = 100000;
     private const int kMaxOutputTokens = 4000;
+    private const int kRequestTimeoutSeconds = 900;
     private const int kMaxIterations = 6;
     private const int kMaxConsecutiveErrors = 2;
     private const int kCompactionReserveTokens = 30000;
     private const int kCredentialId = 7;
-    private const string kProfileHeader = "ki-services-profile-name";
-    private const string kProfileValue = "com_1659_test";
-    private const string kOtherProfileValue = "com_1659_other";
+    private const string kProfileHeader = "x-gateway-profile";
+    private const string kProfileValue = "my-profile";
+    private const string kOtherProfileValue = "other-profile";
     private const string kIssuerHeader = "token-issuer";
     private const string kIssuerValue = "keycloak";
 
@@ -49,6 +50,7 @@ internal class HarnessAiRuntimeSettingsTest
         Assert.That(providerSettings.Endpoint, Is.EqualTo(new Uri(kEndpoint)));
         Assert.That(providerSettings.ContextWindowTokens, Is.EqualTo(kContextWindowTokens));
         Assert.That(providerSettings.MaxOutputTokens, Is.EqualTo(kMaxOutputTokens));
+        Assert.That(providerSettings.RequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(kRequestTimeoutSeconds)));
         Assert.That(agentSettings.MaxIterationsPerRequest, Is.EqualTo(kMaxIterations));
         Assert.That(agentSettings.MaxConsecutiveErrorsPerRequest, Is.EqualTo(kMaxConsecutiveErrors));
         Assert.That(agentSettings.CompactionReserveTokens, Is.EqualTo(kCompactionReserveTokens));
@@ -145,10 +147,13 @@ internal class HarnessAiRuntimeSettingsTest
         AiRuntimeSettings settings = new(CreateSettings(AiProvider.OpenAi), kApiKey);
         AiSettings changedModel = CreateSettings(AiProvider.OpenAi);
         changedModel.Model = "other-model";
+        AiSettings changedRequestTimeout = CreateSettings(AiProvider.OpenAi);
+        changedRequestTimeout.RequestTimeoutSeconds = kRequestTimeoutSeconds + 1;
 
         Assert.That(settings.HasSameValues(new AiRuntimeSettings(CreateSettings(AiProvider.OpenAi), kApiKey)), Is.True);
         Assert.That(settings.HasSameValues(new AiRuntimeSettings(CreateSettings(AiProvider.OpenAi), kOtherApiKey)), Is.False);
         Assert.That(settings.HasSameValues(new AiRuntimeSettings(changedModel, kApiKey)), Is.False);
+        Assert.That(settings.HasSameValues(new AiRuntimeSettings(changedRequestTimeout, kApiKey)), Is.False);
         Assert.That(settings.HasSameValues(new AiRuntimeSettings(CreateSettings(AiProvider.OpenAi), kApiKey, "problem")), Is.False);
         Assert.That(settings.HasSameValues(null), Is.False);
     }
@@ -296,6 +301,7 @@ internal class HarnessAiRuntimeSettingsTest
             CredentialId = kCredentialId,
             ContextWindowTokens = kContextWindowTokens,
             MaxOutputTokens = kMaxOutputTokens,
+            RequestTimeoutSeconds = kRequestTimeoutSeconds,
             MaxIterationsPerRequest = kMaxIterations,
             MaxConsecutiveErrorsPerRequest = kMaxConsecutiveErrors,
             CompactionReserveTokens = kCompactionReserveTokens

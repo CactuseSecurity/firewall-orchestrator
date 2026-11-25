@@ -26,7 +26,8 @@ namespace FWO.Ui.Pages.Settings
             [AiSettingsProblem.CustomHeaderNameInvalid] = "E5317",
             [AiSettingsProblem.CustomHeaderNameReserved] = "E5318",
             [AiSettingsProblem.CustomHeaderNameDuplicate] = "E5319",
-            [AiSettingsProblem.CustomHeaderValueInvalid] = "E5320"
+            [AiSettingsProblem.CustomHeaderValueInvalid] = "E5320",
+            [AiSettingsProblem.RequestTimeoutInvalid] = "E5321"
         };
 
         /// <summary>

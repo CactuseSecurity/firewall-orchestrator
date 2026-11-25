@@ -77,8 +77,11 @@ if (AgentConversation.TryGetSnapshot(response, out List<ChatMessage>? snapshot))
 conversation.Add(new ChatMessage(ChatRole.User, nextQuestion));
 ```
 
-A run that fails (`ErrorContent`, or an exception) sends no snapshot; the caller keeps the conversation it sent. The
-harness takes only user texts, assistant texts and tool calls, and tool results from the conversation; system and
+A run that fails (`ErrorContent`, or an exception) sends no snapshot; the caller keeps the conversation it sent. A
+run that failed after it ran a tool is the exception: it sends a snapshot up to the last tool result before its error.
+For a run that failed or ended without answer text, `AgentConversation.GetConversationUpToToolResults` returns the
+conversation to keep: the snapshot up to its last tool result if the run ran tools (trailing model messages without
+text left out), else null, and the caller keeps the conversation it sent. The harness takes only user texts, assistant texts and tool calls, and tool results from the conversation; system and
 developer messages and other contents are dropped (see [Conversation](ai-harness.md#conversation)).
 
 ## Tool approval
@@ -117,9 +120,9 @@ A run cancelled by the caller's `CancellationToken` ends with an `OperationCance
   the timeout of a given HTTP client applies as well.
 - A response may have at most 64 MiB (the answer, the tool calls and the snapshot); a run beyond it is a protocol error.
   The formatter buffers each event until it ends, so the response size bounds a single event as well.
-- The harness limits the request body (default 4 MiB, see [Limits](ai-harness.md#limits)), and with it the length of
+- The harness limits the request body (default 10 MiB, see [Limits](ai-harness.md#limits)), and with it the length of
   the conversation; a longer one is refused with 413. The harness compacts a long conversation, so the snapshot it
-  returns stays below the context window of the model.
+  returns stays below the context window of the model; a history of more than 10000 messages is compacted as well.
 
 ## Security
 
@@ -155,6 +158,10 @@ Arguments that are null or blank are left out. The MCP prompt asks for a plain-t
 `Verdict: GENUINE`, `Verdict: INSUFFICIENT` or `Verdict: NOT_GENUINE` in English, followed by the sections in the
 language of the answer, see [Prompts](ai-mcp.md#prompts).
 
+The reason check runs the prompt as a new conversation, without messages. The harness refuses a run of the reason
+check that sends a conversation along and offers the reason check no tools (see
+[AI harness](ai-harness.md#ai-functions)).
+
 `ReasonVerdictParser.Parse` reads the verdict from the answer: the word of the verdict line (also with markup or
 numbering, e.g. `1. **Verdict:** NOT_GENUINE`), else the first standalone verdict word in upper case (`NOT_GENUINE` and
 `NOT GENUINE` are never read as `GENUINE`), else `ReasonVerdict.Unknown`. It works on partial answers while they are
@@ -186,7 +193,9 @@ The session follows [Conversation](#conversation): every run sends the snapshot 
 user message (at most 10000 characters, `AiChatSession.kMaxMessageLength`) on the thread of the previous run. A run
 without snapshot keeps the messages it sent plus its answer. A failed or cancelled run leaves the conversation as it was
 before the run, so the next message is sent without the failed one; the answer shows the failure with the texts of the
-reason check (`AiReasonCheckDisplay.FailureMessage`).
+reason check (`AiReasonCheckDisplay.FailureMessage`). A run that failed or ended without answer after it ran tools, e.g.
+an approved call after which the provider failed, keeps its tool calls and results in the conversation
+(`AgentConversation.GetConversationUpToToolResults`), so that the AI knows of them and does not ask for them again.
 
 A run ending with tool approval requests keeps its snapshot and shows each call with its tool name and its arguments
 (indented JSON, cut to 2000 characters). No new message can be sent until the user approved or rejected every call;

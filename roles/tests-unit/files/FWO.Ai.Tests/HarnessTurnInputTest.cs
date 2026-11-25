@@ -2,6 +2,7 @@ using AGUI.Abstractions;
 using FWO.Ai.Harness.Agent;
 using FWO.Ai.Harness.Mcp;
 using FWO.Basics;
+using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.AI;
 using NUnit.Framework;
@@ -131,16 +132,18 @@ internal class HarnessTurnInputTest
     }
 
     /// <summary>
-    /// Verifies that a run with more messages than the maximum is refused.
+    /// Verifies that a run with more messages than the compaction limit is not refused: all messages but the new user
+    /// message are taken as history, which the compaction then shortens.
     /// </summary>
     [Test]
-    public void Read_WithTooManyMessages_Throws()
+    public void Read_WithMoreMessagesThanCompactionLimit_KeepsAllInHistory()
     {
-        List<ChatMessage> tooManyMessages = Enumerable.Range(0, TurnInput.kMaxMessages + 1).Select(_ => new ChatMessage(ChatRole.User, kNewQuestion)).ToList();
-        List<ChatMessage> maximalMessages = tooManyMessages.Skip(1).ToList();
+        int messageCount = HistoryCompaction.kMaxHistoryMessages + 2;
+        List<ChatMessage> manyMessages = Enumerable.Range(0, messageCount).Select(_ => new ChatMessage(ChatRole.User, kNewQuestion)).ToList();
 
-        Assert.Throws<ArgumentException>(() => TurnInput.Read(tooManyMessages, null));
-        Assert.DoesNotThrow(() => TurnInput.Read(maximalMessages, null));
+        TurnInput turnInput = TurnInput.Read(manyMessages, null);
+
+        Assert.That(turnInput.History, Has.Count.EqualTo(messageCount - 1));
     }
 
     /// <summary>
@@ -229,6 +232,32 @@ internal class HarnessTurnInputTest
         List<ChatMessage> messages = [new ChatMessage(ChatRole.User, kOldQuestion), new ChatMessage(ChatRole.Assistant, kOldAnswer)];
 
         Assert.DoesNotThrow(() => TurnInput.Read(messages, HarnessTestSetup.CreatePromptRunOptions(kPromptName)));
+    }
+
+    /// <summary>
+    /// Verifies that only a run naming a prompt and sending no other messages is prompt only, so that the reason check
+    /// can require a new conversation (see <see cref="AgentFeatureGate"/>): a prompt with a conversation, a prompt with
+    /// an open approval request and a text are not, while messages the filter drops do not count.
+    /// </summary>
+    [Test]
+    public void IsPromptOnly_OnlyForPromptWithoutOtherMessages()
+    {
+        ToolApprovalRequestContent request = new(kFirstRequestId, new FunctionCallContent(kFirstRequestId, kToolName));
+        List<AIContent> requestContents = [request];
+        List<ChatMessage> conversation = [new ChatMessage(ChatRole.User, kOldQuestion), new ChatMessage(ChatRole.Assistant, kOldAnswer)];
+        List<ChatMessage> openApprovalRequest = [new ChatMessage(ChatRole.Assistant, requestContents)];
+        List<ChatMessage> systemMessage = [new ChatMessage(ChatRole.System, kSystemText)];
+        List<ChatMessage> text = [new ChatMessage(ChatRole.User, kNewQuestion)];
+        ChatClientAgentRunOptions promptOptions = HarnessTestSetup.CreatePromptRunOptions(kPromptName);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(TurnInput.Read(kNoMessages, promptOptions).IsPromptOnly, Is.True);
+            Assert.That(TurnInput.Read(systemMessage, promptOptions).IsPromptOnly, Is.True, "a dropped message does not count");
+            Assert.That(TurnInput.Read(conversation, promptOptions).IsPromptOnly, Is.False);
+            Assert.That(TurnInput.Read(openApprovalRequest, promptOptions).IsPromptOnly, Is.False);
+            Assert.That(TurnInput.Read(text, null).IsPromptOnly, Is.False);
+        });
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using NUnit.Framework;
 using System.Text.Json;
@@ -26,6 +27,8 @@ internal class HarnessFwoUserAgentTest
     private const string kCallId = "call-1";
     private const string kOtherUserName = "other-user";
     private const string kProviderFailure = "provider unavailable";
+    private const string kProviderTimeout = "The request to the AI provider timed out.";
+    private const string kRunFailedLogMessage = "A run of the FWO agent failed.";
     private const string kReasonWithMarkup = "Reads <b>customer data</b> for order checks.";
     private const string kEscapedReasonWithMarkup = "Reads &lt;b&gt;customer data&lt;/b&gt; for order checks.";
     private const string kUnknownPrompt = "unknown_prompt";
@@ -36,6 +39,7 @@ internal class HarnessFwoUserAgentTest
     private static readonly List<string> kSecondTurnRequest = [kQuestion, kAnswer, kNextQuestion];
     private static readonly List<string> kSecondTurnOnly = [kNextQuestion];
     private static readonly List<ChatMessage> kNoMessages = [];
+    private static readonly List<string> kRunFailedLogMessages = [kRunFailedLogMessage];
     private static readonly List<ChatMessage> kInstructionMessages = [new(ChatRole.User, kFirstInstruction), new(ChatRole.User, kSecondInstruction)];
     private static readonly List<ChatMessage> kBlankInstructionMessages = [new(ChatRole.User, " "), new(ChatRole.User, "")];
 
@@ -76,7 +80,7 @@ internal class HarnessFwoUserAgentTest
     [TestCase(Roles.Recertifier, false)]
     [TestCase(Roles.Admin, true)]
     [TestCase(Roles.Auditor, true)]
-    public async Task RunAsync_OffersToolsOfUsersRoles(string role, bool expectRandomNumberTool)
+    public async Task RunAsync_OffersToolsOfUsersRoles(string role, bool expectRoleRestrictedTool)
     {
         await using WebApplication app = await McpTestServer.Start();
         ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
@@ -87,7 +91,7 @@ internal class HarnessFwoUserAgentTest
 
         List<string> toolNames = HarnessTestSetup.GetToolNames(chatClient.ReceivedOptions.Single());
         Assert.That(toolNames, Does.Contain(HarnessTestSetup.kCurrentUserTool));
-        Assert.That(toolNames.Contains(HarnessTestSetup.kRandomNumberTool), Is.EqualTo(expectRandomNumberTool));
+        Assert.That(toolNames.Contains(HarnessTestSetup.kRoleRestrictedTool), Is.EqualTo(expectRoleRestrictedTool));
     }
 
     /// <summary>
@@ -99,7 +103,7 @@ internal class HarnessFwoUserAgentTest
     {
         await using WebApplication app = await McpTestServer.Start();
         ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
-            .RespondWithFunctionCall(kCallId, HarnessTestSetup.kRandomNumberTool).RespondWithText(kAnswer);
+            .RespondWithFunctionCall(kCallId, HarnessTestSetup.kRoleRestrictedTool).RespondWithText(kAnswer);
         using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient);
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
 
@@ -234,6 +238,56 @@ internal class HarnessFwoUserAgentTest
         Assert.That(nextResponse.Text, Is.EqualTo(kNextAnswer));
         Assert.That(HarnessTestSetup.GetTexts(chatClient.ReceivedMessages[^1]), Is.EqualTo(kSecondTurnRequest));
         Assert.That(chatClient.Rejections, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies that a run ending in a timeout of the AI provider, which surfaces as cancellation although the request
+    /// was not cancelled, is logged as failure.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_WhenProviderTimesOut_LogsTheFailure()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
+            .Respond((_, _, _) => Task.FromException<ChatResponse>(new TaskCanceledException(kProviderTimeout)));
+        RecordingLoggerFactory loggerFactory = new();
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, loggerFactory: loggerFactory);
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
+
+        Assert.CatchAsync<OperationCanceledException>(async () => await agent.RunAsync(kQuestion));
+
+        List<(LogLevel Level, string Message)> errors = GetAgentErrors(loggerFactory);
+        Assert.That(errors.Select(entry => entry.Message), Is.EqualTo(kRunFailedLogMessages));
+    }
+
+    /// <summary>
+    /// Verifies that a run cancelled by the client is not logged as failure.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_WhenCancelled_LogsNoFailure()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        BlockingAnswer blockingAnswer = new();
+        ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }.Respond(blockingAnswer.AnswerAsync);
+        RecordingLoggerFactory loggerFactory = new();
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, loggerFactory: loggerFactory);
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
+        using CancellationTokenSource cancellation = new();
+        Task<AgentResponse> cancelledTurn = agent.RunAsync(kQuestion, cancellationToken: cancellation.Token);
+        await blockingAnswer.Started;
+
+        await cancellation.CancelAsync();
+
+        Assert.CatchAsync<OperationCanceledException>(async () => await cancelledTurn);
+        Assert.That(GetAgentErrors(loggerFactory), Is.Empty);
+    }
+
+    /// <summary>
+    /// Returns the error entries the user agents logged.
+    /// </summary>
+    private static List<(LogLevel Level, string Message)> GetAgentErrors(RecordingLoggerFactory loggerFactory)
+    {
+        return loggerFactory.GetLogger<FwoUserAgent>().Entries.Where(entry => entry.Level == LogLevel.Error).ToList();
     }
 
     /// <summary>

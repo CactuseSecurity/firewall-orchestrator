@@ -39,6 +39,7 @@ namespace FWO.Test
         private const string kHelpLink = "a[href^='/help/']";
         private const string kChatHelpUrl = "/help/ai/chat?";
         private const string kScrollFunction = "scrollToEndIfNear";
+        private const string kFocusFunction = "Blazor._internal.domWrapper.focus";
         private const string kDisabledAttribute = "disabled";
         private const string kEnterKey = "Enter";
 
@@ -111,9 +112,9 @@ namespace FWO.Test
 
             Session.Open();
 
-            panel.WaitForAssertion(() =>
+            WaitUntil(panel, () => panel.FindAll(kPanel).Count == 1 && panel.FindAll(kIntro).Count == 1);
+            Assert.Multiple(() =>
             {
-                Assert.That(panel.FindAll(kPanel), Has.Count.EqualTo(1));
                 Assert.That(panel.Find(kIntro).TextContent, Is.EqualTo(AiChatDisplay.kIntroTextKey));
                 Assert.That(panel.Markup, Does.Contain(AiChatDisplay.kDisclaimerTextKey));
                 Assert.That(panel.Find(kSendButton).HasAttribute(kDisabledAttribute), Is.True);
@@ -127,13 +128,10 @@ namespace FWO.Test
 
             Session.Open();
 
-            panel.WaitForAssertion(() =>
-            {
-                Assert.That(panel.FindAll(kInput), Has.Count.EqualTo(1));
-                JSRuntimeInvocation focus = context.JSInterop.VerifyFocusAsyncInvoke();
-                ElementReference? focused = focus.Arguments[0] as ElementReference?;
-                Assert.That(focused?.Id, Is.Not.Null.And.Not.Empty);
-            });
+            WaitUntil(panel, () => panel.FindAll(kInput).Count == 1 && context.JSInterop.Invocations[kFocusFunction].Count > 0);
+            JSRuntimeInvocation focus = context.JSInterop.VerifyFocusAsyncInvoke();
+            ElementReference? focused = focus.Arguments[0] as ElementReference?;
+            Assert.That(focused?.Id, Is.Not.Null.And.Not.Empty);
         }
 
         [Test]
@@ -154,7 +152,7 @@ namespace FWO.Test
             panel.Find(kInput).Input(kQuestion);
             panel.Find(kSendButton).Click();
 
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kAnswerText), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kAnswerText).Count == 1);
             Assert.Multiple(() =>
             {
                 Assert.That(panel.Find(kUserEntry).TextContent, Is.EqualTo(kQuestion));
@@ -177,7 +175,7 @@ namespace FWO.Test
 
             panel.Find(kInput).KeyDown(new KeyboardEventArgs { Key = kEnterKey, CtrlKey = true });
 
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kAnswerText), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kAnswerText).Count == 1);
             Assert.That(chat.ChatClient.Calls, Has.Count.EqualTo(1));
         }
 
@@ -221,12 +219,7 @@ namespace FWO.Test
             panel.Find(kInput).Input(kQuestion);
             panel.Find(kSendButton).Click();
             // the approvals are shown shortly before the run ends; answers given before its end would be ignored
-            panel.WaitForAssertion(() =>
-            {
-                Assert.That(panel.FindAll(kApproveButton), Has.Count.EqualTo(2));
-                Assert.That(panel.FindAll(kSendButton), Has.Count.EqualTo(1));
-                Assert.That(Session.IsRunning, Is.False);
-            });
+            WaitUntil(panel, () => panel.FindAll(kApproveButton).Count == 2 && panel.FindAll(kSendButton).Count == 1 && !Session.IsRunning);
             Assert.Multiple(() =>
             {
                 Assert.That(panel.Find(".ai-chat-tool").TextContent, Is.EqualTo(kStoreTool));
@@ -236,12 +229,12 @@ namespace FWO.Test
             });
 
             panel.FindAll(kApproveButton)[0].Click();
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kRejectButton), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kRejectButton).Count == 1);
             chat.ChatClient = CreateAnsweringClient(kAnswer);
             panel.Find(kRejectButton).Click();
 
             // the answer asking for the approvals has no text, so the only answer text is the one of the resumed run
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kAnswerText), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kAnswerText).Count == 1);
             Assert.Multiple(() =>
             {
                 Assert.That(panel.FindAll(".ai-chat-approval-answer").Select(badge => badge.TextContent),
@@ -261,7 +254,7 @@ namespace FWO.Test
 
             panel.Find(kSendButton).Click();
 
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kStateMessage), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kStateMessage).Count == 1);
             Assert.Multiple(() =>
             {
                 Assert.That(panel.Find(kStateMessage).TextContent, Is.EqualTo("E9041"));
@@ -281,7 +274,7 @@ namespace FWO.Test
 
             panel.Find(kSendButton).Click();
 
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kApproveButton), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kApproveButton).Count == 1);
             IElement content = panel.Find(kPanel);
             Assert.Multiple(() =>
             {
@@ -305,14 +298,14 @@ namespace FWO.Test
             IRenderedComponent<AiChatPanel> panel = RenderOpenPanel();
             panel.Find(kInput).Input(kQuestion);
             panel.Find(kSendButton).Click();
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kAnswerText), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kAnswerText).Count == 1);
 
             panel.Find(kNewChatButton).Click();
 
-            panel.WaitForAssertion(() =>
+            WaitUntil(panel, () => panel.FindAll(kIntro).Count == 1);
+            Assert.Multiple(() =>
             {
                 Assert.That(panel.FindAll(kUserEntry), Is.Empty);
-                Assert.That(panel.FindAll(kIntro), Has.Count.EqualTo(1));
                 Assert.That(Session.GetEntries(), Is.Empty);
             });
         }
@@ -324,7 +317,7 @@ namespace FWO.Test
 
             panel.Find(kMinimizeButton).Click();
 
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kPanel), Is.Empty));
+            WaitUntil(panel, () => panel.FindAll(kPanel).Count == 0);
             Assert.That(Session.IsOpen, Is.False);
         }
 
@@ -336,7 +329,7 @@ namespace FWO.Test
             userConfig.AiChatEnabled = false;
             userConfig.RaiseChange();
 
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kPanel), Is.Empty));
+            WaitUntil(panel, () => panel.FindAll(kPanel).Count == 0);
             Assert.That(Session.IsOpen, Is.False);
         }
 
@@ -368,14 +361,15 @@ namespace FWO.Test
         {
             Session.Open();
             IRenderedComponent<AiChatPanel> panel = context.Render<AiChatPanel>();
-            panel.WaitForAssertion(() => Assert.That(panel.FindAll(kInput), Has.Count.EqualTo(1)));
+            WaitUntil(panel, () => panel.FindAll(kInput).Count == 1);
             return panel;
         }
 
         /// <summary>
-        /// Waits until the condition holds after a render, failing the test with a timeout otherwise. Used for waits
-        /// on a run that ends asynchronously: NUnit keeps every failed Assert.That in the test result, also one that
-        /// WaitForAssertion catches and retries on a render of the run, so such a wait must not assert.
+        /// Waits until the condition holds after a render, failing the test with a timeout otherwise. Used instead of
+        /// WaitForAssertion: NUnit keeps every failed Assert.That in the test result, also one that WaitForAssertion
+        /// catches and retries on a later render, e.g. of a run that ends asynchronously, so a wait must not assert.
+        /// The condition must not throw either, as WaitForState stops waiting then.
         /// </summary>
         private static void WaitUntil(IRenderedComponent<AiChatPanel> panel, Func<bool> condition)
         {

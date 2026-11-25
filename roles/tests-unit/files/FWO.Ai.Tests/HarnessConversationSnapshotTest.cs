@@ -24,8 +24,10 @@ internal class HarnessConversationSnapshotTest
     private const string kRole = "reporter";
     private const string kNameProperty = "name";
     private const string kRolesProperty = "roles";
+    private const string kPartialAnswer = "You are a rep";
 
     private static readonly List<ChatRole> kToolTurnRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool, ChatRole.Assistant];
+    private static readonly List<ChatRole> kToolCallRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool];
     private static readonly List<string> kCallIds = [kCallId];
     private static readonly List<string> kRoles = [kRole];
 
@@ -144,6 +146,53 @@ internal class HarnessConversationSnapshotTest
 
         Assert.Throws<ArgumentNullException>(() => ConversationSnapshot.Create(null!, noUpdates));
         Assert.Throws<ArgumentNullException>(() => ConversationSnapshot.Create(noMessages, null!));
+        Assert.Throws<ArgumentNullException>(() => ConversationSnapshot.CreateAfterFailure(null!, noUpdates));
+        Assert.Throws<ArgumentNullException>(() => ConversationSnapshot.CreateAfterFailure(noMessages, null!));
+    }
+
+    /// <summary>
+    /// Verifies that the snapshot of a run that failed after it ran a tool ends with the last tool result: the text the
+    /// model wrote afterwards is left out, and a provider accepts the conversation as history.
+    /// </summary>
+    [Test]
+    public void CreateAfterFailure_AfterToolResult_EndsWithLastToolResult()
+    {
+        List<ChatMessage> runMessages = [new ChatMessage(ChatRole.User, kQuestion)];
+        List<AgentResponseUpdate> responseUpdates =
+        [
+            CreateUpdate(ChatRole.Assistant, "message-1", new FunctionCallContent(kCallId, kToolName)),
+            CreateUpdate(ChatRole.Tool, "message-2", new FunctionResultContent(kCallId, kRole)),
+            CreateUpdate(ChatRole.Assistant, "message-3", new TextContent(kPartialAnswer))
+        ];
+
+        AgentResponseUpdate? update = ConversationSnapshot.CreateAfterFailure(runMessages, responseUpdates);
+
+        Assert.That(update, Is.Not.Null);
+        List<ChatMessage> conversation = ReadSnapshot(update!);
+        Assert.That(conversation.Select(message => message.Role), Is.EqualTo(kToolCallRoles));
+        Assert.That(HarnessTestSetup.GetCallIds(conversation), Is.EqualTo(kCallIds));
+        Assert.That(HarnessTestSetup.GetResultCallIds(conversation), Is.EqualTo(kCallIds));
+        Assert.That(conversation.Select(message => message.Text), Has.None.Contains(kPartialAnswer));
+        Assert.That(ProviderHistoryRules.FindViolation(conversation), Is.Null);
+    }
+
+    /// <summary>
+    /// Verifies that a run that failed without running a tool gives no snapshot, also when the model wrote text or a
+    /// tool call that got no result, so that the client keeps the conversation it sent.
+    /// </summary>
+    [Test]
+    public void CreateAfterFailure_WithoutToolResult_ReturnsNull()
+    {
+        List<ChatMessage> runMessages = [new ChatMessage(ChatRole.User, kQuestion)];
+        List<AgentResponseUpdate> noUpdates = [];
+        List<AgentResponseUpdate> textAndUnansweredCall =
+        [
+            CreateUpdate(ChatRole.Assistant, "message-1", new TextContent(kPartialAnswer)),
+            CreateUpdate(ChatRole.Assistant, "message-2", new FunctionCallContent(kUnansweredCallId, kToolName))
+        ];
+
+        Assert.That(ConversationSnapshot.CreateAfterFailure(runMessages, noUpdates), Is.Null);
+        Assert.That(ConversationSnapshot.CreateAfterFailure(runMessages, textAndUnansweredCall), Is.Null);
     }
 
     /// <summary>

@@ -79,7 +79,8 @@ public sealed class AiRuntimeSettings
             Endpoint = ParseAbsoluteUri(Values.Endpoint, kEndpointPurpose),
             CustomHeaders = CreateCustomHeaders(),
             ContextWindowTokens = Values.ContextWindowTokens,
-            MaxOutputTokens = Values.MaxOutputTokens > 0 ? Values.MaxOutputTokens : null
+            MaxOutputTokens = Values.MaxOutputTokens > 0 ? Values.MaxOutputTokens : null,
+            RequestTimeout = TimeSpan.FromSeconds(Values.RequestTimeoutSeconds)
         };
     }
 
@@ -142,10 +143,10 @@ public sealed class AiRuntimeSettings
     /// filters of the AI functions too, as the factory hands them to its agents. The role filters and the additional
     /// headers are compared in their normalized stored form, as lists compare by reference.
     /// </summary>
-    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool, string, string, string) GetComparableValues()
+    private (AiProvider, string, string, int, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool, string, string, string) GetComparableValues()
     {
         return (Values.Provider, Values.Model, Values.Endpoint, Values.CredentialId, Values.ContextWindowTokens, Values.MaxOutputTokens,
-            Values.MaxIterationsPerRequest, Values.MaxConsecutiveErrorsPerRequest, Values.CompactionReserveTokens, Values.AuthMethod,
+            Values.RequestTimeoutSeconds, Values.MaxIterationsPerRequest, Values.MaxConsecutiveErrorsPerRequest, Values.CompactionReserveTokens, Values.AuthMethod,
             Values.TokenUrl, ClientId, Secret, Problem, Values.ChatEnabled, Values.ReasonCheckEnabled,
             AiFunctionRoles.Serialize(Values.ChatRoles), AiFunctionRoles.Serialize(Values.ReasonCheckRoles),
             AiCustomHeaderList.Serialize(Values.CustomHeaders));

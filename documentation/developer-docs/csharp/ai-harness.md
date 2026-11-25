@@ -70,8 +70,12 @@ conversation as it used it: the history (compacted, if it was), the new input (t
 its name), and the response of the run with its tool calls and results. The client sends it with its next run, followed
 by the new user message. Left out of the snapshot are the tool approvals, as an open approval reaches the client as
 interrupt and an answered one as the tool call and result it caused, and the tool calls the agent loop left unanswered.
-A failed run sends no snapshot, so the client keeps the conversation it sent. The AG-UI hosting closes the last text
-message of the run only after the snapshot, which AG-UI allows.
+A failed run sends no snapshot, so the client keeps the conversation it sent, unless it failed after it ran a tool,
+e.g. when the provider fails after an approved call: then it sends a snapshot up to the last tool result before
+`RUN_ERROR` (`ConversationSnapshot.CreateAfterFailure`, text after the last tool result is left out). The tool calls
+ran, possibly changing data, so they stay in the conversation, and the model does not ask for an approved call again.
+A cancelled run sends no snapshot. The AG-UI hosting closes the last text message of the run only after the snapshot,
+which AG-UI allows.
 
 The `threadId` only groups the runs of a conversation for the client; a run without one gets a new id, which the
 client reads from `RUN_STARTED`. As the harness keeps no state of a thread, several runs on the same thread may run at
@@ -98,8 +102,8 @@ A run can send a prompt of the MCP server as the user's turn instead of a text:
 The harness gets the prompt from the MCP server with the user's JWT, so the MCP server decides which prompts the user
 may get and checks the arguments. Arguments are strings; at most 16 arguments and a name of at most 128 characters are
 accepted, the values are bounded by the request body limit only. A run naming a prompt sends the conversation so far
-and no new user message. The prompts a user may get are listed by the MCP server itself (`prompts/list`), not by the
-harness.
+and no new user message; a run of the reason check sends no conversation (see [AI functions](#ai-functions)). The
+prompts a user may get are listed by the MCP server itself (`prompts/list`), not by the harness.
 
 ### AI functions
 
@@ -111,7 +115,10 @@ function the run belongs to (`AgentFeatureGate`):
 
 - the MCP prompt `check_connection_reason` belongs to the reason check (`AgentFeatureGate.kReasonCheckPromptName`; keep
   it in step with the MCP server and with `ConnectionReasonCheck.kPromptName` of the client, `ClientConformanceTest`
-  checks it),
+  checks it). A run of the reason check starts a new conversation: it sends no messages besides the prompt, otherwise
+  it fails with `RUN_ERROR` (`TurnInput.IsPromptOnly`), and it is offered no tools (`AgentFeatureGate.OffersTools`).
+  Otherwise a user allowed the reason check but not the chat could send a conversation along with the prompt and use
+  the reason check as chat,
 - everything else belongs to the chat: a new user message, the answers to tool approvals and any other MCP prompt. A
   new prompt without a switch of its own is thus refused while the chat is off or not allowed for the user (fail
   closed).
@@ -172,9 +179,11 @@ A new tool that changes data is confirmed even if nobody remembers to configure 
 - `RunsPerMinute` (default 10) runs per user within any minute; more are rejected with 429 and `Retry-After`. Each
   approval answer is a run.
 - `MaxConcurrentRunsPerUser` (default 3) runs per user at a time; one more is rejected with 429 right away.
-- `MaxRequestBodyBytes` (default 4 MiB, at most 64 MiB) per request (413 otherwise). It bounds the conversation a run
-  sends; the compaction keeps the conversation the harness returns below the context window of the model, so it can be
-  sent again. At most 1000 messages per run; the new user message has no length limit of its own.
+- `MaxRequestBodyBytes` (default 10 MiB, at most 64 MiB) per request (413 otherwise). It bounds the conversation a run
+  sends; the compaction keeps the conversation the harness returns below the context window of the model, and also
+  compacts a history of more than 10000 messages, so it can be sent again. The default leaves room for a conversation
+  that fills the compaction threshold of a model with a large context window (e.g. 1M tokens). The number of messages
+  per run is not limited separately, and the new user message has no length limit of its own.
 
 ## Agent loop
 
@@ -195,14 +204,16 @@ The loop is the function invocation of Microsoft.Extensions.AI, configured by th
 ## Context compaction
 
 Before each turn, the harness checks the history the run sends (the conversation before the new input). If its
-estimated size exceeds `ContextWindowTokens - CompactionReserveTokens`, all older messages are summarized by the same
-model in one call (without tools):
+estimated size exceeds `ContextWindowTokens - CompactionReserveTokens`, or it holds more than 10000 messages
+(`HistoryCompaction.kMaxHistoryMessages`, e.g. many tool calls with small results), the whole history is summarized by
+the same model in one call (without tools):
 
-- The 4 most recent message groups stay verbatim. A tool call is never separated from its result. Nothing else is
-  dropped.
+- No message of the history stays verbatim, so the compacted history is far below the threshold even if its last  messages are large (e.g. tool results). Right after a compaction, the previous exchange is only known from the summary.
+- The new input of the turn (the new message, the messages of the prompt the run names, or the answers to tool approval requests) is never summarized.
+- A history of a single message group (one message, or one tool call with its results) is not compacted, as the Agent Framework leaves it as it is.
 - The summary is a user message starting with `[Summary]`, at the start of the history. The Agent Framework writes it
   as an assistant message, but providers expect a history to start with a user message, and Gemini rejects a tool call
-  right after a model message.
+  right after a model message, which follows the summary in a turn answering tool approval requests.
 - The snapshot of the run holds the summary instead of the summarized messages, so the client sends the summary with
   its next runs and it is written once. Later summaries include the previous summary.
 - Tokens are estimated (UTF-8 bytes / 4). The instructions and the tool schemas are not counted, so the reserve must
@@ -243,10 +254,11 @@ AI settings (`FWO.Data.Ai.AiSettings`, config keys in `AiSettings.kKeys`):
 | Endpoint | `aiEndpoint` | Optional base URL, e.g. of an OpenAI compatible server; Ollama defaults to `http://localhost:11434`. Must be https if an API key or access token is sent to a host other than the local one |
 | Authentication | `aiAuthMethod` | `ApiKey` (default) or `OAuth2ClientCredentials`, see [OAuth 2.0](#oauth-20) |
 | Token URL | `aiTokenUrl` | Full URL of the OAuth 2.0 token endpoint, e.g. `https://sso.example.com/realms/<realm>/protocol/openid-connect/token` for Keycloak; required for OAuth 2.0, https unless a loopback address |
-| Additional headers | `aiCustomHeaders` | JSON array of HTTP headers sent with every request to the provider (not to the token URL), e.g. `[{"name":"ki-services-profile-name","value":"my-profile"}]` for an API gateway in front of the model; `[]` (default) for none. See [Additional headers](#additional-headers) |
+| Additional headers | `aiCustomHeaders` | JSON array of HTTP headers sent with every request to the provider (not to the token URL), e.g. `[{"name":"x-gateway-profile","value":"my-profile"}]` for an API gateway in front of the model; `[]` (default) for none. See [Additional headers](#additional-headers) |
 | Credential | `aiCredentialId` | Id of the credential holding the API key as its secret, or for OAuth 2.0 the client id as user name and the client secret as secret; required except for Ollama. Key pairs are not offered |
 | Context window | `aiContextWindowTokens` | Context window of the model in tokens; required |
 | Max output tokens | `aiMaxOutputTokens` | 0 for the provider's default; must be smaller than the context window |
+| Request timeout | `aiRequestTimeoutSeconds` | Seconds a request to the provider may take, 1 to 3600 (default 600), see [Request timeout](#request-timeout) |
 | Max iterations | `aiMaxIterationsPerRequest` | Model requests per user turn (default 10), see [Agent loop](#agent-loop) |
 | Max consecutive errors | `aiMaxConsecutiveErrorsPerRequest` | Failed tool call rounds in a row before a turn fails (default 3) |
 | Compaction reserve | `aiCompactionReserveTokens` | 0 for a quarter of the context window; must be smaller than the context window and larger than the max output tokens if those are set |
@@ -270,7 +282,7 @@ only):
   secret in the request body (`client_secret_post`) and without scope. The token client lives in FWO.Basics
   (`FWO.Basics.OAuth.OAuthTokenClient`) and is shared with the Azure login of the autodiscovery and of the firewall
   write library. It follows no redirects, does not decompress answers, reads at most 64 KB, times out after 30 seconds
-  and always checks the certificate of the token endpoint in the harness.
+  and always checks the certificate of the token endpoint.
 - `CachedOAuthTokenProvider` keeps the token until 30 seconds before it expires (`expires_in`; a token without expiry
   for a minute, a short-lived one for half its lifetime); parallel runs share one renewal.
 - `OAuthBearerPolicy` sets the token as `Authorization: Bearer` on every request of the OpenAI client. If the server
@@ -281,7 +293,7 @@ only):
 ### Additional headers
 
 Some deployments put an API gateway in front of the model that needs headers of its own, e.g. the profile name of the
-caller (`ki-services-profile-name`) or the issuer of the bearer token (`token-issuer`). `aiCustomHeaders` adds such
+caller (`x-gateway-profile`) or the issuer of the bearer token (`token-issuer`). `aiCustomHeaders` adds such
 headers to every request of the chat client, for every provider: OpenAI through a per-call pipeline policy
 (`CustomHeadersPolicy`), Anthropic through `ClientOptions.ExtraHeaders`, Google through `HttpOptions.Headers` and
 Ollama through `OllamaApiClient.DefaultRequestHeaders`. They are not sent to the token URL of OAuth 2.0.
@@ -293,6 +305,24 @@ hop-by-hop headers, ...). Names must be RFC 9110 tokens of at most 128 character
 consist of at most 2048 visible ASCII characters, spaces and tabs, so they cannot end the header line. At most 20
 headers. The settings page, `AiSettings.Validate` in the harness and `ChatClientFactory` check them; an unreadable stored
 value makes the settings unusable until it is saved again.
+
+### Request timeout
+
+The SDKs of the providers have differing default timeouts: 100 seconds for Ollama (`HttpClient.Timeout`) and OpenAI
+(`NetworkTimeout`), none at all for Google, and for Anthropic a timeout derived from the maximum number of output tokens
+of a request that is not streamed (30 seconds per 1000 tokens, at least 30 and at most 600 seconds, so 30 seconds for the
+default of 1024 tokens; for Claude Opus 4 and 4.1 the SDK refuses such a request with more than 8192 tokens). The summary
+of a long history (see [Context compaction](#context-compaction)) is such a request: a slow local model can need minutes for it, and as
+it is cancelled by a timeout, the turn fails and the next turn tries again.
+
+`aiRequestTimeoutSeconds` (`AiProviderSettings.RequestTimeout`) therefore replaces these defaults for every provider:
+
+| Provider | Set as | Bounds |
+|---|---|---|
+| Ollama | `HttpClient.Timeout` of an HTTP client owned by the chat client | a request until the answer starts; for one that is not streamed, the whole generation |
+| OpenAI | `OpenAIClientOptions.NetworkTimeout` | each attempt (the SDK retries up to 3 times); for a streamed answer each read |
+| Anthropic | `ClientOptions.Timeout` | each attempt (the SDK retries up to 2 times); replaces the timeout derived from the output tokens and its refusal |
+| Google | `HttpOptions.Timeout` (milliseconds) | each attempt, for a streamed answer the whole answer |
 
 ### Reading the AI settings
 
@@ -367,8 +397,8 @@ The unit tests are in `roles/tests-unit/files/FWO.Ai.Tests`. They run the harnes
 test server, with a scripted chat client instead of a real AI provider, both directly (`FwoUserAgent`) and through the
 AG-UI endpoint on a second test server (`HarnessServerTest`). `HarnessTurnInputTest`, `HarnessConversationFilterTest`
 and `HarnessConversationSnapshotTest` test what a run takes from the conversation, what it sends to the provider and
-what it returns. `HarnessAgentFeatureGateTest` tests the switches and roles of the AI functions, in the agent and through the
-AG-UI endpoint. A strict mode of the scripted chat client rejects requests the way
+what it returns. `HarnessAgentFeatureGateTest` tests the switches and roles of the AI functions, and that a reason check takes
+no conversation and is offered no tools, in the agent and through the AG-UI endpoint. A strict mode of the scripted chat client rejects requests the way
 the providers do (`ProviderHistoryRules`).
 `HarnessFwoAiConfigReaderTest`, `HarnessFwoAiSettingsSourceTest`, `HarnessAiSettingsRefresherTest`,
 `HarnessAgentFactoryHolderTest` and `HarnessTechnicalUserLoginTest` test reading and applying the AI settings;

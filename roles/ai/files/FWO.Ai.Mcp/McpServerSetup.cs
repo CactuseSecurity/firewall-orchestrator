@@ -55,7 +55,6 @@ internal static class McpServerSetup
                 options.Stateless = true;
             })
             .AddAuthorizationFilters()
-            .WithTools<RandomNumberTools>()
             .WithTools<UserTools>()
             .WithPrompts<RequestApplicationPrompts>()
             .WithPrompts<AgentPrompts>();

@@ -19,7 +19,8 @@ public enum AgentFeature
 /// reaches the MCP server or the AI provider. A turn naming the MCP prompt of the reason check belongs to the reason
 /// check; every other turn belongs to the chat: a new text of the user, the answers to tool approval requests (the reason
 /// check never asks for any), and any other MCP prompt. A prompt without a switch of its own is thus refused while the
-/// chat is off or not allowed for the user (fail closed).
+/// chat is off or not allowed for the user (fail closed). A turn of the reason check must start a new conversation and
+/// is offered no tools, so that a user allowed the reason check but not the chat cannot use it as chat.
 /// </summary>
 internal static class AgentFeatureGate
 {
@@ -76,17 +77,34 @@ internal static class AgentFeatureGate
     }
 
     /// <summary>
-    /// Refuses the turn if the AI function it belongs to is switched off or not allowed for the roles of the user.
+    /// Tells whether a turn of the AI function is offered the tools of the user. Only the chat is: the reason check
+    /// assesses the data of its prompt only. An unknown function is offered none (fail closed).
+    /// </summary>
+    /// <param name="feature">AI function</param>
+    internal static bool OffersTools(AgentFeature feature)
+    {
+        return feature == AgentFeature.Chat;
+    }
+
+    /// <summary>
+    /// Refuses the turn if it is malformed for the AI function it belongs to, or if that function is switched off or
+    /// not allowed for the roles of the user.
     /// </summary>
     /// <param name="turnInput">Input of the turn</param>
     /// <param name="agentSettings">Settings of the agent</param>
     /// <param name="userRoles">Roles of the user, from the JWT of the request</param>
+    /// <returns>The AI function the turn belongs to</returns>
+    /// <exception cref="ArgumentException">A turn of the reason check sends messages besides its prompt.</exception>
     /// <exception cref="AgentFeatureDisabledException">The AI function of the turn is switched off.</exception>
     /// <exception cref="AgentFeatureNotPermittedException">The user holds none of the roles allowed to use the AI
     /// function of the turn.</exception>
-    internal static void EnsureAllowed(TurnInput turnInput, AgentSettings agentSettings, IReadOnlyCollection<string> userRoles)
+    internal static AgentFeature EnsureAllowed(TurnInput turnInput, AgentSettings agentSettings, IReadOnlyCollection<string> userRoles)
     {
         AgentFeature feature = GetFeature(turnInput);
+        if (feature == AgentFeature.ReasonCheck)
+        {
+            EnsureNewConversation(turnInput);
+        }
         if (!IsSwitchedOn(feature, agentSettings))
         {
             throw new AgentFeatureDisabledException(feature);
@@ -94,6 +112,22 @@ internal static class AgentFeatureGate
         if (!IsAllowedForRoles(feature, agentSettings, userRoles))
         {
             throw new AgentFeatureNotPermittedException(feature);
+        }
+        return feature;
+    }
+
+    /// <summary>
+    /// Requires a turn of the reason check to start a new conversation: it sends no messages besides its prompt.
+    /// Otherwise the conversation sent along would reach the model in front of the prompt, and a user allowed the reason
+    /// check but not the chat could hold a chat this way.
+    /// </summary>
+    /// <exception cref="ArgumentException">The turn sends messages besides its prompt.</exception>
+    private static void EnsureNewConversation(TurnInput turnInput)
+    {
+        if (!turnInput.IsPromptOnly)
+        {
+            throw new ArgumentException("A run of the reason check starts a new conversation and sends no messages besides its prompt.",
+                nameof(turnInput));
         }
     }
 }

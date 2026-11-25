@@ -7904,6 +7904,7 @@
                               "aiCredentialId",
                               "aiContextWindowTokens",
                               "aiMaxOutputTokens",
+                              "aiRequestTimeoutSeconds",
                               "aiMaxIterationsPerRequest",
                               "aiMaxConsecutiveErrorsPerRequest",
                               "aiCompactionReserveTokens",

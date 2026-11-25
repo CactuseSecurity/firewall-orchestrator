@@ -13,7 +13,7 @@ See [Deployment](#deployment) for how the installer deploys it.
 | Protocol | MCP over streamable HTTP, endpoint `POST /mcp` (`MapMcp` of the MCP C# SDK), stateless |
 | Authentication | JWTs of the middleware server, validated with the JWT public key of the installation |
 | Authorization | Default policy: an FWO role that is neither technical nor anonymous; `[Authorize]` per tool or prompt class, `[Authorize(Roles = ...)]` per tool (`AddAuthorizationFilters`) |
-| Tools | `UserTools` (`get_current_user`), `RandomNumberTools` (`get_random_number`, a sample tool) |
+| Tools | `UserTools` (`get_current_user`) |
 | Prompts | `AgentPrompts` (`fwo_agent_instructions`), `RequestApplicationPrompts` (`check_access_request_reason`, `check_connection_reason`) |
 | Limits | Request budget and concurrent requests per user (`McpRateLimiting`), request body size |
 | Reverse proxy | Forwarded headers trusted from the local Apache only |
@@ -31,7 +31,7 @@ Content-Type: application/json
 MCP-Protocol-Version: 2025-11-25
 Authorization: Bearer <access token>
 
-{ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "get_random_number" } }
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "get_current_user" } }
 ```
 
 - **Stateless.** The server keeps no MCP session (`Stateless = true` of the HTTP transport): every request stands on
@@ -49,9 +49,8 @@ Authorization: Bearer <access token>
 | Tool | Roles | Result |
 |---|---|---|
 | `get_current_user` | every FWO user role | Name and FWO roles taken from the validated access token |
-| `get_random_number` | `admin`, `auditor` | A random number between `min` (inclusive) and `max` (exclusive); a sample of a tool restricted to roles |
 
-Both tools are marked read-only (`[McpServerTool(ReadOnly = true)]`). The AI harness asks the user to confirm every
+The tool is marked read-only (`[McpServerTool(ReadOnly = true)]`). The AI harness asks the user to confirm every
 tool that is not marked read-only before it runs, so mark a tool read-only only if it changes nothing.
 
 To add a tool:
@@ -64,7 +63,8 @@ To add a tool:
 4. A tool that reads FWO data must call the API with the JWT of the caller, so that the Hasura permissions (tenant,
    visible managements, editable owners) still apply. A tool must never use a technical identity of its own.
 5. Add unit tests in `roles/tests-unit/files/FWO.Ai.Tests`, for the result and for the roles that may and may not
-   call it.
+   call it. The test MCP server (`McpTestServer`) also offers the test-only tool `McpTestRoleRestrictedTools`, restricted
+   to `admin` and `auditor`, for tests of the role filter that do not depend on a production tool.
 
 ### Prompts
 

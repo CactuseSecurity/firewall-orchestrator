@@ -23,9 +23,6 @@ namespace FWO.Ai.Harness.Agent;
 /// </summary>
 internal sealed class TurnInput
 {
-    /// <summary>Maximum number of messages of the conversation a run sends.</summary>
-    internal const int kMaxMessages = 1000;
-
     private readonly List<ChatMessage> newInput;
     private readonly PromptRequest? prompt;
 
@@ -50,13 +47,20 @@ internal sealed class TurnInput
     internal string? PromptName => prompt?.Name;
 
     /// <summary>
+    /// Whether the run names a prompt and sends no messages besides it (no conversation so far and no approval
+    /// messages), so that the prompt starts a new conversation.
+    /// </summary>
+    internal bool IsPromptOnly => prompt != null && History.Count == 0 && newInput.Count == 0;
+
+    /// <summary>
     /// Reads the input of a turn from the messages of a run and, for an AG-UI run, from the AG-UI input the hosting
-    /// passes in the run options.
+    /// passes in the run options. The number of messages is not limited here: the request body limit of the harness
+    /// bounds it, and a history of many messages is compacted (see <see cref="HistoryCompaction.kMaxHistoryMessages"/>).
     /// </summary>
     /// <param name="messages">Messages of the run: the conversation of the client</param>
     /// <param name="options">Run options; for an AG-UI run they carry the AG-UI input</param>
-    /// <exception cref="ArgumentException">The run has too many messages, no new input, more than one kind of new
-    /// input, or a malformed prompt.</exception>
+    /// <exception cref="ArgumentException">The run has no new input, more than one kind of new input, or a malformed
+    /// prompt.</exception>
     /// <exception cref="NotSupportedException">The AG-UI input declares client tools.</exception>
     internal static TurnInput Read(IEnumerable<ChatMessage> messages, AgentRunOptions? options)
     {
@@ -67,12 +71,7 @@ internal sealed class TurnInput
         {
             throw new NotSupportedException("The harness does not run client tools.");
         }
-        List<ChatMessage> messageList = messages.ToList();
-        if (messageList.Count > kMaxMessages)
-        {
-            throw new ArgumentException($"A run must not send more than {kMaxMessages} messages.", nameof(messages));
-        }
-        List<ChatMessage> filteredMessages = ConversationFilter.Apply(messageList);
+        List<ChatMessage> filteredMessages = ConversationFilter.Apply(messages);
         List<ChatMessage> history = filteredMessages.Where(message => !ConversationFilter.HoldsApprovalsOnly(message)).ToList();
         // the AG-UI hosting appends the approval requests and answers of the resume entries after the messages
         List<ChatMessage> approvals = filteredMessages.Where(ConversationFilter.HoldsApprovalsOnly).ToList();

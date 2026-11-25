@@ -32,6 +32,7 @@ namespace FWO.Config.Api.Data
                 CustomHeaders = customHeaders,
                 ContextWindowTokens = config.AiContextWindowTokens,
                 MaxOutputTokens = config.AiMaxOutputTokens,
+                RequestTimeoutSeconds = config.AiRequestTimeoutSeconds,
                 MaxIterationsPerRequest = config.AiMaxIterationsPerRequest,
                 MaxConsecutiveErrorsPerRequest = config.AiMaxConsecutiveErrorsPerRequest,
                 CompactionReserveTokens = config.AiCompactionReserveTokens,
@@ -60,6 +61,7 @@ namespace FWO.Config.Api.Data
             config.AiCustomHeaders = AiCustomHeaderList.Serialize(settings.CustomHeaders);
             config.AiContextWindowTokens = settings.ContextWindowTokens;
             config.AiMaxOutputTokens = settings.MaxOutputTokens;
+            config.AiRequestTimeoutSeconds = settings.RequestTimeoutSeconds;
             config.AiMaxIterationsPerRequest = settings.MaxIterationsPerRequest;
             config.AiMaxConsecutiveErrorsPerRequest = settings.MaxConsecutiveErrorsPerRequest;
             config.AiCompactionReserveTokens = settings.CompactionReserveTokens;

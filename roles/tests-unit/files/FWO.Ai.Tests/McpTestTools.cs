@@ -1,3 +1,4 @@
+using FWO.Basics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Protocol;
@@ -57,6 +58,28 @@ internal class McpTestWriteTools(McpTestToolCalls toolCalls)
     {
         toolCalls.Record(value);
         return kStoredPrefix + value;
+    }
+}
+
+/// <summary>
+/// Test-only MCP tool restricted to admins and auditors, offered by every test server (see <see cref="McpTestServer"/>),
+/// so that tests of the role filter do not depend on a production tool.
+/// </summary>
+[Authorize]
+internal class McpTestRoleRestrictedTools
+{
+    internal const string kRoleRestrictedTool = "get_role_restricted_test_value";
+    internal const string kRoleRestrictedValue = "role restricted test value";
+
+    /// <summary>
+    /// Returns a fixed value; only offered to callers holding one of the listed roles.
+    /// </summary>
+    [McpServerTool(Name = kRoleRestrictedTool, ReadOnly = true)]
+    [Description("Returns a test value, only for admins and auditors.")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    public static string GetRoleRestrictedTestValue()
+    {
+        return kRoleRestrictedValue;
     }
 }
 

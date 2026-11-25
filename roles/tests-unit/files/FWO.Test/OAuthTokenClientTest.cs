@@ -337,11 +337,10 @@ namespace FWO.Test
             Assert.That(endpoint.IsDisposed, Is.True);
         }
 
-        [TestCase(true)]
-        [TestCase(false)]
-        public void Constructor_WithOwnConnectionHandling_CanBeCreatedAndDisposed(bool checkCertificates)
+        [Test]
+        public void Constructor_WithOwnConnectionHandling_CanBeCreatedAndDisposed()
         {
-            Assert.That(() => new OAuthTokenClient(checkCertificates).Dispose(), Throws.Nothing);
+            Assert.That(() => new OAuthTokenClient().Dispose(), Throws.Nothing);
         }
 
         [Test]

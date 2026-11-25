@@ -11,11 +11,11 @@ namespace FWO.Test;
 [Parallelizable]
 internal class AiCustomHeaderListTest
 {
-    private const string kProfileHeader = "ki-services-profile-name";
-    private const string kProfileValue = "com_1659_oheppidxtsa";
+    private const string kProfileHeader = "x-gateway-profile";
+    private const string kProfileValue = "my-profile";
     private const string kIssuerHeader = "token-issuer";
     private const string kIssuerValue = "keycloak";
-    private const string kStoredHeaders = """[{"name":" ki-services-profile-name ","value":" com_1659_oheppidxtsa "},null,{"name":"","value":" "},{"name":"token-issuer"}]""";
+    private const string kStoredHeaders = """[{"name":" x-gateway-profile ","value":" my-profile "},null,{"name":"","value":" "},{"name":"token-issuer"}]""";
     private const char kNameChar = 'n';
     private const char kValueChar = 'v';
 
@@ -102,7 +102,7 @@ internal class AiCustomHeaderListTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(storedHeaders, Is.EqualTo("""[{"name":"ki-services-profile-name","value":"com_1659_oheppidxtsa"},{"name":"token-issuer","value":"keycloak"}]"""));
+            Assert.That(storedHeaders, Is.EqualTo("""[{"name":"x-gateway-profile","value":"my-profile"},{"name":"token-issuer","value":"keycloak"}]"""));
             Assert.That(readable, Is.True);
             Assert.That(AiCustomHeaderList.Serialize(readHeaders), Is.EqualTo(storedHeaders));
         });
@@ -154,7 +154,7 @@ internal class AiCustomHeaderListTest
     /// Verifies that a name that is missing, not a token of RFC 9110 or too long is refused.
     /// </summary>
     [TestCase("")]
-    [TestCase(" ki-services-profile-name")]
+    [TestCase(" x-gateway-profile")]
     [TestCase("profile name")]
     [TestCase("profile:name")]
     [TestCase("profile\r\nX-Injected")]

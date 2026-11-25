@@ -10,7 +10,7 @@ namespace FWO.Data.Ai
     /// </summary>
     public class AiCustomHeader
     {
-        /// <summary>Name of the header, e.g. ki-services-profile-name.</summary>
+        /// <summary>Name of the header, e.g. x-gateway-profile.</summary>
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 

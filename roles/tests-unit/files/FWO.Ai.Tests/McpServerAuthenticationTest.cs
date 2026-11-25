@@ -19,10 +19,10 @@ namespace FWO.Ai.Tests;
 [TestFixture]
 internal class McpServerAuthenticationTest
 {
-    private const string kRandomNumberTool = "get_random_number";
+    private const string kRoleRestrictedTool = McpTestRoleRestrictedTools.kRoleRestrictedTool;
     private const string kCurrentUserTool = "get_current_user";
 
-    private static readonly List<string> kAllTools = [kRandomNumberTool, kCurrentUserTool];
+    private static readonly List<string> kAllTools = [kRoleRestrictedTool, kCurrentUserTool];
     private static readonly List<string> kToolsWithoutRoleRestriction = [kCurrentUserTool];
     private static readonly List<string> kReporterAndModellerRoles = [Roles.Reporter, Roles.Modeller];
 
@@ -175,7 +175,7 @@ internal class McpServerAuthenticationTest
         using HttpClient httpClient = app.GetTestClient();
         await using McpClient client = await McpTestServer.ConnectAsync(httpClient, Roles.Reporter);
 
-        Assert.ThrowsAsync<McpProtocolException>(async () => await client.CallToolAsync(kRandomNumberTool));
+        Assert.ThrowsAsync<McpProtocolException>(async () => await client.CallToolAsync(kRoleRestrictedTool));
     }
 
     /// <summary>
@@ -188,10 +188,10 @@ internal class McpServerAuthenticationTest
         using HttpClient httpClient = app.GetTestClient();
         await using McpClient client = await McpTestServer.ConnectAsync(httpClient, Roles.Auditor);
 
-        CallToolResult result = await client.CallToolAsync(kRandomNumberTool, new Dictionary<string, object?> { ["min"] = 3, ["max"] = 4 });
+        CallToolResult result = await client.CallToolAsync(kRoleRestrictedTool);
 
         Assert.That(result.IsError, Is.Not.True);
-        Assert.That(GetText(result), Is.EqualTo("3"));
+        Assert.That(GetText(result), Is.EqualTo(McpTestRoleRestrictedTools.kRoleRestrictedValue));
     }
 
     /// <summary>

@@ -15,6 +15,7 @@ namespace FWO.Test
     {
         private const string kFooter = "div.footer";
         private const string kMessage = "UI message";
+        private const int kResizedPanelWidth = 600;
 
         private BunitContext context = null!;
         private AiChatUserConfig userConfig = null!;
@@ -56,16 +57,20 @@ namespace FWO.Test
         {
             IRenderedComponent<AiChatFooterOffset> footer = RenderFooter();
 
-            Session.Open();
-            footer.WaitForAssertion(() => Assert.That(footer.Find(kFooter).GetAttribute("style"),
-                Is.EqualTo($"right: {AiChatSession.kDefaultPanelWidth + AiChatFooterOffset.kSizerWidth}px; width: auto;")));
+            string openStyle = $"right: {AiChatSession.kDefaultPanelWidth + AiChatFooterOffset.kSizerWidth}px; width: auto;";
+            string resizedStyle = $"right: {kResizedPanelWidth + AiChatFooterOffset.kSizerWidth}px; width: auto;";
 
-            Session.PanelWidth = 600;
-            footer.WaitForAssertion(() => Assert.That(footer.Find(kFooter).GetAttribute("style"),
-                Is.EqualTo($"right: {600 + AiChatFooterOffset.kSizerWidth}px; width: auto;")));
+            Session.Open();
+            footer.WaitForState(() => GetFooterStyle(footer) == openStyle);
+            Assert.That(GetFooterStyle(footer), Is.EqualTo(openStyle));
+
+            Session.PanelWidth = kResizedPanelWidth;
+            footer.WaitForState(() => GetFooterStyle(footer) == resizedStyle);
+            Assert.That(GetFooterStyle(footer), Is.EqualTo(resizedStyle));
 
             Session.Minimize();
-            footer.WaitForAssertion(() => Assert.That(footer.Find(kFooter).HasAttribute("style"), Is.False));
+            footer.WaitForState(() => GetFooterStyle(footer) == null);
+            Assert.That(footer.Find(kFooter).HasAttribute("style"), Is.False);
         }
 
         [Test]
@@ -87,6 +92,14 @@ namespace FWO.Test
             footer.Instance.Dispose();
 
             Assert.DoesNotThrow(Session.Open);
+        }
+
+        /// <summary>
+        /// Returns the style of the footer; null if it has none.
+        /// </summary>
+        private static string? GetFooterStyle(IRenderedComponent<AiChatFooterOffset> footer)
+        {
+            return footer.Find(kFooter).GetAttribute("style");
         }
 
         private IRenderedComponent<AiChatFooterOffset> RenderFooter()

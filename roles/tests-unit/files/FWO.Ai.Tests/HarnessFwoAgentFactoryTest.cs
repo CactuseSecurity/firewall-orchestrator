@@ -40,7 +40,7 @@ internal class HarnessFwoAgentFactoryTest
     private const int kNoErrorsAllowed = 0;
 
     private static readonly List<string> kReporterTools = [HarnessTestSetup.kCurrentUserTool];
-    private static readonly List<string> kAdminTools = [HarnessTestSetup.kCurrentUserTool, HarnessTestSetup.kRandomNumberTool];
+    private static readonly List<string> kAdminTools = [HarnessTestSetup.kCurrentUserTool, HarnessTestSetup.kRoleRestrictedTool];
     private static readonly List<string> kReporterRoles = [Roles.Reporter];
     private static readonly List<string> kNoRoles = [];
 

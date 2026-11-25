@@ -4,6 +4,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 
 namespace FWO.Ai.Harness.Agent;
 
@@ -14,8 +15,8 @@ namespace FWO.Ai.Harness.Agent;
 /// conversation the client sends (see <see cref="TurnInput"/>), compacts its history once it exceeds the context
 /// window, and ends with the conversation for the next run (see <see cref="ConversationSnapshot"/>). A tool not marked read-only
 /// runs only once its <see cref="ToolApprovalRequestContent"/> has been answered. A turn of an AI function that is switched
-/// off or not allowed for the roles of the user is refused before it reaches the MCP server or the AI provider (see
-/// <see cref="AgentFeatureGate"/>).
+/// off or not allowed for the roles of the user is refused before it reaches the MCP server or the AI provider, and a
+/// turn of the reason check is offered no tools (see <see cref="AgentFeatureGate"/>).
 /// </summary>
 public sealed class FwoUserAgent : DelegatingAIAgent
 {
@@ -72,7 +73,8 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     /// client reach the AI provider. The last update holds the snapshot of the conversation. A failed run is logged, as
     /// the AG-UI hosting reports it to the client without details.
     /// </summary>
-    /// <exception cref="ArgumentException">The run has no valid new user input, see <see cref="TurnInput.Read"/>.</exception>
+    /// <exception cref="ArgumentException">The run has no valid new user input, see <see cref="TurnInput.Read"/>, or
+    /// a run of the reason check sends messages besides its prompt.</exception>
     /// <exception cref="NotSupportedException">The AG-UI input declares client tools.</exception>
     /// <exception cref="AgentFeatureDisabledException">The AI function of the run is switched off.</exception>
     /// <exception cref="AgentFeatureNotPermittedException">The AI function of the run is not allowed for the roles of the user.</exception>
@@ -81,7 +83,7 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     {
         IAsyncEnumerable<AgentResponseUpdate> updates = RunTurnAsync(messages, session, options, cancellationToken);
         await using IAsyncEnumerator<AgentResponseUpdate> enumerator = updates.GetAsyncEnumerator(cancellationToken);
-        while (await MoveNextLoggingFailureAsync(enumerator))
+        while (await MoveNextLoggingFailureAsync(enumerator, cancellationToken))
         {
             yield return enumerator.Current;
         }
@@ -89,37 +91,102 @@ public sealed class FwoUserAgent : DelegatingAIAgent
 
     /// <summary>
     /// Reads the turn input, refuses it if its AI function is switched off or not allowed for the roles of the user,
-    /// connects to the MCP server, loads the user's tools and the instructions, compacts the history if needed, runs the
-    /// turn on the shared agent with the history and the new input, and returns the conversation for the next run.
+    /// connects to the MCP server, loads the tools the turn is offered and the instructions, compacts the history if
+    /// needed, runs the turn on the shared agent with the history and the new input, and returns the conversation for
+    /// the next run.
     /// </summary>
     private async IAsyncEnumerable<AgentResponseUpdate> RunTurnAsync(IEnumerable<ChatMessage> messages, AgentSession? session,
         AgentRunOptions? options, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         TurnInput turnInput = TurnInput.Read(messages, options);
-        AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, userRoles);
+        AgentFeature feature = AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, userRoles);
         await using FwoMcpConnection mcpConnection = await FwoMcpConnection.ConnectAsync(userConnection, mcpHandlerFactory?.Invoke(),
             loggerFactory, cancellationToken);
         List<ChatMessage> newMessages = await turnInput.GetNewMessagesAsync(mcpConnection, cancellationToken);
         List<ChatMessage> runMessages = (await historyReducer.ReduceAsync(turnInput.History, cancellationToken)).ToList();
         runMessages.AddRange(newMessages);
-        List<AITool> mcpTools = await mcpConnection.ListToolsAsync(cancellationToken);
+        List<AITool> tools = await GetToolsAsync(mcpConnection, feature, cancellationToken);
         List<ChatMessage> instructionMessages = await mcpConnection.GetPromptMessagesAsync(kInstructionsPromptName, cancellationToken: cancellationToken);
-        ChatClientAgentRunOptions runOptions = CreateRunOptions(ToolApproval.RequireApprovalUnlessReadOnly(mcpTools),
-            JoinInstructions(instructionMessages));
-        List<AgentResponseUpdate> responseUpdates = [];
-        await foreach (AgentResponseUpdate update in InnerAgent.RunStreamingAsync(runMessages, session, runOptions, cancellationToken))
+        ChatClientAgentRunOptions runOptions = CreateRunOptions(tools, JoinInstructions(instructionMessages));
+        await foreach (AgentResponseUpdate update in RunWithSnapshotAsync(runMessages, session, runOptions, cancellationToken))
         {
-            responseUpdates.Add(update);
             yield return update;
+        }
+    }
+
+    /// <summary>
+    /// Returns the tools offered to the model in a turn of the given AI function: the tools of the user for the chat, of
+    /// which those not marked read-only need the user's approval; none for the reason check, which only assesses the data
+    /// of its prompt (see <see cref="AgentFeatureGate.OffersTools"/>).
+    /// </summary>
+    private static async Task<List<AITool>> GetToolsAsync(FwoMcpConnection mcpConnection, AgentFeature feature, CancellationToken cancellationToken)
+    {
+        if (!AgentFeatureGate.OffersTools(feature))
+        {
+            return [];
+        }
+        List<AITool> mcpTools = await mcpConnection.ListToolsAsync(cancellationToken);
+        return ToolApproval.RequireApprovalUnlessReadOnly(mcpTools);
+    }
+
+    /// <summary>
+    /// Runs the turn on the shared agent and ends with the snapshot of the conversation. If the run fails after it ran
+    /// a tool, the snapshot up to the last tool result is sent before the failure is passed on (see
+    /// <see cref="ConversationSnapshot.CreateAfterFailure"/>); a cancelled run ends without snapshot.
+    /// </summary>
+    private async IAsyncEnumerable<AgentResponseUpdate> RunWithSnapshotAsync(List<ChatMessage> runMessages, AgentSession? session,
+        ChatClientAgentRunOptions runOptions, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        List<AgentResponseUpdate> responseUpdates = [];
+        await using IAsyncEnumerator<AgentResponseUpdate> enumerator =
+            InnerAgent.RunStreamingAsync(runMessages, session, runOptions, cancellationToken).GetAsyncEnumerator(cancellationToken);
+        while (true)
+        {
+            (bool hasNext, ExceptionDispatchInfo? failure) = await TryMoveNextAsync(enumerator, cancellationToken);
+            if (failure != null)
+            {
+                AgentResponseUpdate? snapshotAfterFailure = ConversationSnapshot.CreateAfterFailure(runMessages, responseUpdates);
+                if (snapshotAfterFailure != null)
+                {
+                    yield return snapshotAfterFailure;
+                }
+                failure.Throw();
+            }
+            if (!hasNext)
+            {
+                break;
+            }
+            responseUpdates.Add(enumerator.Current);
+            yield return enumerator.Current;
         }
         yield return ConversationSnapshot.Create(runMessages, responseUpdates);
     }
 
     /// <summary>
-    /// Moves to the next update and logs a failure of the run; a cancellation is not logged, a run of an AI function that
-    /// is switched off or not allowed for the user only as warning, as it is a refusal, not an error of the harness.
+    /// Moves to the next update of a run. A failure that is not a cancellation of the request is returned instead of
+    /// thrown, so that the caller can send the snapshot first: an iterator cannot yield inside a catch.
     /// </summary>
-    private async Task<bool> MoveNextLoggingFailureAsync(IAsyncEnumerator<AgentResponseUpdate> enumerator)
+    private static async Task<(bool HasNext, ExceptionDispatchInfo? Failure)> TryMoveNextAsync(IAsyncEnumerator<AgentResponseUpdate> enumerator,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await enumerator.MoveNextAsync(), null);
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            return (false, ExceptionDispatchInfo.Capture(exception));
+        }
+    }
+
+    /// <summary>
+    /// Moves to the next update and logs a failure of the run; a cancellation of the request is not logged, a run of an
+    /// AI function that is switched off or not allowed for the user only as warning, as it is a refusal, not an error of
+    /// the harness. Whether the request was cancelled is decided by its token, not by the type of the exception: a
+    /// timeout towards the AI provider or the MCP server also ends in an <see cref="OperationCanceledException"/> and
+    /// is logged as failure.
+    /// </summary>
+    private async Task<bool> MoveNextLoggingFailureAsync(IAsyncEnumerator<AgentResponseUpdate> enumerator, CancellationToken cancellationToken)
     {
         try
         {
@@ -130,7 +197,7 @@ public sealed class FwoUserAgent : DelegatingAIAgent
             logger.LogWarning("Refused a run of the FWO agent: {Reason}", exception.Message);
             throw;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             logger.LogError(exception, "A run of the FWO agent failed.");
             throw;

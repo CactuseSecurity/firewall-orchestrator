@@ -544,6 +544,7 @@ checks on. Upgrades from versions before 9.7.1 keep a check off where it was off
 before. As long as a check is off, the installer prints a `SECURITY WARNING` at the
 end of an upgrade, admins see a warning at the top of every UI page, and the
 importer and middleware log a warning once per endpoint.
+The token endpoints of OAuth 2.0 logins are always checked.
 
 To switch a check on for a system that presents a self-signed certificate or one from
 a private CA, add the issuing CA (PEM) to the trust store of the hosts listed above

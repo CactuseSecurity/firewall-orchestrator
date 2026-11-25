@@ -13,6 +13,6 @@ Authorization: Bearer {{AccessToken}}
     "id": 1,
     "method": "tools/call",
     "params": {
-        "name": "get_random_number"
+        "name": "get_current_user"
     }
 }

@@ -5,7 +5,7 @@ namespace FWO.Data.Ai
     /// <summary>
     /// Additional HTTP headers the AI harness sends to the AI provider (<see cref="AiSettings.CustomHeaders"/>), stored in
     /// the global config as JSON array of objects with name and value, e.g.
-    /// <c>[{"name":"ki-services-profile-name","value":"my-profile"}]</c>. The global config is readable by every role, so
+    /// <c>[{"name":"x-gateway-profile","value":"my-profile"}]</c>. The global config is readable by every role, so
     /// the headers must not carry secrets; the headers that carry the credentials of the provider and the headers that
     /// frame the HTTP message are refused.
     /// </summary>

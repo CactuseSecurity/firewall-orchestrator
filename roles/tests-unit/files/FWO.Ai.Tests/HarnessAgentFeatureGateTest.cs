@@ -7,14 +7,16 @@ using Microsoft.Extensions.AI;
 using NUnit.Framework;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FWO.Ai.Tests;
 
 /// <summary>
 /// Tests the switches and role filters of the AI functions in the harness: which function a turn belongs to (the reason
-/// check prompt to the reason check, everything else to the chat), and that a turn of a function switched off or not
+/// check prompt to the reason check, everything else to the chat), that a turn of a function switched off or not
 /// allowed for the roles of the user is refused before it reaches the MCP server or the AI provider, by the user agent
-/// and through the AG-UI endpoint, which takes the roles from the JWT.
+/// and through the AG-UI endpoint, which takes the roles from the JWT, and that a reason check neither takes a
+/// conversation nor is offered tools, so that it cannot stand in for the chat.
 /// </summary>
 [TestFixture]
 internal class HarnessAgentFeatureGateTest
@@ -24,7 +26,10 @@ internal class HarnessAgentFeatureGateTest
     private const string kReason = "Nightly backup of the order database to the backup site.";
     private const string kThreadId = "thread-1";
     private const string kRequestId = "request-1";
+    private const string kCallId = "call-1";
     private const string kToolName = "store_value";
+    private const string kAnswerMessageId = "message-answer";
+    private const string kAssistantRole = "assistant";
     private const AgentFeature kUnknownFeature = (AgentFeature)99;
 
     private static readonly List<ChatMessage> kNoMessages = [];
@@ -47,6 +52,7 @@ internal class HarnessAgentFeatureGateTest
         new TestCaseData(kUnknownFeature, kNoRoles, kNoRoles, kAdminRoles, false).SetName("UnknownFeatureIsNotAllowed")
     ];
     private static readonly List<ChatMessage> kQuestionMessages = [new(ChatRole.User, kQuestion)];
+    private static readonly List<ChatMessage> kConversationWithoutNewText = [new(ChatRole.User, kQuestion), new(ChatRole.Assistant, kAnswer)];
     private static readonly Dictionary<string, string> kReasonArguments = new() { [HarnessTestSetup.kReasonArgument] = kReason };
 
     /// <summary>
@@ -221,6 +227,48 @@ internal class HarnessAgentFeatureGateTest
     }
 
     /// <summary>
+    /// Verifies that a turn of the reason check sending a conversation along is refused, whether the chat is on or off,
+    /// so that a user allowed the reason check but not the chat cannot hold a chat through it.
+    /// </summary>
+    [TestCase(false)]
+    [TestCase(true)]
+    public void EnsureAllowed_ReasonCheckWithConversation_IsRefused(bool chatEnabled)
+    {
+        TurnInput turnInput = TurnInput.Read(kConversationWithoutNewText,
+            HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments));
+        AgentSettings agentSettings = new() { ChatEnabled = chatEnabled, ReasonCheckEnabled = true };
+
+        Assert.That(AgentFeatureGate.GetFeature(turnInput), Is.EqualTo(AgentFeature.ReasonCheck));
+        Assert.Throws<ArgumentException>(() => AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, kNoRoles));
+    }
+
+    /// <summary>
+    /// Verifies that the gate returns the function an allowed turn belongs to.
+    /// </summary>
+    [Test]
+    public void EnsureAllowed_ReturnsFeatureOfTurn()
+    {
+        AgentSettings agentSettings = new() { ChatEnabled = true, ReasonCheckEnabled = true };
+        TurnInput textTurn = TurnInput.Read(kQuestionMessages, null);
+        TurnInput reasonCheckTurn = TurnInput.Read(kNoMessages,
+            HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments));
+
+        Assert.That(AgentFeatureGate.EnsureAllowed(textTurn, agentSettings, kNoRoles), Is.EqualTo(AgentFeature.Chat));
+        Assert.That(AgentFeatureGate.EnsureAllowed(reasonCheckTurn, agentSettings, kNoRoles), Is.EqualTo(AgentFeature.ReasonCheck));
+    }
+
+    /// <summary>
+    /// Verifies that only the chat is offered tools, and an unknown function none (fail closed).
+    /// </summary>
+    [TestCase(AgentFeature.Chat, true)]
+    [TestCase(AgentFeature.ReasonCheck, false)]
+    [TestCase(kUnknownFeature, false)]
+    public void OffersTools_OnlyForChat(AgentFeature feature, bool expected)
+    {
+        Assert.That(AgentFeatureGate.OffersTools(feature), Is.EqualTo(expected));
+    }
+
+    /// <summary>
     /// Verifies that the agent refuses a text of the user while the chat is off, without asking the AI provider.
     /// </summary>
     [Test]
@@ -339,6 +387,65 @@ internal class HarnessAgentFeatureGateTest
     }
 
     /// <summary>
+    /// Verifies that the agent refuses a reason check sending a conversation along while only the reason check is on,
+    /// without asking the AI provider.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_ReasonCheckWithConversation_IsRefusedWithoutAskingProvider()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { ReasonCheckEnabled = true });
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Modeller);
+
+        Assert.ThrowsAsync<ArgumentException>(async () => await agent.RunAsync(kConversationWithoutNewText,
+            options: HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments)));
+        Assert.That(chatClient.ReceivedMessages, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies that a reason check is offered no tools, while the chat of the same user is offered the user's tools.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_ReasonCheck_OffersNoTools()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer).RespondWithText(kAnswer);
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { ChatEnabled = true, ReasonCheckEnabled = true });
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Admin);
+
+        await agent.RunAsync(kNoMessages, options: HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments));
+        await agent.RunAsync(kQuestion);
+
+        List<ChatOptions?> receivedOptions = chatClient.ReceivedOptions;
+        Assert.That(receivedOptions, Has.Count.EqualTo(2));
+        Assert.That(HarnessTestSetup.GetToolNames(receivedOptions[0]), Is.Empty);
+        Assert.That(HarnessTestSetup.GetToolNames(receivedOptions[1]), Does.Contain(HarnessTestSetup.kCurrentUserTool));
+    }
+
+    /// <summary>
+    /// Verifies that a tool call of the model in a reason check, e.g. caused by instructions hidden in the reason, does
+    /// not run the tool: the model gets an error instead of the data of the tool.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_ReasonCheckWithToolCallOfModel_DoesNotRunTool()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient()
+            .RespondWithFunctionCall(kCallId, HarnessTestSetup.kCurrentUserTool).RespondWithText(kAnswer);
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { ReasonCheckEnabled = true });
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Modeller);
+
+        AgentResponse response = await agent.RunAsync(kNoMessages,
+            options: HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments));
+
+        Assert.That(response.Text, Is.EqualTo(kAnswer));
+        FunctionResultContent toolResult = HarnessTestSetup.GetContents<FunctionResultContent>(chatClient.ReceivedMessages[1]).Single();
+        Assert.That(toolResult.CallId, Is.EqualTo(kCallId));
+        Assert.That(JsonSerializer.Serialize(toolResult.Result), Does.Not.Contain(McpTestServer.kUserName));
+    }
+
+    /// <summary>
     /// Verifies that the AG-UI endpoint takes the roles from the JWT of the request: a run of a user whose token holds
     /// none of the roles of the chat ends with a run error without asking the AI provider, a run of a user whose token
     /// holds one of them is answered.
@@ -399,6 +506,53 @@ internal class HarnessAgentFeatureGateTest
             Assert.That(HarnessTestServer.GetEventTypes(events), Does.Not.Contain(HarnessTestServer.kMessagesSnapshot));
             Assert.That(chatClient.ReceivedMessages, Is.Empty);
         });
+    }
+
+    /// <summary>
+    /// Verifies that the AG-UI endpoint answers a reason check sending a conversation along with a run error, without
+    /// asking the AI provider, while only the reason check is on; the same reason check without conversation is answered.
+    /// </summary>
+    [Test]
+    public async Task Run_ReasonCheckWithConversation_EndsWithRunErrorWithoutAskingModel()
+    {
+        await using WebApplication mcpApp = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
+        HarnessSettings settings = new() { McpEndpoint = HarnessTestSetup.kTestMcpEndpoint };
+        AgentFactoryHolder agentFactories = new(HarnessTestSetup.CreateFactory(mcpApp, chatClient, new AgentSettings { ReasonCheckEnabled = true }));
+        await using WebApplication app = await HarnessTestServer.StartOnLoopback(settings, agentFactories);
+        using HttpClient httpClient = new() { BaseAddress = McpTestServer.GetBaseAddress(app) };
+        string accessToken = McpTestServer.CreateMiddlewareToken(Roles.Modeller);
+        JsonObject runWithConversation = CreateReasonCheckRunInput(kQuestion);
+        runWithConversation["messages"]!.AsArray().Add(new JsonObject { ["id"] = kAnswerMessageId, ["role"] = kAssistantRole, ["content"] = kAnswer });
+
+        using HttpResponseMessage refused = await HarnessTestServer.PostRun(httpClient, accessToken, runWithConversation.ToJsonString());
+        List<JsonElement> refusedEvents = await HarnessTestServer.ReadEventsAsync(refused);
+        Assert.Multiple(() =>
+        {
+            Assert.That(HarnessTestServer.GetEventTypes(refusedEvents), Does.Contain(HarnessTestServer.kRunError));
+            Assert.That(HarnessTestServer.GetEventTypes(refusedEvents), Does.Not.Contain(HarnessTestServer.kMessagesSnapshot));
+            Assert.That(chatClient.ReceivedMessages, Is.Empty);
+        });
+
+        using HttpResponseMessage answered = await HarnessTestServer.PostRun(httpClient, accessToken, CreateReasonCheckRunInput().ToJsonString());
+        List<JsonElement> answeredEvents = await HarnessTestServer.ReadEventsAsync(answered);
+        Assert.Multiple(() =>
+        {
+            Assert.That(HarnessTestServer.GetEventTypes(answeredEvents), Does.Not.Contain(HarnessTestServer.kRunError));
+            Assert.That(HarnessTestServer.GetText(answeredEvents), Is.EqualTo(kAnswer));
+            Assert.That(chatClient.ReceivedMessages, Has.Count.EqualTo(1));
+        });
+    }
+
+    /// <summary>
+    /// Creates the AG-UI input of a reason check run with the given user messages.
+    /// </summary>
+    private static JsonObject CreateReasonCheckRunInput(params string[] userTexts)
+    {
+        JsonObject run = HarnessTestServer.CreateRunInput(kThreadId, userTexts);
+        JsonElement promptProperties = HarnessTestSetup.CreatePromptProperties(HarnessTestSetup.kConnectionPrompt, kReasonArguments);
+        run["forwardedProps"] = JsonNode.Parse(promptProperties.GetRawText());
+        return run;
     }
 
     /// <summary>

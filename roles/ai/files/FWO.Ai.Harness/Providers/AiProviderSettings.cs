@@ -48,4 +48,11 @@ public class AiProviderSettings
     /// Must be smaller than <see cref="ContextWindowTokens"/>.
     /// </summary>
     public int? MaxOutputTokens { get; set; }
+
+    /// <summary>
+    /// Time a request to the provider may take before it fails, set on the client of every provider instead of the
+    /// differing defaults of the SDKs. It also bounds the summary of a long history, a single request that is not
+    /// streamed. Positive and at most <see cref="AiSettings.kMaxRequestTimeoutSeconds"/> seconds.
+    /// </summary>
+    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(AiSettings.kDefaultRequestTimeoutSeconds);
 }

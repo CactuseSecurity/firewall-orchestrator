@@ -23,8 +23,8 @@ internal class HarnessCustomHeadersTest
     private const string kApiKey = "sk-harness-test-key-4711";
     private const string kPrompt = "Hello";
     private const string kAnswer = "stub answer";
-    private const string kProfileHeader = "ki-services-profile-name";
-    private const string kProfileValue = "com_1659_test";
+    private const string kProfileHeader = "x-gateway-profile";
+    private const string kProfileValue = "my-profile";
     private const string kIssuerHeader = "token-issuer";
     private const string kIssuerValue = "keycloak";
     private const string kAuthorizationHeader = "Authorization";

@@ -361,7 +361,8 @@ namespace FWO.Ui.Services
 
         /// <summary>
         /// Applies the outcome of a run that ended: its error, the tool calls waiting for approval, or its answer. The
-        /// conversation of the chat becomes the one the harness returned; it stays as before for a failed run.
+        /// conversation of the chat becomes the one the harness returned. For a run that failed or ended without answer
+        /// it stays as before, unless the run ran tools (see <see cref="KeepToolCallsOfRunWithoutAnswerLocked"/>).
         /// </summary>
         private void CompleteLocked(AiChatEntry answer, AiChatRun run, List<ChatMessage> messages)
         {
@@ -370,6 +371,7 @@ namespace FWO.Ui.Services
             if (run.Error != null)
             {
                 Log.WriteWarning(kLogTitle, $"The run on thread {run.ThreadId} failed: {run.Error.ErrorCode} {run.Error.Message}");
+                KeepToolCallsOfRunWithoutAnswerLocked(run);
                 answer.State = AiChatAnswerState.Failed;
             }
             else if (run.ApprovalRequests.Count > 0)
@@ -379,12 +381,28 @@ namespace FWO.Ui.Services
             else if (string.IsNullOrWhiteSpace(run.Text))
             {
                 Log.WriteWarning(kLogTitle, $"The run on thread {run.ThreadId} completed without an answer.");
+                KeepToolCallsOfRunWithoutAnswerLocked(run);
                 answer.State = AiChatAnswerState.Failed;
             }
             else
             {
                 conversation = run.Conversation ?? [.. messages, new ChatMessage(ChatRole.Assistant, run.Text)];
                 answer.State = AiChatAnswerState.Completed;
+            }
+        }
+
+        /// <summary>
+        /// Keeps the tool calls a run made before it failed or ended without answer, e.g. an approved call after which
+        /// the AI provider failed: the conversation becomes the one the harness returned, up to its last tool result.
+        /// The calls ran, possibly changing data, so the AI must know of them and must not ask for them again. A run
+        /// that ran no tool leaves the conversation as before.
+        /// </summary>
+        private void KeepToolCallsOfRunWithoutAnswerLocked(AiChatRun run)
+        {
+            List<ChatMessage>? conversationWithToolCalls = AgentConversation.GetConversationUpToToolResults(run.Conversation);
+            if (conversationWithToolCalls != null)
+            {
+                conversation = conversationWithToolCalls;
             }
         }
 

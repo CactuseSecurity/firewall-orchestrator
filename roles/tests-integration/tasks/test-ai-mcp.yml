@@ -163,12 +163,10 @@
       register: ai_mcp_test_tools_list
       changed_when: false
 
-    # get_random_number is restricted to admins and auditors
-    - name: the ai mcp server must offer the admin all tools
+    - name: the ai mcp server must offer the admin its tools
       assert:
         that:
           - "'get_current_user' in ai_mcp_test_tools_list.content"
-          - "'get_random_number' in ai_mcp_test_tools_list.content"
         fail_msg: "unexpected tools/list response for the admin: {{ ai_mcp_test_tools_list.content }}"
 
     - name: list the tools the ai mcp server offers to the admin through apache
@@ -194,7 +192,6 @@
       assert:
         that:
           - "'get_current_user' in ai_mcp_test_public_tools_list.content"
-          - "'get_random_number' in ai_mcp_test_public_tools_list.content"
         fail_msg: "unexpected tools/list response through apache: {{ ai_mcp_test_public_tools_list.content }}"
 
   rescue:

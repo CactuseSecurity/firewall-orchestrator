@@ -5,17 +5,20 @@ namespace FWO.Ai.Harness.Agent;
 
 /// <summary>
 /// Compaction of the history of a run, the conversation the client sends before the new input. Once it exceeds the
-/// context window minus the reserve, all of it but the most recent message groups is replaced by one summary written by
-/// the model, before the turn is sent with the new input. The harness returns the compacted conversation (see <see cref="ConversationSnapshot"/>), so the
-/// client sends the summary with its next runs and it is written once. Nothing else is compacted or dropped.
+/// context window minus the reserve, or holds more than <see cref="kMaxHistoryMessages"/> messages, all of it is
+/// replaced by one summary written by the model, before the turn is sent with the new input, which is never summarized.
+/// A history of a single message group (a user message, an answer, or a tool call with its results) is left as it is,
+/// as the framework does not compact it. The harness returns the compacted conversation (see
+/// <see cref="ConversationSnapshot"/>), so the client sends the summary with its next runs and it is written once.
+/// Nothing else is compacted or dropped.
 /// </summary>
 internal static class HistoryCompaction
 {
     /// <summary>
-    /// Number of most recent message groups (a user message, an answer, or a tool call with its results) that are
-    /// never summarized.
+    /// Number of history messages above which the history is compacted whatever its tokens, so that a long conversation
+    /// of short messages (e.g. many tool calls with small results) is compacted as well, also with a large context window.
     /// </summary>
-    internal const int kPreservedRecentGroups = 4;
+    internal const int kMaxHistoryMessages = 10000;
 
     /// <summary>
     /// Instruction for writing the summary: the default of Microsoft Agent Framework
@@ -36,9 +39,12 @@ internal static class HistoryCompaction
         """;
 
     /// <summary>
-    /// Creates the reducer applied to the history before a turn is sent. It summarizes all older groups
-    /// in one model call: with the default target it would summarize just enough to get below the limit, and then
-    /// summarize again in nearly every turn. The summary is kept as a user message, see <see cref="SummaryAsUserMessageReducer"/>.
+    /// Creates the reducer applied to the history before a turn is sent. It compacts a history above the token threshold
+    /// or above <see cref="kMaxHistoryMessages"/> messages, and summarizes the whole history in one model call: it keeps
+    /// none of the most recent message groups (the framework keeps 8 by default), and it does not stop once the history
+    /// would be just below the limit (the default target), so that the compacted history is far below the threshold,
+    /// also if its last groups are large (e.g. tool results), and not summarized again in nearly every turn. The summary
+    /// is kept as a user message, see <see cref="SummaryAsUserMessageReducer"/>.
     /// </summary>
     /// <param name="summarizerClient">Chat client writing the summary; the plain provider client, without tools and
     /// without agent loop</param>
@@ -48,10 +54,13 @@ internal static class HistoryCompaction
     {
         ArgumentNullException.ThrowIfNull(summarizerClient);
         int compactionThresholdTokens = contextWindowTokens - reserveTokens;
+        CompactionTrigger compactionTrigger = CompactionTriggers.Any(
+            CompactionTriggers.TokensExceed(compactionThresholdTokens),
+            CompactionTriggers.MessagesExceed(kMaxHistoryMessages));
         SummarizationCompactionStrategy summarization = new(
             summarizerClient,
-            CompactionTriggers.TokensExceed(compactionThresholdTokens),
-            minimumPreservedGroups: kPreservedRecentGroups,
+            compactionTrigger,
+            minimumPreservedGroups: 0,
             summarizationPrompt: kSummarizationPrompt,
             target: CompactionTriggers.Never);
         return new SummaryAsUserMessageReducer(summarization.AsChatReducer());
@@ -59,10 +68,10 @@ internal static class HistoryCompaction
 
     /// <summary>
     /// Keeps the summary as a user message instead of the assistant message Microsoft Agent Framework writes.
-    /// The summary is the first message of the conversation, as the instructions are not part of it, and the
-    /// preserved groups after it may start with a tool call of the model. Providers expect a history to start with a
-    /// user message, and Gemini rejects a tool call right after a model message. As a user message, the summary is
-    /// summarized again with the older messages at the next compaction.
+    /// The summary is the first message of the conversation, as the instructions are not part of it, and the new input
+    /// after it starts with a tool call of the model in a turn answering tool approval requests. Providers expect a
+    /// history to start with a user message, and Gemini rejects a tool call right after a model message. As a user
+    /// message, the summary is summarized again with the later messages at the next compaction.
     /// </summary>
     private sealed class SummaryAsUserMessageReducer : IChatReducer
     {

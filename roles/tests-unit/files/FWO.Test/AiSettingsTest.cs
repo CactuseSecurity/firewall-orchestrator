@@ -25,11 +25,12 @@ internal class AiSettingsTest
     private static readonly List<string> kModellerRoles = [Roles.Modeller];
     private static readonly List<string> kReporterRoles = [Roles.Reporter];
     private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
-    private const string kStoredCustomHeaders = """[{"name":"ki-services-profile-name","value":"com_1659_test"},{"name":"token-issuer","value":"keycloak"}]""";
-    private static readonly List<string> kCustomHeaderNames = ["ki-services-profile-name", "token-issuer"];
-    private static readonly List<string> kCustomHeaderValues = ["com_1659_test", "keycloak"];
+    private const string kStoredCustomHeaders = """[{"name":"x-gateway-profile","value":"my-profile"},{"name":"token-issuer","value":"keycloak"}]""";
+    private static readonly List<string> kCustomHeaderNames = ["x-gateway-profile", "token-issuer"];
+    private static readonly List<string> kCustomHeaderValues = ["my-profile", "keycloak"];
     private static readonly List<AiSettingsProblem> kCustomHeadersUnreadable = [AiSettingsProblem.CustomHeadersUnreadable];
     private static readonly List<AiSettingsProblem> kCustomHeaderNameReserved = [AiSettingsProblem.CustomHeaderNameReserved];
+    private static readonly List<AiSettingsProblem> kRequestTimeoutInvalid = [AiSettingsProblem.RequestTimeoutInvalid];
 
     /// <summary>
     /// Verifies that all items are read, the provider ignoring case and the texts trimmed.
@@ -45,6 +46,7 @@ internal class AiSettingsTest
             [AiSettings.kCredentialIdKey] = "4",
             [AiSettings.kContextWindowTokensKey] = "100000",
             [AiSettings.kMaxOutputTokensKey] = "4000",
+            [AiSettings.kRequestTimeoutSecondsKey] = "900",
             [AiSettings.kMaxIterationsPerRequestKey] = "7",
             [AiSettings.kMaxConsecutiveErrorsPerRequestKey] = "2",
             [AiSettings.kCompactionReserveTokensKey] = "30000"
@@ -60,6 +62,7 @@ internal class AiSettingsTest
             Assert.That(settings.CredentialId, Is.EqualTo(kCredentialId));
             Assert.That(settings.ContextWindowTokens, Is.EqualTo(kContextWindowTokens));
             Assert.That(settings.MaxOutputTokens, Is.EqualTo(4000));
+            Assert.That(settings.RequestTimeoutSeconds, Is.EqualTo(900));
             Assert.That(settings.MaxIterationsPerRequest, Is.EqualTo(7));
             Assert.That(settings.MaxConsecutiveErrorsPerRequest, Is.EqualTo(2));
             Assert.That(settings.CompactionReserveTokens, Is.EqualTo(30000));
@@ -81,7 +84,8 @@ internal class AiSettingsTest
         {
             [AiSettings.kProviderKey] = value,
             [AiSettings.kMaxIterationsPerRequestKey] = value,
-            [AiSettings.kMaxConsecutiveErrorsPerRequestKey] = "three"
+            [AiSettings.kMaxConsecutiveErrorsPerRequestKey] = "three",
+            [AiSettings.kRequestTimeoutSecondsKey] = "ten minutes"
         };
 
         AiSettings settings = AiSettings.FromConfigValues(configValues);
@@ -89,6 +93,7 @@ internal class AiSettingsTest
         Assert.Multiple(() =>
         {
             Assert.That(settings.Provider, Is.EqualTo(AiProvider.None));
+            Assert.That(settings.RequestTimeoutSeconds, Is.EqualTo(AiSettings.kDefaultRequestTimeoutSeconds));
             Assert.That(settings.IsConfigured, Is.False);
             Assert.That(settings.MaxIterationsPerRequest, Is.EqualTo(value is "2" or "99" ? int.Parse(value) : AiSettings.kDefaultMaxIterationsPerRequest));
             Assert.That(settings.MaxConsecutiveErrorsPerRequest, Is.EqualTo(AiSettings.kDefaultMaxConsecutiveErrorsPerRequest));
@@ -419,6 +424,27 @@ internal class AiSettingsTest
     }
 
     /// <summary>
+    /// Verifies that the request timeout must be at least 1 second and at most an hour, and is valid by default.
+    /// </summary>
+    [TestCase(-1, false)]
+    [TestCase(0, false)]
+    [TestCase(AiSettings.kMinRequestTimeoutSeconds, true)]
+    [TestCase(AiSettings.kDefaultRequestTimeoutSeconds, true)]
+    [TestCase(AiSettings.kMaxRequestTimeoutSeconds, true)]
+    [TestCase(AiSettings.kMaxRequestTimeoutSeconds + 1, false)]
+    public void Validate_ChecksRequestTimeout(int requestTimeoutSeconds, bool isValid)
+    {
+        AiSettings settings = CreateValidSettings(AiProvider.Ollama);
+        int defaultRequestTimeoutSeconds = settings.RequestTimeoutSeconds;
+        settings.RequestTimeoutSeconds = requestTimeoutSeconds;
+
+        List<AiSettingsProblem> problems = settings.Validate();
+
+        Assert.That(defaultRequestTimeoutSeconds, Is.EqualTo(AiSettings.kDefaultRequestTimeoutSeconds));
+        Assert.That(problems, isValid ? Is.Empty : Is.EqualTo(kRequestTimeoutInvalid));
+    }
+
+    /// <summary>
     /// Verifies that the compaction reserve is a quarter of the context window unless it is set.
     /// </summary>
     [Test]
@@ -444,6 +470,7 @@ internal class AiSettingsTest
         settings.Model = $"  {kModel}\t";
         settings.Endpoint = $" {kHttpsEndpoint} ";
         settings.MaxOutputTokens = 2000;
+        settings.RequestTimeoutSeconds = 1200;
         settings.MaxIterationsPerRequest = 5;
         settings.MaxConsecutiveErrorsPerRequest = 1;
         settings.CompactionReserveTokens = 25000;
@@ -471,6 +498,8 @@ internal class AiSettingsTest
             Assert.That(readBack.CredentialId, Is.EqualTo(kCredentialId));
             Assert.That(readBack.ContextWindowTokens, Is.EqualTo(kContextWindowTokens));
             Assert.That(readBack.MaxOutputTokens, Is.EqualTo(2000));
+            Assert.That(config.AiRequestTimeoutSeconds, Is.EqualTo(1200));
+            Assert.That(readBack.RequestTimeoutSeconds, Is.EqualTo(1200));
             Assert.That(readBack.MaxIterationsPerRequest, Is.EqualTo(5));
             Assert.That(readBack.MaxConsecutiveErrorsPerRequest, Is.EqualTo(1));
             Assert.That(readBack.CompactionReserveTokens, Is.EqualTo(25000));
@@ -663,7 +692,7 @@ internal class AiSettingsTest
     public void ConfigExtensions_StoreAndReadCustomHeaders()
     {
         AiSettings settings = CreateValidSettings(AiProvider.OpenAi);
-        settings.CustomHeaders.Add(new AiCustomHeader { Name = " ki-services-profile-name ", Value = " com_1659_test " });
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = " x-gateway-profile ", Value = " my-profile " });
         settings.CustomHeaders.Add(new AiCustomHeader());
         settings.CustomHeaders.Add(new AiCustomHeader { Name = "token-issuer", Value = "keycloak" });
         ConfigData config = new();

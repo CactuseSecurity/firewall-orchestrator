@@ -22,7 +22,7 @@ internal class HarnessMcpConnectionTest
     private const string kEscapedReasonWithMarkup = "Reads &lt;b&gt;customer data&lt;/b&gt; for order checks.";
     private const string kUnknownPrompt = "unknown_prompt";
 
-    private static readonly List<string> kAllTools = [HarnessTestSetup.kCurrentUserTool, HarnessTestSetup.kRandomNumberTool];
+    private static readonly List<string> kAllTools = [HarnessTestSetup.kCurrentUserTool, HarnessTestSetup.kRoleRestrictedTool];
     private static readonly List<string> kUnrestrictedTools = [HarnessTestSetup.kCurrentUserTool];
 
     /// <summary>

@@ -3,6 +3,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -167,10 +168,17 @@ internal partial class RequestApplicationPrompts
     /// <summary>
     /// Creates the prompt checking the functional reason of a connection, interface or interface usage modelled for an app.
     /// </summary>
+    /// <remarks>
+    /// Exception to the limit of 7 parameters per method: the MCP SDK lists each parameter as one prompt argument, and
+    /// MCP prompt arguments are flat strings, so the arguments cannot be grouped into a parameter object. Reducing them
+    /// would change the contract with ConnectionReasonCheck of the AI client library.
+    /// </remarks>
     /// <exception cref="McpException">The kind is unknown, an argument exceeds its maximum length or the language is no
     /// language name.</exception>
     [McpServerPrompt(Title = "Check connection reason")]
     [Description("Checks whether the functional reason of a connection modelled for an app in FWO (or the description of an interface) is a genuine justification.")]
+    [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters",
+        Justification = "Each parameter is one argument of the MCP prompt; MCP prompt arguments are flat strings and cannot be grouped.")]
     public static string CheckConnectionReason(
         [Description("Functional reason of the connection, or the description of an interface")] string reason,
         [Description("Kind of the connection: connection (regular connection of the app), interface (offered to other apps) or interface_usage (using an interface of another app)")]

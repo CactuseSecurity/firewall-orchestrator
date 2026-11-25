@@ -8,6 +8,7 @@ using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -20,7 +21,7 @@ namespace FWO.Ai.Tests;
 internal static class HarnessTestSetup
 {
     internal const string kCurrentUserTool = "get_current_user";
-    internal const string kRandomNumberTool = "get_random_number";
+    internal const string kRoleRestrictedTool = McpTestRoleRestrictedTools.kRoleRestrictedTool;
     internal const string kAccessRequestPrompt = "check_access_request_reason";
     internal const string kConnectionPrompt = "check_connection_reason";
     internal const string kReasonArgument = "reason";
@@ -64,10 +65,12 @@ internal static class HarnessTestSetup
     /// <param name="mcpApp">Test server running the MCP server pipeline</param>
     /// <param name="providerClient">Chat client standing in for the AI provider</param>
     /// <param name="agentSettings">Settings of the agents; the defaults with all AI functions switched on if null</param>
-    internal static FwoAgentFactory CreateFactory(WebApplication mcpApp, IChatClient providerClient, AgentSettings? agentSettings = null)
+    /// <param name="loggerFactory">Logger factory of the agents; nothing is logged if null</param>
+    internal static FwoAgentFactory CreateFactory(WebApplication mcpApp, IChatClient providerClient, AgentSettings? agentSettings = null,
+        ILoggerFactory? loggerFactory = null)
     {
         return new FwoAgentFactory(providerClient, kContextWindowTokens, agentSettings ?? CreateAgentSettingsWithAllFeatures(),
-            mcpHandlerFactory: () => mcpApp.GetTestServer().CreateHandler());
+            loggerFactory, () => mcpApp.GetTestServer().CreateHandler());
     }
 
     /// <summary>

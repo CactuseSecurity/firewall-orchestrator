@@ -11,9 +11,10 @@ namespace FWO.Basics.OAuth
     /// <summary>
     /// Requests access tokens with the OAuth 2.0 client credentials grant (RFC 6749, section 4.4). Client id and secret
     /// are sent in the request body (client_secret_post). The token endpoint must use https unless it is a loopback
-    /// address. Redirects are not followed, so the client secret only ever goes to the configured URL, and answers are
-    /// not decompressed. Failures are thrown as <see cref="OAuthTokenException"/>, whose message never contains the
-    /// client secret or a token. Thread-safe; nothing is cached, see <see cref="CachedOAuthTokenProvider"/> for that.
+    /// address, and its certificate is always checked. Redirects are not followed, so the client secret only ever goes
+    /// to the configured URL, and answers are not decompressed. Failures are thrown as <see cref="OAuthTokenException"/>,
+    /// whose message never contains the client secret or a token. Thread-safe; nothing is cached, see
+    /// <see cref="CachedOAuthTokenProvider"/> for that.
     /// </summary>
     public sealed class OAuthTokenClient : IDisposable
     {
@@ -41,13 +42,13 @@ namespace FWO.Basics.OAuth
         private readonly TimeSpan requestTimeout;
 
         /// <summary>
-        /// Creates a client with its own connection handling.
+        /// Creates a client with its own connection handling, checking the certificate of the token endpoint. There is
+        /// deliberately no switch to skip that check: the client secret must only be sent to the endpoint it belongs to.
         /// </summary>
-        /// <param name="checkCertificates">False accepts any server certificate of the token endpoint</param>
         /// <param name="timeProvider">Clock the expiry of a token is computed with; the system clock if null</param>
         /// <param name="requestTimeout">Time limit for a token request; uses the default if null.</param>
-        public OAuthTokenClient(bool checkCertificates = true, TimeProvider? timeProvider = null, TimeSpan? requestTimeout = null)
-            : this(CreateHandler(checkCertificates), timeProvider, requestTimeout)
+        public OAuthTokenClient(TimeProvider? timeProvider = null, TimeSpan? requestTimeout = null)
+            : this(CreateHandler(), timeProvider, requestTimeout)
         { }
 
         /// <summary>
@@ -115,22 +116,17 @@ namespace FWO.Basics.OAuth
         }
 
         /// <summary>
-        /// Creates the handler of a client with its own connection handling: no redirects, no cookies, connections
-        /// renewed regularly so that DNS changes are picked up.
+        /// Creates the handler of a client with its own connection handling: the default certificate check, no
+        /// redirects, no cookies, connections renewed regularly so that DNS changes are picked up.
         /// </summary>
-        private static SocketsHttpHandler CreateHandler(bool checkCertificates)
+        private static SocketsHttpHandler CreateHandler()
         {
-            SocketsHttpHandler handler = new()
+            return new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
                 UseCookies = false,
                 PooledConnectionLifetime = kPooledConnectionLifetime
             };
-            if (!checkCertificates)
-            {
-                handler.SslOptions.RemoteCertificateValidationCallback = static (_, _, _, _) => true;
-            }
-            return handler;
         }
 
         /// <summary>

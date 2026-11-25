@@ -32,24 +32,27 @@ internal class HarnessHistoryCompactionTest
     private const string kToolResult = "result";
     private const string kUserLabel = "u";
     private const string kAssistantLabel = "a";
-    private const int kPreservedRecentGroups = 4;
+    private const int kSummaryOnly = 1;
+    private const int kMessagesAboveThreshold = 8;
     private const int kTurnsBelowThreshold = 3;
     private const int kTurnsAboveThreshold = 5;
-    private const int kTurnsOfSecondCompaction = 3;
+    private const int kTurnsOfSecondCompaction = 4;
     private const int kAgentTurns = 5;
     private const int kTurnsBelowLargeReserve = 3;
     private const int kAtThresholdLastMessageCharacters = 200;
     private const int kAboveThresholdLastMessageCharacters = 204;
     private const int kTurnsAtThreshold = 4;
     private const int kMessagesBeforeLastAtThreshold = 7;
+    private const int kLargeContextWindowTokens = 1_000_000;
+    private const int kLargeContextReserveTokens = kLargeContextWindowTokens / 4;
+    private const string kShortText = "ok";
 
     /// <summary>
-    /// Verifies the compaction constants: the 4 most recent groups are kept, and the summary keeps identifiers.
+    /// Verifies that the summarization prompt asks to keep identifiers.
     /// </summary>
     [Test]
-    public void Constants_PreserveRecentGroupsAndIdentifiers()
+    public void SummarizationPrompt_KeepsIdentifiers()
     {
-        Assert.That(HistoryCompaction.kPreservedRecentGroups, Is.EqualTo(kPreservedRecentGroups));
         Assert.That(HistoryCompaction.kSummarizationPrompt, Does.Contain(kIdentifierRule));
     }
 
@@ -94,89 +97,96 @@ internal class HarnessHistoryCompactionTest
         List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
 
         Assert.That(summarizer.ReceivedMessages, Has.Count.EqualTo(expectCompaction ? 1 : 0));
-        Assert.That(reduced, Has.Count.EqualTo(expectCompaction ? kPreservedRecentGroups + 1 : history.Count));
+        Assert.That(reduced, Has.Count.EqualTo(expectCompaction ? kSummaryOnly : history.Count));
+    }
+
+    /// <summary>
+    /// Verifies that a history above the threshold is compacted from two message groups on, while a single group is
+    /// left as it is, as the framework does not compact it.
+    /// </summary>
+    [TestCase(1, false)]
+    [TestCase(2, true)]
+    public async Task ReduceAsync_FewGroupsAboveThreshold_CompactsFromTwoGroups(int groupCount, bool expectCompaction)
+    {
+        ScriptedChatClient summarizer = new ScriptedChatClient().RespondWithText(kSummary);
+        IChatReducer reducer = HistoryCompaction.CreateReducer(summarizer, kContextWindowTokens, kReserveTokens);
+        List<ChatMessage> history = CreateLargeMessages(groupCount);
+
+        List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
+
+        Assert.That(summarizer.ReceivedMessages, Has.Count.EqualTo(expectCompaction ? 1 : 0));
+        Assert.That(reduced, Has.Count.EqualTo(expectCompaction ? kSummaryOnly : groupCount));
+    }
+
+    /// <summary>
+    /// Verifies that a history of short messages, far below the token threshold, is compacted once it holds more than
+    /// the maximum number of history messages, not when it holds exactly that many.
+    /// </summary>
+    [TestCase(0, false)]
+    [TestCase(1, true)]
+    public async Task ReduceAsync_AtAndAboveMessageLimit_CompactsOnlyAbove(int extraMessages, bool expectCompaction)
+    {
+        ScriptedChatClient summarizer = new ScriptedChatClient().RespondWithText(kSummary);
+        IChatReducer reducer = HistoryCompaction.CreateReducer(summarizer, kLargeContextWindowTokens, kLargeContextReserveTokens);
+        List<ChatMessage> history = CreateShortMessages(HistoryCompaction.kMaxHistoryMessages + extraMessages);
+
+        List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
+
+        Assert.That(summarizer.ReceivedMessages, Has.Count.EqualTo(expectCompaction ? 1 : 0));
+        Assert.That(reduced, Has.Count.EqualTo(expectCompaction ? kSummaryOnly : history.Count));
     }
 
     /// <summary>
     /// Verifies that a history above the threshold is compacted in one summarizer call without tools, with the
-    /// summarization prompt as system message and all groups but the 4 most recent ones; the summary replaces them as a
-    /// user message starting with [Summary], and the 4 most recent groups are kept as they are.
+    /// summarization prompt as system message and the whole history; the summary replaces it as a user message starting
+    /// with [Summary], and no message is kept as it is.
     /// </summary>
     [Test]
-    public async Task ReduceAsync_AboveThreshold_SummarizesAllButMostRecentGroupsInOneCall()
+    public async Task ReduceAsync_AboveThreshold_SummarizesWholeHistoryInOneCall()
     {
         ScriptedChatClient summarizer = new ScriptedChatClient { Strict = true }.RespondWithText(kSummary);
         IChatReducer reducer = HistoryCompaction.CreateReducer(summarizer, kContextWindowTokens, kReserveTokens);
         List<ChatMessage> history = CreateTurns(1, kTurnsAboveThreshold);
-        int summarizedCount = history.Count - kPreservedRecentGroups;
 
         List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
 
         List<ChatMessage> summarizationRequest = summarizer.ReceivedMessages.Single();
         Assert.That(summarizationRequest[0].Role, Is.EqualTo(ChatRole.System));
         Assert.That(summarizationRequest[0].Text, Is.EqualTo(HistoryCompaction.kSummarizationPrompt));
-        AssertSameMessages(summarizationRequest.Skip(1).ToList(), history.Take(summarizedCount).ToList());
+        AssertSameMessages(summarizationRequest.Skip(1).ToList(), history);
         Assert.That(HarnessTestSetup.OffersTools(summarizer.ReceivedOptions.Single()), Is.False);
+        Assert.That(reduced, Has.Count.EqualTo(kSummaryOnly));
         AssertSummary(reduced[0], kSummary);
-        AssertSameMessages(reduced.Skip(1).ToList(), history.Skip(summarizedCount).ToList());
         Assert.That(summarizer.Rejections, Is.Empty);
     }
 
     /// <summary>
-    /// Verifies that a tool call among the most recent groups is kept together with its result, and that the stored
-    /// summary, being a user message, lets the preserved tool call follow it: a strict provider accepts the history,
-    /// while it would reject a summary stored as assistant message right before the tool call.
+    /// Verifies that a tool call as last group of the history is summarized together with its result, and that the
+    /// stored summary, being a user message, lets a tool call of the model follow it, as in a turn answering tool
+    /// approval requests: a strict provider accepts that, while it would reject a summary stored as assistant message
+    /// right before the tool call.
     /// </summary>
     [Test]
-    public async Task ReduceAsync_WithRecentToolCall_KeepsCallWithResultAfterUserSummary()
+    public async Task ReduceAsync_WithToolCallAsLastGroup_SummarizesItAndLetsToolCallFollowSummary()
     {
         ScriptedChatClient summarizer = new ScriptedChatClient().RespondWithText(kSummary);
         IChatReducer reducer = HistoryCompaction.CreateReducer(summarizer, kContextWindowTokens, kReserveTokens);
-        // groups: u1 a1 u2 a2 u3 (summarized), tool call with result, a3 u4 a4 (the 4 most recent)
-        List<ChatMessage> history = CreateTurns(1, 2);
-        history.Add(CreateMessage(ChatRole.User, kUserLabel + kTurnsBelowThreshold));
+        // groups: u1 a1 ... u4 a4 u5, tool call with result: all summarized
+        List<ChatMessage> history = CreateTurns(1, kTurnsAboveThreshold - 1);
+        history.Add(CreateMessage(ChatRole.User, kUserLabel + kTurnsAboveThreshold));
         history.AddRange(CreateToolCallGroup());
-        history.Add(CreateMessage(ChatRole.Assistant, kAssistantLabel + kTurnsBelowThreshold));
-        history.AddRange(CreateTurns(kTurnsBelowThreshold + 1, kTurnsBelowThreshold + 1));
 
         List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
 
         List<ChatMessage> summarizationRequest = summarizer.ReceivedMessages.Single();
-        Assert.That(HarnessTestSetup.GetCallIds(summarizationRequest), Is.Empty);
-        AssertSummary(reduced[0], kSummary);
-        Assert.That(HarnessTestSetup.GetCallIds(reduced.Take(2)), Has.Count.EqualTo(1));
-        Assert.That(HarnessTestSetup.GetResultCallIds(reduced.Take(3)), Has.Count.EqualTo(1));
-        Assert.That(ProviderHistoryRules.FindViolation(reduced), Is.Null);
-        List<ChatMessage> withAssistantSummary = [.. reduced];
-        withAssistantSummary[0] = new ChatMessage(ChatRole.Assistant, reduced[0].Text);
-        Assert.That(ProviderHistoryRules.FindViolation(withAssistantSummary), Is.Not.Null);
-    }
-
-    /// <summary>
-    /// Verifies that a tool call outside the most recent groups is summarized together with its result.
-    /// </summary>
-    [Test]
-    public async Task ReduceAsync_WithOlderToolCall_SummarizesCallWithResult()
-    {
-        ScriptedChatClient summarizer = new ScriptedChatClient().RespondWithText(kSummary);
-        IChatReducer reducer = HistoryCompaction.CreateReducer(summarizer, kContextWindowTokens, kReserveTokens);
-        // groups: u1, tool call with result, a1 u2 a2 u3 a3 (summarized), u4 a4 u5 a5 (the 4 most recent)
-        List<ChatMessage> history =
-        [
-            CreateMessage(ChatRole.User, kUserLabel + 1),
-            .. CreateToolCallGroup(),
-            CreateMessage(ChatRole.Assistant, kAssistantLabel + 1),
-            .. CreateTurns(2, kTurnsAboveThreshold),
-        ];
-
-        List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
-
-        List<ChatMessage> summarizationRequest = summarizer.ReceivedMessages.Single();
-        Assert.That(HarnessTestSetup.GetCallIds(summarizationRequest), Is.EqualTo(HarnessTestSetup.GetResultCallIds(summarizationRequest)));
         Assert.That(HarnessTestSetup.GetCallIds(summarizationRequest), Has.Count.EqualTo(1));
-        Assert.That(HarnessTestSetup.GetCallIds(reduced), Is.Empty);
-        Assert.That(HarnessTestSetup.GetResultCallIds(reduced), Is.Empty);
-        Assert.That(reduced, Has.Count.EqualTo(kPreservedRecentGroups + 1));
+        Assert.That(HarnessTestSetup.GetCallIds(summarizationRequest), Is.EqualTo(HarnessTestSetup.GetResultCallIds(summarizationRequest)));
+        Assert.That(reduced, Has.Count.EqualTo(kSummaryOnly));
+        AssertSummary(reduced[0], kSummary);
+        List<ChatMessage> continuedTurn = [.. reduced, .. CreateToolCallGroup()];
+        Assert.That(ProviderHistoryRules.FindViolation(continuedTurn), Is.Null);
+        continuedTurn[0] = new ChatMessage(ChatRole.Assistant, reduced[0].Text);
+        Assert.That(ProviderHistoryRules.FindViolation(continuedTurn), Is.Not.Null);
     }
 
     /// <summary>
@@ -199,7 +209,7 @@ internal class HarnessHistoryCompactionTest
         AssertSummary(reduced[0], kNextSummary);
         Assert.That(reduced, Does.Not.Contain(firstSummary));
         Assert.That(HarnessTestSetup.GetTexts(reduced).Count(text => text.StartsWith(kSummaryPrefix)), Is.EqualTo(1));
-        Assert.That(reduced, Has.Count.EqualTo(kPreservedRecentGroups + 1));
+        Assert.That(reduced, Has.Count.EqualTo(kSummaryOnly));
     }
 
     /// <summary>
@@ -239,9 +249,9 @@ internal class HarnessHistoryCompactionTest
 
     /// <summary>
     /// Verifies through an agent that a conversation growing beyond the threshold is compacted before the next turn:
-    /// the summarizer is the plain provider client (no tools, no instructions), the turn starts with the summary as user
-    /// message followed by the 4 most recent messages and the new one, the conversation the turn returns is the
-    /// compacted one, and a strict provider accepts all requests.
+    /// the summarizer is the plain provider client (no tools, no instructions), the turn sends the summary as user
+    /// message followed by the new one only, the conversation the turn returns is the compacted one, and a strict
+    /// provider accepts all requests.
     /// </summary>
     [Test]
     public async Task RunAsync_WithLongHistory_CompactsBeforeNextTurn()
@@ -260,10 +270,40 @@ internal class HarnessHistoryCompactionTest
         Assert.That(HarnessTestSetup.OffersTools(chatClient.ReceivedOptions[summarizationIndex]), Is.False);
         List<ChatMessage> lastTurnRequest = chatClient.ReceivedMessages[^1];
         AssertSummary(lastTurnRequest[0], kSummary);
-        Assert.That(lastTurnRequest, Has.Count.EqualTo(kPreservedRecentGroups + 2));
+        Assert.That(lastTurnRequest, Has.Count.EqualTo(kSummaryOnly + 1));
         Assert.That(lastTurnRequest[^1].Text, Is.EqualTo(CreateText(kUserLabel + kAgentTurns)));
         AssertSummary(conversation[0], kSummary);
-        Assert.That(conversation, Has.Count.EqualTo(kPreservedRecentGroups + 3));
+        Assert.That(conversation, Has.Count.EqualTo(kSummaryOnly + 2));
+        Assert.That(chatClient.Rejections, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies through an agent with a large context window that a run sending more history messages than the maximum
+    /// is not refused but compacted before the turn: the turn sends the summary followed by the new message only, and
+    /// the conversation the turn returns is the compacted one.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_WithMoreMessagesThanLimit_CompactsInsteadOfRefusing()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = CreateAnsweringClient();
+        AgentSettings agentSettings = new() { ChatEnabled = true };
+        using FwoAgentFactory factory = CreateFactory(app, chatClient, agentSettings, kLargeContextWindowTokens);
+        FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
+        string newQuestion = CreateText(kUserLabel + 1);
+        List<ChatMessage> messages = CreateShortMessages(HistoryCompaction.kMaxHistoryMessages + 2);
+        messages.Add(new ChatMessage(ChatRole.User, newQuestion));
+
+        List<AgentResponseUpdate> updates = await HarnessTestSetup.RunStreamingAsync(agent, messages);
+
+        Assert.That(GetSummarizationRequestIndexes(chatClient), Has.Count.EqualTo(1));
+        List<ChatMessage> turnRequest = chatClient.ReceivedMessages[^1];
+        AssertSummary(turnRequest[0], kSummary);
+        Assert.That(turnRequest, Has.Count.EqualTo(kSummaryOnly + 1));
+        Assert.That(turnRequest[^1].Text, Is.EqualTo(newQuestion));
+        List<ChatMessage> conversation = HarnessTestSetup.GetSnapshot(updates);
+        AssertSummary(conversation[0], kSummary);
+        Assert.That(conversation, Has.Count.EqualTo(kSummaryOnly + 2));
         Assert.That(chatClient.Rejections, Is.Empty);
     }
 
@@ -305,11 +345,13 @@ internal class HarnessHistoryCompactionTest
     }
 
     /// <summary>
-    /// Creates a factory with the context window of these tests, whose user agents call the MCP server of the test server.
+    /// Creates a factory with the given context window (by default the one of these tests), whose user agents call the
+    /// MCP server of the test server.
     /// </summary>
-    private static FwoAgentFactory CreateFactory(WebApplication app, ScriptedChatClient chatClient, AgentSettings agentSettings)
+    private static FwoAgentFactory CreateFactory(WebApplication app, ScriptedChatClient chatClient, AgentSettings agentSettings,
+        int contextWindowTokens = kContextWindowTokens)
     {
-        return new FwoAgentFactory(chatClient, kContextWindowTokens, agentSettings, mcpHandlerFactory: () => app.GetTestServer().CreateHandler());
+        return new FwoAgentFactory(chatClient, contextWindowTokens, agentSettings, mcpHandlerFactory: () => app.GetTestServer().CreateHandler());
     }
 
     /// <summary>
@@ -401,6 +443,38 @@ internal class HarnessHistoryCompactionTest
         {
             messages.Add(CreateMessage(ChatRole.User, kUserLabel + turn));
             messages.Add(CreateMessage(ChatRole.Assistant, kAssistantLabel + turn));
+        }
+        return messages;
+    }
+
+    /// <summary>
+    /// Creates the given number of messages, alternately of the user and of the assistant starting with the user, that
+    /// together are as large as <see cref="kMessagesAboveThreshold"/> messages of the test size, i.e. above the threshold.
+    /// Each message is a group of its own.
+    /// </summary>
+    private static List<ChatMessage> CreateLargeMessages(int messageCount)
+    {
+        int messageCharacters = kMessagesAboveThreshold * kMessageCharacters / messageCount;
+        List<ChatMessage> messages = [];
+        for (int index = 0; index < messageCount; index++)
+        {
+            ChatRole role = index % 2 == 0 ? ChatRole.User : ChatRole.Assistant;
+            messages.Add(new ChatMessage(role, new string(kFillCharacter, messageCharacters)));
+        }
+        return messages;
+    }
+
+    /// <summary>
+    /// Creates the given number of short messages of a few tokens each, alternately of the user and of the assistant,
+    /// starting with the user.
+    /// </summary>
+    private static List<ChatMessage> CreateShortMessages(int messageCount)
+    {
+        List<ChatMessage> messages = [];
+        for (int index = 0; index < messageCount; index++)
+        {
+            ChatRole role = index % 2 == 0 ? ChatRole.User : ChatRole.Assistant;
+            messages.Add(new ChatMessage(role, kShortText + index));
         }
         return messages;
     }

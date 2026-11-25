@@ -433,6 +433,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty(AiSettings.kMaxOutputTokensKey), JsonPropertyName(AiSettings.kMaxOutputTokensKey)]
         public int AiMaxOutputTokens { get; set; } = 0;
 
+        /// <summary>Timeout of a request to the AI provider in seconds, see <see cref="AiSettings.RequestTimeoutSeconds"/>.</summary>
+        [JsonProperty(AiSettings.kRequestTimeoutSecondsKey), JsonPropertyName(AiSettings.kRequestTimeoutSecondsKey)]
+        public int AiRequestTimeoutSeconds { get; set; } = AiSettings.kDefaultRequestTimeoutSeconds;
+
         /// <summary>Maximum number of model requests per turn, see <see cref="AiSettings.MaxIterationsPerRequest"/>.</summary>
         [JsonProperty(AiSettings.kMaxIterationsPerRequestKey), JsonPropertyName(AiSettings.kMaxIterationsPerRequestKey)]
         public int AiMaxIterationsPerRequest { get; set; } = AiSettings.kDefaultMaxIterationsPerRequest;

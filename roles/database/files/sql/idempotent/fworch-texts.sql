@@ -2404,6 +2404,8 @@ INSERT INTO txt VALUES ('ai_context_window_tokens', 'German', 'Kontextfenster (T
 INSERT INTO txt VALUES ('ai_context_window_tokens', 'English', 'Context window (tokens)');
 INSERT INTO txt VALUES ('ai_max_output_tokens', 'German', 	'Max. Ausgabe-Tokens');
 INSERT INTO txt VALUES ('ai_max_output_tokens', 'English', 	'Max. output tokens');
+INSERT INTO txt VALUES ('ai_request_timeout',   'German', 	'Zeitlimit pro Anfrage (Sekunden)');
+INSERT INTO txt VALUES ('ai_request_timeout',   'English', 	'Request timeout (seconds)');
 INSERT INTO txt VALUES ('ai_functions',         'German', 	'KI-Funktionen');
 INSERT INTO txt VALUES ('ai_functions',         'English', 	'AI functions');
 INSERT INTO txt VALUES ('ai_chat',              'German', 	'KI-Chat');
@@ -5305,6 +5307,8 @@ INSERT INTO txt VALUES ('E5319', 'German',  'Jeder zus&auml;tzliche HTTP-Header 
 INSERT INTO txt VALUES ('E5319', 'English', 'Each additional HTTP header may occur only once (ignoring case).');
 INSERT INTO txt VALUES ('E5320', 'German',  'Jeder zus&auml;tzliche HTTP-Header braucht einen Wert aus h&ouml;chstens 2048 sichtbaren ASCII-Zeichen und Leerzeichen (keine Umlaute, keine Zeilenumbr&uuml;che).');
 INSERT INTO txt VALUES ('E5320', 'English', 'Each additional HTTP header needs a value of at most 2048 visible ASCII characters and spaces (no umlauts, no line breaks).');
+INSERT INTO txt VALUES ('E5321', 'German',  'Das Zeitlimit pro Anfrage muss zwischen 1 und 3600 Sekunden liegen.');
+INSERT INTO txt VALUES ('E5321', 'English', 'The request timeout must be between 1 and 3600 seconds.');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');
@@ -7490,9 +7494,9 @@ INSERT INTO txt VALUES ('H5374', 'English', 'Credential: the credential from the
     is the API key of the provider (the user name is not used), for OAuth 2.0 with the client id as user name and the client secret as secret.
     Required for all providers but Ollama. Key pairs cannot be selected.');
 INSERT INTO txt VALUES ('H5375', 'German',  'Kontextfenster: Gr&ouml;&szlig;e des Kontextfensters des Modells in Tokens, laut Dokumentation des Anbieters. Der Assistent fasst
-    &auml;ltere Teile eines Gespr&auml;chs zusammen, bevor es das Kontextfenster &uuml;berschreitet; Ollama erh&auml;lt den Wert als num_ctx. Pflichtfeld, sobald ein Anbieter gew&auml;hlt ist.');
+    das bisherige Gespr&auml;ch zusammen, bevor es das Kontextfenster &uuml;berschreitet; Ollama erh&auml;lt den Wert als num_ctx. Pflichtfeld, sobald ein Anbieter gew&auml;hlt ist.');
 INSERT INTO txt VALUES ('H5375', 'English', 'Context window: size of the context window of the model in tokens, as documented by the provider. The assistant summarizes
-    older parts of a conversation before it exceeds the context window; Ollama gets the value as num_ctx. Required once a provider is selected.');
+    the conversation so far before it exceeds the context window; Ollama gets the value as num_ctx. Required once a provider is selected.');
 INSERT INTO txt VALUES ('H5376', 'German',  'Max. Ausgabe-Tokens: Maximale L&auml;nge einer Antwort in Tokens; 0 f&uuml;r die Voreinstellung des Anbieters. Muss kleiner als das Kontextfenster sein.');
 INSERT INTO txt VALUES ('H5376', 'English', 'Max. output tokens: maximum length of an answer in tokens; 0 for the default of the provider. Must be smaller than the context window.');
 INSERT INTO txt VALUES ('H5377', 'German',  'Die folgenden Einstellungen begrenzen den Aufwand einer Frage an den Assistenten:');
@@ -7502,9 +7506,9 @@ INSERT INTO txt VALUES ('H5378', 'English', 'Max. model requests per turn: how o
 INSERT INTO txt VALUES ('H5379', 'German',  'Max. Werkzeugfehler in Folge: Nach so vielen fehlgeschlagenen Werkzeugaufrufen in Folge wird die Frage abgebrochen (Voreinstellung 3).');
 INSERT INTO txt VALUES ('H5379', 'English', 'Max. consecutive tool errors: after this many failed tool calls in a row the question is aborted (default 3).');
 INSERT INTO txt VALUES ('H5380', 'German',  'Reserve f&uuml;r Verlaufsverdichtung: Tokens des Kontextfensters, die f&uuml;r Anweisungen, Werkzeuge, neue Nachrichten und die Antwort frei bleiben;
-    &auml;ltere Teile des Gespr&auml;chs werden vorher zusammengefasst. 0 f&uuml;r ein Viertel des Kontextfensters. Muss kleiner als das Kontextfenster und gr&ouml;&szlig;er als die max. Ausgabe-Tokens sein.');
+    das bisherige Gespr&auml;ch wird vorher zusammengefasst. 0 f&uuml;r ein Viertel des Kontextfensters. Muss kleiner als das Kontextfenster und gr&ouml;&szlig;er als die max. Ausgabe-Tokens sein.');
 INSERT INTO txt VALUES ('H5380', 'English', 'Compaction reserve: tokens of the context window kept free for instructions, tools, new messages and the answer;
-    older parts of the conversation are summarized before. 0 for a quarter of the context window. Must be smaller than the context window and larger than the max. output tokens.');
+    the conversation so far is summarized before. 0 for a quarter of the context window. Must be smaller than the context window and larger than the max. output tokens.');
 INSERT INTO txt VALUES ('H5381', 'German',  'Der KI-Server liest die Einstellungen mit einem eigenen technischen Nutzer (Rolle ai-harness), der nur diese Einstellungen und die gew&auml;hlten
     Zugangsdaten lesen darf, und &uuml;bernimmt &Auml;nderungen ohne Neustart nach sp&auml;testens 30 Sekunden. Hier gew&auml;hlte Zugangsdaten k&ouml;nnen nicht gel&ouml;scht werden.');
 INSERT INTO txt VALUES ('H5381', 'English', 'The AI server reads the settings with a technical user of its own (role ai-harness), which may only read these settings and the selected
@@ -7538,13 +7542,19 @@ INSERT INTO txt VALUES ('H5387', 'English', 'Roles: restricts the function to us
     The role selection is only active while the function is switched on. Switching it off preserves the selection.
     The roles of the internal LDAP are offered. The AI server checks the roles in the login token of the user, so a changed role assignment only takes effect with the next token of the user.');
 INSERT INTO txt VALUES ('H5388', 'German',  'Zus&auml;tzliche HTTP-Header: Header, die der KI-Server bei jeder Anfrage an den Anbieter mitsendet, z.B. den Profilnamen, den ein API-Gateway vor dem Modell erwartet
-    (Name ki-services-profile-name, Wert mein-profil); nicht an die Token-URL. Zeilen ohne Name und Wert werden nicht gespeichert, h&ouml;chstens 20 Header.
+    (Name x-gateway-profile, Wert mein-profil); nicht an die Token-URL. Zeilen ohne Name und Wert werden nicht gespeichert, h&ouml;chstens 20 Header.
     Name und Wert werden unverschl&uuml;sselt in der globalen Konfiguration gespeichert, die f&uuml;r alle Nutzer lesbar ist: bitte keine Geheimnisse eintragen.
     Header mit Zugangsdaten (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) und Header, die den Aufbau der Nachricht bestimmen (z.B. Host, Content-Type), k&ouml;nnen nicht gesetzt werden.');
 INSERT INTO txt VALUES ('H5388', 'English', 'Additional HTTP headers: headers the AI server sends with every request to the provider, e.g. the profile name an API gateway in front of the model expects
-    (name ki-services-profile-name, value my-profile); not to the token URL. Rows without name and value are not stored, at most 20 headers.
+    (name x-gateway-profile, value my-profile); not to the token URL. Rows without name and value are not stored, at most 20 headers.
     Name and value are stored unencrypted in the global configuration, which all users can read: please do not enter secrets.
     Headers carrying credentials (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) and headers framing the message (e.g. Host, Content-Type) cannot be set.');
+INSERT INTO txt VALUES ('H5389', 'German',  'Zeitlimit pro Anfrage: Wie lange der KI-Server h&ouml;chstens auf die Antwort des Anbieters auf eine Anfrage wartet, in Sekunden (1 bis 3600, Voreinstellung 600);
+    danach schl&auml;gt die Frage fehl. Gilt f&uuml;r alle Anbieter, auch f&uuml;r die Zusammenfassung eines langen Gespr&auml;chs, f&uuml;r die ein lokales Modell
+    (z.B. Ollama ohne Grafikkarte) mehrere Minuten brauchen kann.');
+INSERT INTO txt VALUES ('H5389', 'English', 'Request timeout: how long the AI server waits at most for the answer of the provider to a request, in seconds (1 to 3600, default 600);
+    after that the question fails. Applies to all providers, also to the summary of a long conversation, which a local model
+    (e.g. Ollama without graphics card) can take several minutes for.');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');

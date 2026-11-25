@@ -59,7 +59,12 @@ namespace FWO.Data.Ai
         CustomHeaderNameDuplicate,
 
         /// <summary>The value of an additional header is missing, too long or contains characters other than visible ASCII, spaces and tabs.</summary>
-        CustomHeaderValueInvalid
+        CustomHeaderValueInvalid,
+
+        /// <summary>
+        /// The request timeout is smaller than 1 second or larger than <see cref="AiSettings.kMaxRequestTimeoutSeconds"/>.
+        /// </summary>
+        RequestTimeoutInvalid
     }
 
     /// <summary>
@@ -93,6 +98,9 @@ namespace FWO.Data.Ai
 
         /// <summary>Config key of <see cref="MaxOutputTokens"/>.</summary>
         public const string kMaxOutputTokensKey = "aiMaxOutputTokens";
+
+        /// <summary>Config key of <see cref="RequestTimeoutSeconds"/>.</summary>
+        public const string kRequestTimeoutSecondsKey = "aiRequestTimeoutSeconds";
 
         /// <summary>Config key of <see cref="MaxIterationsPerRequest"/>.</summary>
         public const string kMaxIterationsPerRequestKey = "aiMaxIterationsPerRequest";
@@ -136,6 +144,18 @@ namespace FWO.Data.Ai
         /// <summary>Without an explicit compaction reserve, the reserve is the context window divided by this.</summary>
         public const int kDefaultCompactionReserveDivisor = 4;
 
+        /// <summary>
+        /// Default time in seconds the AI harness waits for a request to the provider (10 minutes). Long enough for a
+        /// local model to summarize a long conversation, which is a single request that is not streamed.
+        /// </summary>
+        public const int kDefaultRequestTimeoutSeconds = 600;
+
+        /// <summary>Largest request timeout in seconds that may be configured (one hour).</summary>
+        public const int kMaxRequestTimeoutSeconds = 3600;
+
+        /// <summary>Smallest request timeout in seconds that may be configured.</summary>
+        public const int kMinRequestTimeoutSeconds = 1;
+
         private const int kMinIterationsPerRequest = 1;
 
         /// <summary>
@@ -144,7 +164,7 @@ namespace FWO.Data.Ai
         /// </summary>
         public static readonly IReadOnlyList<string> kKeys =
         [
-            kProviderKey, kModelKey, kEndpointKey, kCredentialIdKey, kContextWindowTokensKey, kMaxOutputTokensKey,
+            kProviderKey, kModelKey, kEndpointKey, kCredentialIdKey, kContextWindowTokensKey, kMaxOutputTokensKey, kRequestTimeoutSecondsKey,
             kMaxIterationsPerRequestKey, kMaxConsecutiveErrorsPerRequestKey, kCompactionReserveTokensKey, kAuthMethodKey, kTokenUrlKey,
             kCustomHeadersKey, kChatKey, kReasonCheckKey, kChatRolesKey, kReasonCheckRolesKey
         ];
@@ -190,6 +210,12 @@ namespace FWO.Data.Ai
 
         /// <summary>Default maximum number of output tokens per response; the provider's default if 0.</summary>
         public int MaxOutputTokens { get; set; }
+
+        /// <summary>
+        /// Time in seconds the AI harness waits for a request to the provider before it fails, for every provider; from
+        /// <see cref="kMinRequestTimeoutSeconds"/> to <see cref="kMaxRequestTimeoutSeconds"/>.
+        /// </summary>
+        public int RequestTimeoutSeconds { get; set; } = kDefaultRequestTimeoutSeconds;
 
         /// <summary>Maximum number of model requests offering the tools per turn, the initial request included.</summary>
         public int MaxIterationsPerRequest { get; set; } = kDefaultMaxIterationsPerRequest;
@@ -267,6 +293,7 @@ namespace FWO.Data.Ai
             settings.CustomHeaders = customHeaders;
             settings.ContextWindowTokens = ReadNumber(configValues, kContextWindowTokensKey, settings.ContextWindowTokens);
             settings.MaxOutputTokens = ReadNumber(configValues, kMaxOutputTokensKey, settings.MaxOutputTokens);
+            settings.RequestTimeoutSeconds = ReadNumber(configValues, kRequestTimeoutSecondsKey, settings.RequestTimeoutSeconds);
             settings.MaxIterationsPerRequest = ReadNumber(configValues, kMaxIterationsPerRequestKey, settings.MaxIterationsPerRequest);
             settings.MaxConsecutiveErrorsPerRequest = ReadNumber(configValues, kMaxConsecutiveErrorsPerRequestKey, settings.MaxConsecutiveErrorsPerRequest);
             settings.CompactionReserveTokens = ReadNumber(configValues, kCompactionReserveTokensKey, settings.CompactionReserveTokens);
@@ -319,6 +346,10 @@ namespace FWO.Data.Ai
             AddOAuthProblems(problems);
             AddCustomHeaderProblems(problems);
             AddTokenLimitProblems(problems);
+            if (RequestTimeoutSeconds < kMinRequestTimeoutSeconds || RequestTimeoutSeconds > kMaxRequestTimeoutSeconds)
+            {
+                problems.Add(AiSettingsProblem.RequestTimeoutInvalid);
+            }
             AddAgentLoopProblems(problems);
             return problems;
         }

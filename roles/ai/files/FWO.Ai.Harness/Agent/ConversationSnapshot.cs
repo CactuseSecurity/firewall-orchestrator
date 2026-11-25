@@ -11,7 +11,9 @@ namespace FWO.Ai.Harness.Agent;
 /// compacted history) followed by the response of the run. The client sends it with its next run. Left out are the
 /// tool approval requests and answers, as an open request reaches the client as interrupt of the run and an answered
 /// one as the tool call and result it caused, and the tool calls the agent loop left unanswered
-/// (<see cref="UnansweredToolCallFilter"/>), as the providers reject a history holding them.
+/// (<see cref="UnansweredToolCallFilter"/>), as the providers reject a history holding them. A run that fails after it
+/// ran a tool ends with the conversation up to the last tool result (see <see cref="CreateAfterFailure"/>), so that the
+/// client keeps the tool calls that were made.
 /// </summary>
 internal static class ConversationSnapshot
 {
@@ -31,7 +33,37 @@ internal static class ConversationSnapshot
         ArgumentNullException.ThrowIfNull(runMessages);
         ArgumentNullException.ThrowIfNull(responseUpdates);
         IEnumerable<ChatMessage> responseMessages = UnansweredToolCallFilter.Apply(responseUpdates.ToAgentResponse().Messages);
-        List<ChatMessage> conversation = WithoutApprovals(runMessages.Concat(responseMessages));
+        return CreateUpdate(runMessages.Concat(responseMessages));
+    }
+
+    /// <summary>
+    /// Creates the update holding the snapshot of a run that failed after it ran a tool: the messages the run sent to the
+    /// model followed by its response up to the last tool result. The tool calls ran, possibly changing data, so they
+    /// belong to the conversation, also so that the model does not ask for an approved call again. Text the model wrote
+    /// after the last tool result is left out, as its answer failed.
+    /// </summary>
+    /// <param name="runMessages">Messages the run sent to the model</param>
+    /// <param name="responseUpdates">Updates of the response received before the run failed</param>
+    /// <returns>The update; null if the response holds no tool result, as the client then keeps the conversation it sent.</returns>
+    internal static AgentResponseUpdate? CreateAfterFailure(IEnumerable<ChatMessage> runMessages, IEnumerable<AgentResponseUpdate> responseUpdates)
+    {
+        ArgumentNullException.ThrowIfNull(runMessages);
+        ArgumentNullException.ThrowIfNull(responseUpdates);
+        List<ChatMessage> responseMessages = UnansweredToolCallFilter.Apply(responseUpdates.ToAgentResponse().Messages);
+        int lastToolResultIndex = responseMessages.FindLastIndex(message => message.Contents.OfType<FunctionResultContent>().Any());
+        if (lastToolResultIndex < 0)
+        {
+            return null;
+        }
+        return CreateUpdate(runMessages.Concat(responseMessages.Take(lastToolResultIndex + 1)));
+    }
+
+    /// <summary>
+    /// Creates the update holding the given conversation without tool approval requests and answers.
+    /// </summary>
+    private static AgentResponseUpdate CreateUpdate(IEnumerable<ChatMessage> messages)
+    {
+        List<ChatMessage> conversation = WithoutApprovals(messages);
         MessagesSnapshotEvent snapshot = new() { Messages = conversation.AsAGUIMessages(kJsonOptions).ToList() };
         return new AgentResponseUpdate(new ChatResponseUpdate { RawRepresentation = snapshot });
     }

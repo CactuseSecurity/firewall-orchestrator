@@ -85,7 +85,8 @@ internal static class McpTestServer
     {
         builder.Services.AddFwoJwtAuthentication(PublicKey);
         builder.Services.AddFwoMcpServer(rateLimitSettings);
-        configureMcpServer?.Invoke(builder.Services.AddMcpServer());
+        IMcpServerBuilder mcpServer = builder.Services.AddMcpServer().WithTools<McpTestRoleRestrictedTools>();
+        configureMcpServer?.Invoke(mcpServer);
 
         WebApplication app = builder.Build();
         app.MapFwoMcp();

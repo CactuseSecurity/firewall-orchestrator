@@ -26,10 +26,12 @@ public class HarnessSettings
     public const int kDefaultMaxConcurrentRunsPerUser = 3;
 
     /// <summary>
-    /// Default maximum request body size of the AG-UI endpoint (4 MiB). The harness is stateless, so a client sends the
-    /// whole conversation with every run; the compaction keeps it within the context window of the model.
+    /// Default maximum request body size of the AG-UI endpoint (10 MiB). The harness is stateless, so a client sends the
+    /// whole conversation with every run; the compaction keeps it within the context window of the model. The default
+    /// leaves room for a conversation filling the compaction threshold of a model with a large context window
+    /// (e.g. 1M tokens), so that the conversation is compacted before the limit refuses it.
     /// </summary>
-    public const long kDefaultMaxRequestBodyBytes = 4L * 1024 * 1024;
+    public const long kDefaultMaxRequestBodyBytes = 10L * 1024 * 1024;
 
     /// <summary>Largest maximum request body size that may be configured (64 MiB).</summary>
     public const long kMaxRequestBodyBytesLimit = 64L * 1024 * 1024;

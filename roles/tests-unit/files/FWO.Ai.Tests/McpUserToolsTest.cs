@@ -46,7 +46,6 @@ internal class McpUserToolsTest
     /// asking the user for approval.
     /// </summary>
     [TestCase(HarnessTestSetup.kCurrentUserTool)]
-    [TestCase(HarnessTestSetup.kRandomNumberTool)]
     public async Task ListTools_AnnouncesToolAsReadOnly(string toolName)
     {
         await using WebApplication app = await McpTestServer.Start();

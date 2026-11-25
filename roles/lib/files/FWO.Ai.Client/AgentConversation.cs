@@ -15,6 +15,8 @@ namespace FWO.Ai.Client;
 /// A tool that is not read-only runs only after the user approved it: the run then ends with a
 /// <see cref="ToolApprovalRequestContent"/> per tool call, which is not part of the snapshot. The next run sends the
 /// snapshot followed by one user message with the answers (<see cref="ToolApprovalRequestContent.CreateResponse"/>).
+/// A run that fails or ends without answer text after it ran tools keeps them in the conversation, see
+/// <see cref="GetConversationUpToToolResults"/>.
 /// </remarks>
 public static class AgentConversation
 {
@@ -55,6 +57,43 @@ public static class AgentConversation
         ArgumentNullException.ThrowIfNull(update);
         threadId = (update.RawRepresentation as RunStartedEvent)?.ThreadId;
         return !string.IsNullOrEmpty(threadId);
+    }
+
+    /// <summary>
+    /// Returns the conversation to keep after a run that failed or ended without answer text, if the run ran tools: the
+    /// conversation the harness sent, up to its last tool result. A run that fails after it ran a tool sends the
+    /// conversation up to the last tool result before its error; a run without answer sends its whole conversation,
+    /// whose trailing model messages without text are left out. The tool calls ran, possibly changing data, so they
+    /// belong to the conversation, also so that the model does not ask for an approved call again.
+    /// </summary>
+    /// <param name="snapshot">The conversation the harness sent at the end of the run; null if it sent none</param>
+    /// <returns>The conversation ending with a tool result; null if the snapshot does not end with one, as the run then
+    /// ran no tool and the caller keeps the conversation it sent.</returns>
+    public static List<ChatMessage>? GetConversationUpToToolResults(List<ChatMessage>? snapshot)
+    {
+        if (snapshot == null)
+        {
+            return null;
+        }
+        int lastIndex = snapshot.Count - 1;
+        while (lastIndex >= 0 && IsModelMessageWithoutContent(snapshot[lastIndex]))
+        {
+            lastIndex--;
+        }
+        if (lastIndex < 0 || !snapshot[lastIndex].Contents.OfType<FunctionResultContent>().Any())
+        {
+            return null;
+        }
+        return snapshot.Take(lastIndex + 1).ToList();
+    }
+
+    /// <summary>
+    /// Tells whether a message is a message of the model without text and without tool calls or results.
+    /// </summary>
+    private static bool IsModelMessageWithoutContent(ChatMessage message)
+    {
+        bool hasToolContent = message.Contents.Any(content => content is FunctionCallContent or FunctionResultContent);
+        return message.Role == ChatRole.Assistant && string.IsNullOrWhiteSpace(message.Text) && !hasToolContent;
     }
 
     /// <summary>

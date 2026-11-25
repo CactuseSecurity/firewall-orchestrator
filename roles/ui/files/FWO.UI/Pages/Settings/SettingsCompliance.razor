@@ -19,154 +19,104 @@
 </div>
 @(userConfig.GetText("U5324"))
 <hr />
-<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5813"))">
-    <label class="col-form-label col-sm-4">@userConfig.GetText("fix_criteria"):</label>
-    <div class="col-sm-2">
-        <button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
-    </div>
-</div>
+<SettingsRow LabelKey="fix_criteria" TooltipKey="H5813">
+    <button type="button" class="btn btn-sm btn-primary" @onclick="EditFixCrit">@(userConfig.GetText("edit_fix_crit"))</button>
+</SettingsRow>
 <hr />
 @if (configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5801"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckSleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ComplianceCheckSleepTime" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5802"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckStartAt")):</label>
-            <div class="col-sm-4">
-                <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="complianceCheckStartTime" />
-                    <input type="date" class="col-sm-5" @bind="complianceCheckStartDate" />
-                </div>
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5810"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("policy"))*:</label>
-            <div class="col-sm-2">
+        <SettingsRow LabelKey="complianceCheckSleepTime" TooltipKey="H5801" LabelFor="complianceCheckSleepTime">
+            <input id="complianceCheckSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ComplianceCheckSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="complianceCheckStartAt" TooltipKey="H5802" LabelFor="complianceCheckStartTime">
+            <input id="complianceCheckStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="complianceCheckStartTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="complianceCheckStartDate" />
+        </SettingsRow>
+        <SettingsRow LabelKey="policy" TooltipKey="H5810" Marked="true">
+            <div class="settings-input-md">
                 <Dropdown ElementType="CompliancePolicy" ElementToString="@(p => p.Name)" @bind-SelectedElement="actPolicy" Elements="policies">
                     <ElementTemplate Context="policy">
                         @policy.Name
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5814"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckMaxPrintedViolations"))</label>
-            <div class="col-sm-2">
-                <input type="text" @bind="configData!.ComplianceCheckMaxPrintedViolations" />
+        </SettingsRow>
+        <SettingsRow LabelKey="complianceCheckMaxPrintedViolations" TooltipKey="H5814" LabelFor="complianceCheckMaxPrintedViolations">
+            <input id="complianceCheckMaxPrintedViolations" type="text" class="form-control form-control-sm settings-input-sm" @bind="configData!.ComplianceCheckMaxPrintedViolations" />
+        </SettingsRow>
+        <SettingsRow LabelKey="complianceCheckRelevantManagements" TooltipKey="H5816" LabelFor="complianceCheckRelevantManagements">
+            <input id="complianceCheckRelevantManagements" type="text" class="form-control form-control-sm settings-input-md" @bind="configData!.ComplianceCheckRelevantManagements" />
+        </SettingsRow>
+        <SettingsRow LabelKey="complianceCheckShowShortColumsInComplianceReports" TooltipKey="H5836" LabelFor="cbx_show_short_columns">
+            <div class="form-check form-switch">
+                <input id="cbx_show_short_columns" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ShowShortColumnsInComplianceReports" />
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5816"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckRelevantManagements"))</label>
-            <div class="col-sm-2">
-                <input type="text" @bind="configData!.ComplianceCheckRelevantManagements" />
+        </SettingsRow>
+        <SettingsRow LabelKey="complianceDiffFilterExistingViolations" TooltipKey="H5914" LabelFor="cbx_compliance_diff_filter_existing_violations">
+            <div class="form-check form-switch">
+                <input id="cbx_compliance_diff_filter_existing_violations" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ComplianceDiffFilterExistingViolations" />
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5836"))">
-            <label for="lbl_show_short_columns_in_compliance_reports" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckShowShortColumsInComplianceReports")):</label>
-            <div class="col-sm-7">
-                <input id="lbl_show_short_columns" type="checkbox" @bind="configData!.ShowShortColumnsInComplianceReports" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5914"))">
-            <label for="lbl_compliance_diff_filter_existing_violations" class="col-form-label col-sm-4">@(userConfig.GetText("complianceDiffFilterExistingViolations")):</label>
-            <div class="col-sm-7">
-                <input id="lbl_compliance_diff_filter_existing_violations" type="checkbox" @bind="configData!.ComplianceDiffFilterExistingViolations" />
-            </div>
-        </div>
+        </SettingsRow>
     </form>
     <hr />
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5843"))">
-        <label class="col-form-label col-sm-4">Elements per fetch</label>
-        <div class="col-sm-2">
-            <input type="text" @bind="configData!.ComplianceCheckElementsPerFetch" />
-        </div>
-    </div>
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5844"))">
-        <label class="col-form-label col-sm-4">Available processors</label>
-        <div class="col-sm-2">
-            <input type="text" @bind="configData!.ComplianceCheckAvailableProcessors" />
-        </div>
-    </div>
+    <SettingsRow LabelKey="complianceCheckElementsPerFetch" TooltipKey="H5843" LabelFor="complianceCheckElementsPerFetch">
+        <input id="complianceCheckElementsPerFetch" type="text" class="form-control form-control-sm settings-input-sm" @bind="configData!.ComplianceCheckElementsPerFetch" />
+    </SettingsRow>
+    <SettingsRow LabelKey="complianceCheckAvailableProcessors" TooltipKey="H5844" LabelFor="complianceCheckAvailableProcessors">
+        <input id="complianceCheckAvailableProcessors" type="text" class="form-control form-control-sm settings-input-sm" @bind="configData!.ComplianceCheckAvailableProcessors" />
+    </SettingsRow>
     <hr />
-    
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
-                <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled="@violationsDeleteRunning" @onclick="DeleteAllViolations">
-                        @if (violationsDeleteRunning)
-                        {
-                            <Loading Size="SpinnerSize.Small" CssClass="me-2" />
-                        }
-                        @(userConfig.GetText("delete"))
-                    </button>
-                    @if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
+            <SettingsRow LabelKey="H5846" TooltipKey="H5845" AlignTop="true">
+                <button type="button" class="btn btn-sm btn-danger" disabled="@violationsDeleteRunning" @onclick="DeleteAllViolations">
+                    @if (violationsDeleteRunning)
                     {
-                        <span class="@Icons.Check text-success ms-2 fs-3"></span>
+                        <Loading Size="SpinnerSize.Small" CssClass="me-2" />
                     }
-                    else if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Failed)
-                    {
-                        <span class="@Icons.CrossLarge text-danger ms-2 fs-3"></span>
-                        <div class="@GetStatusCssClasses(violationsDeleteStatus.Status) mt-2" role="alert">
-                            <div>@violationsDeleteStatus.Message</div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </Authorized>
-        <NotAuthorized>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5845"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5846"))</label>
-                <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled>@(userConfig.GetText("delete"))</button>
-                </div>
-            </div>
-        </NotAuthorized>
-    </ExecutionModeAuthorizeView>
-    
-    <br>
-    
-    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
-                <div class="col-sm-7">
-                    <div class="d-inline">
-                        <button class="btn btn-primary mb-2" disabled="@complianceCheckRunning" @onclick="RunComplianceCheck">
-                            @if (complianceCheckRunning)
-                            {
-                                <Loading Size="SpinnerSize.Small" CssClass="me-2" />
-                            }
-                            @userConfig.GetText("H5850")
-                        </button>
-                        @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
-                        {
-                            <span class="@Icons.Check text-success ms-2 fs-3"></span>
-                        }
-                        else if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
-                        {
-                            <span class="@Icons.CrossLarge text-danger ms-2 fs-3"></span>
-                            <div class="@GetStatusCssClasses(complianceCheckStatus.Status) mt-2" role="alert">
-                                <div>@complianceCheckStatus.Message</div>
-                            </div>
-                        }
+                    @(userConfig.GetText("delete"))
+                </button>
+                @if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
+                {
+                    <span class="@Icons.Check text-success fs-4"></span>
+                }
+                else if (violationsDeleteStatus != null && violationsDeleteStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                {
+                    <span class="@Icons.CrossLarge text-danger fs-4"></span>
+                    <div class="@GetStatusCssClasses(violationsDeleteStatus.Status) w-100" role="alert">
+                        <div>@violationsDeleteStatus.Message</div>
                     </div>
-                </div>
-            </div>
+                }
+            </SettingsRow>
+            <SettingsRow LabelKey="H5849" TooltipKey="H5848" AlignTop="true">
+                <button type="button" class="btn btn-sm btn-primary" disabled="@complianceCheckRunning" @onclick="RunComplianceCheck">
+                    @if (complianceCheckRunning)
+                    {
+                        <Loading Size="SpinnerSize.Small" CssClass="me-2" />
+                    }
+                    @userConfig.GetText("H5850")
+                </button>
+                @if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Succeeded)
+                {
+                    <span class="@Icons.Check text-success fs-4"></span>
+                }
+                else if (complianceCheckStatus != null && complianceCheckStatus.Status == ComplianceCheckExecutionStatus.Failed)
+                {
+                    <span class="@Icons.CrossLarge text-danger fs-4"></span>
+                    <div class="@GetStatusCssClasses(complianceCheckStatus.Status) w-100" role="alert">
+                        <div>@complianceCheckStatus.Message</div>
+                    </div>
+                }
+            </SettingsRow>
         </Authorized>
         <NotAuthorized>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5848"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("H5849"))</label>
-                <div class="col-sm-7">
-                    <button class="btn btn-primary" disabled>@(userConfig.GetText("H5850"))</button>
-                </div>
-            </div>
+            <SettingsRow LabelKey="H5846" TooltipKey="H5845">
+                <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+            </SettingsRow>
+            <SettingsRow LabelKey="H5849" TooltipKey="H5848">
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("H5850"))</button>
+            </SettingsRow>
         </NotAuthorized>
     </ExecutionModeAuthorizeView>
     <hr />

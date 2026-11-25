@@ -180,6 +180,9 @@ namespace FWO.Basics
         public const string ManagementId = "management_id";
         public const string RuleIds = "ruleIds";
         public const string RuleId = "rule_id";
+        public const string NwObjIds = "nwObjIds";
+        public const string SvcIds = "svcIds";
+        public const string UserIds = "userIds";
         public const string RulebaseIds = "rulebaseIds";
     }
 

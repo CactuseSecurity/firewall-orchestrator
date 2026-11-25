@@ -1,5 +1,6 @@
 using Bunit;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -17,6 +18,7 @@ internal sealed class UiPlanningTaskListViewTest
 {
     private const string kAccessTable = ".planning-task-list[data-table=\"Access\"]";
     private static readonly List<string> kBundledSources = ["client-a", "client-b"];
+    private static readonly List<string> kDisplayDataQueries = [StmQueries.getRuleActions, StmQueries.getTracking, StmQueries.getIpProtocols];
 
     private static BunitContext CreateContext()
     {
@@ -36,6 +38,7 @@ internal sealed class UiPlanningTaskListViewTest
         {
             Id = 21,
             ReqTaskId = 11,
+            TicketId = 7,
             Title = "impl access",
             StateId = stateId,
             TaskType = taskType,
@@ -62,14 +65,26 @@ internal sealed class UiPlanningTaskListViewTest
     private static PlanningImplTaskEditor Editor(IRenderedComponent<PlanningTaskListView> listView) =>
         UiRequestWorkflowTest.GetMember<PlanningImplTaskEditor>(listView.Instance, "Editor");
 
-    private static IRenderedComponent<PlanningDetailsView> RenderListView(BunitContext context, WfHandler handler)
+    private static IRenderedComponent<PlanningDetailsView> RenderListView(BunitContext context, WfHandler handler, Func<Task>? resetParent = null)
     {
         return context.Render<PlanningDetailsView>(parameters => parameters
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.ListView, true)
             .Add(parameter => parameter.WfHandler, handler)
-            .Add(parameter => parameter.States, new WfStateDict { Name = { [1] = "Planning" } }));
+            .Add(parameter => parameter.States, new WfStateDict { Name = { [1] = "Planning" } })
+            .Add(parameter => parameter.ResetParent, resetParent ?? (() => Task.CompletedTask)));
     }
+
+    private static WfStateActionDataHelper OfferedAction(string buttonText, WfObjectScopes scope) => new()
+    {
+        Action = new WfStateAction
+        {
+            Event = StateActionEvents.OfferButton.ToString(),
+            ActionType = StateActionTypes.DoNothing.ToString(),
+            Scope = scope.ToString(),
+            ButtonText = buttonText
+        }
+    };
 
     private static int ColumnCount(IRenderedComponent<PlanningDetailsView> cut, string key) =>
         cut.FindAll($"{kAccessTable} th[data-column-key=\"{key}\"]").Count;
@@ -260,6 +275,90 @@ internal sealed class UiPlanningTaskListViewTest
             // the owning request task is selected, not the transient merged copy
             Assert.That(handler.ActReqTask.Id, Is.EqualTo(first.Id));
             Assert.That(handler.ActReqTask.Elements, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task PlanningDetailsView_ListViewLoadsDisplayDataAndPerformsConfiguredActions()
+    {
+        const string requestActionText = "Request action";
+        const string implementationActionText = "Implementation action";
+        await using BunitContext context = CreateContext();
+        UiRequestWorkflowTest.RequestWorkflowApiConn apiConnection = new();
+        context.Services.AddSingleton<ApiConnection>(apiConnection);
+        WfHandler handler = CreateHandler();
+        handler.ActionHandler = new ActionHandler(apiConnection, handler);
+        await handler.ActionHandler.Init(
+        [
+            new WfState
+            {
+                Id = 1,
+                Actions =
+                [
+                    OfferedAction(requestActionText, WfObjectScopes.RequestTask),
+                    OfferedAction(implementationActionText, WfObjectScopes.ImplementationTask)
+                ]
+            }
+        ]);
+        int resetCount = 0;
+        IRenderedComponent<PlanningDetailsView> cut = RenderListView(context, handler, () =>
+        {
+            resetCount++;
+            return Task.CompletedTask;
+        });
+
+        Assert.That(apiConnection.Queries, Is.SupersetOf(kDisplayDataQueries));
+
+        await cut.Find($"{kAccessTable} tbody tr:not(.planning-task-list-impl-row)").QuerySelectorAll("button")
+            .First(button => button.TextContent.Trim() == requestActionText).ClickAsync(new());
+        Assert.That(resetCount, Is.EqualTo(1));
+
+        await cut.Find($"{kAccessTable} tr.planning-task-list-impl-row").QuerySelectorAll("button")
+            .First(button => button.TextContent.Trim() == implementationActionText).ClickAsync(new());
+        Assert.That(resetCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task PlanningDetailsView_ListViewSavesEditedImplementationTask()
+    {
+        await using BunitContext context = CreateContext();
+        WfHandler handler = CreateHandler();
+        int resetCount = 0;
+        IRenderedComponent<PlanningDetailsView> cut = RenderListView(context, handler, () =>
+        {
+            resetCount++;
+            return Task.CompletedTask;
+        });
+        IRenderedComponent<PlanningTaskListView> listView = cut.FindComponent<PlanningTaskListView>();
+        PlanningImplTaskEditor editor = Editor(listView);
+        WfReqTask requestTask = handler.ActTicket.Tasks[0];
+
+        await listView.InvokeAsync(() => editor.OpenFreeText(requestTask.ImplementationTasks[0], requestTask));
+        await listView.InvokeAsync(() => editor.SaveFreeText("changed"));
+
+        Assert.Multiple(() =>
+        {
+            // the edited copy replaces the implementation task in the ticket
+            Assert.That(handler.ActTicket.Tasks[0].ImplementationTasks[0].FreeText, Is.EqualTo("changed"));
+            Assert.That(resetCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task PlanningDetailsView_IgnoresCreationAndDeletionOutsideActionableStates()
+    {
+        await using BunitContext context = CreateContext();
+        WfHandler handler = CreateHandler(stateId: 10);
+        IRenderedComponent<PlanningDetailsView> cut = RenderListView(context, handler);
+        WfReqTask requestTask = handler.ActTicket.Tasks[0];
+
+        await cut.InvokeAsync(() => UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenImplementationTaskCreation", requestTask));
+        await cut.InvokeAsync(() => UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenDeleteConfirmation", requestTask.ImplementationTasks[0]));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayImplementationTaskCreation"), Is.False);
+            Assert.That(handler.DisplayDeleteImplTaskMode, Is.False);
         });
     }
 

@@ -144,6 +144,25 @@ internal sealed class TaskListHelperTest
     }
 
     [Test]
+    public async Task TaskActions_DoNothingWithoutActionHandler()
+    {
+        WfReqTask requestTask = new() { Id = 1, TicketId = 7 };
+        WfImplTask implementationTask = new() { Id = 2 };
+        WfTicket ticket = new() { Id = 7, Tasks = [requestTask] };
+        WfHandler handler = new() { ActTicket = ticket };
+        WfStateAction action = new() { ActionType = StateActionTypes.DoNothing.ToString() };
+
+        await WorkflowTaskActions.PerformOnRequestTasks(handler, action, [requestTask]);
+        await WorkflowTaskActions.PerformOnImplementationTask(handler, action, implementationTask, requestTask);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.ActTicket, Is.SameAs(ticket));
+            Assert.That(WorkflowTaskActions.VisibleForImplementationTask(handler, implementationTask, requestTask), Is.Empty);
+        });
+    }
+
+    [Test]
     public void TaskDetailsViewTitle_ShowsTicketIdStateAndRequester()
     {
         WfTicket ticket = new() { Id = 7, Title = "Firewall change", StateId = 2, Requester = new FWO.Data.UiUser { Name = "alice" } };

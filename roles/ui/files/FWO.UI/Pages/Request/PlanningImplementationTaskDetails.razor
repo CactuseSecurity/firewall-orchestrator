@@ -410,50 +410,35 @@
         builder.AddAttribute(16, "class", "table table-sm table-borderless mb-0");
         builder.OpenElement(17, "thead");
         builder.OpenElement(18, "tr");
-        if (field != ElemFieldType.service)
-        {
-            AddTableHeader(builder, 19, "name");
-            AddTableHeader(builder, 21, "content");
-        }
-        else
-        {
-            AddTableHeader(builder, 23, "name");
-            AddTableHeader(builder, 25, "content");
-        }
+        AddTableHeader(builder, 19, "name");
+        AddTableHeader(builder, 21, "content");
         builder.CloseElement();
         builder.CloseElement();
         builder.OpenElement(27, "tbody");
-        if (field == ElemFieldType.service)
-        {
-            List<PlanningImplElementRow> elements = ImplLogic.ServiceDisplayRows(implementationTask);
-            if (elements.Count == 0)
-            {
-                AddEmptyTableRow(builder, 29, 2);
-            }
-            foreach (PlanningImplElementRow element in elements.Take(kMaxDisplayedElements))
-            {
-                AddTableRow(builder, element.Name, element.Content);
-            }
-            AddTruncationRow(builder, elements.Count);
-        }
-        else
-        {
-            List<PlanningImplElementRow> elements = ImplLogic.NetworkDisplayRows(implementationTask, field);
-            if (elements.Count == 0)
-            {
-                AddEmptyTableRow(builder, 31, 2);
-            }
-            foreach (PlanningImplElementRow element in elements.Take(kMaxDisplayedElements))
-            {
-                AddTableRow(builder, element.Name, element.Content);
-            }
-            AddTruncationRow(builder, elements.Count);
-        }
+        AddElementRows(builder, ElementRows(implementationTask, field));
         builder.CloseElement();
         builder.CloseElement();
         builder.CloseElement();
         builder.CloseElement();
     };
+
+    private List<PlanningImplElementRow> ElementRows(WfImplTask implementationTask, ElemFieldType field) => field == ElemFieldType.service
+        ? ImplLogic.ServiceDisplayRows(implementationTask)
+        : ImplLogic.NetworkDisplayRows(implementationTask, field);
+
+    /// <summary>Adds the displayed element rows: a placeholder if there are none, otherwise the first elements and a truncation row.</summary>
+    private static void AddElementRows(RenderTreeBuilder builder, List<PlanningImplElementRow> elements)
+    {
+        if (elements.Count == 0)
+        {
+            AddEmptyTableRow(builder, 29, 2);
+        }
+        foreach (PlanningImplElementRow element in elements.Take(kMaxDisplayedElements))
+        {
+            AddTableRow(builder, element.Name, element.Content);
+        }
+        AddTruncationRow(builder, elements.Count);
+    }
 
     private void AddTableHeader(RenderTreeBuilder builder, int sequence, string textKey)
     {

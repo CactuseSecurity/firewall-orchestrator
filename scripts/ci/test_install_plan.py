@@ -249,6 +249,11 @@ class TestWorkflow:
         assert step_names[0].startswith("actions/checkout@")
         assert step_names[1] == "Check the version before installing"
 
+    def test_apt_mirror_is_replaced_before_the_installer_environment_uses_apt(self) -> None:
+        step_names = [str(step.get("name", "")) for step in workflow_jobs()["test-install"]["steps"]]
+        mirror_step = step_names.index("Replace the EC2 apt mirror")
+        assert mirror_step < step_names.index("Set up the installer environment")
+
     def test_diagnostics_steps_skip_a_failed_version_check(self) -> None:
         steps = workflow_jobs()["test-install"]["steps"]
         diagnostics = [step for step in steps if str(step.get("name", "")).startswith("Collect ")]

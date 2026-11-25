@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.6 - 25.11.2026
+- CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
+
+
 ## 9.9.5 - 23.11.2026
 - security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
   - the report job skips such a schedule and logs an error; the other schedules of the run are processed

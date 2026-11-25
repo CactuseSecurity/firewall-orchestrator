@@ -265,7 +265,7 @@
 
     private async Task focusInput()
     {
-        if (showLoginForm)
+        if (showLoginForm && !string.IsNullOrEmpty(usernameInput.Id))
         {
             await usernameInput.FocusAsync();
         }

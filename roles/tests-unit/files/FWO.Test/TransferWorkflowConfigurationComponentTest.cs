@@ -3,6 +3,8 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Bunit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -64,6 +66,24 @@ namespace FWO.Test
             SetField(component, "targetConfigurationId", 7);
 
             Assert.That(GetProperty<bool>(component, "CanImport"), Is.True);
+        }
+
+        [Test]
+        public void ConfigurationSelectionText_FormatsNewAndExistingConfigurations()
+        {
+            TransferWorkflowConfiguration component = new();
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "ExistingConfigurations", new List<WorkflowConfiguration>
+            {
+                new() { Id = 7, Name = "Shared" }
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Invoke(component, "ConfigurationSelectionText", 0), Is.EqualTo("import_as_new_configuration"));
+                Assert.That(Invoke(component, "ConfigurationSelectionText", 7), Is.EqualTo("add_to_configuration: Shared"));
+                Assert.That(Invoke(component, "ConfigurationSelectionText", 99), Is.EqualTo("add_to_configuration: "));
+            });
         }
 
         [Test]
@@ -239,7 +259,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void OnAfterRender_LoadsExportPhasesAndSelectsAllPhases()
+        public async Task OnAfterRender_LoadsExportPhasesAndSelectsAllPhases()
         {
             RecordingWorkflowApiConnection api = new();
             api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase>
@@ -247,7 +267,7 @@ namespace FWO.Test
                 new() { TaskType = "master", Phase = "request" }
             });
 
-            using BunitContext context = CreateRenderContext(api);
+            await using BunitContext context = CreateRenderContext(api);
             IRenderedComponent<TransferWorkflowConfiguration> component = context.Render<TransferWorkflowConfiguration>(parameters => parameters
                 .Add(parameter => parameter.Display, true)
                 .Add(parameter => parameter.SelectedConfigurationId, 5)
@@ -307,9 +327,9 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ImportDialog_RendersPackageDetailsAndConfigurationTargets()
+        public async Task ImportDialog_RendersPackageDetailsAndConfigurationTargets()
         {
-            using BunitContext context = CreateRenderContext(new RecordingWorkflowApiConnection());
+            await using BunitContext context = CreateRenderContext(new RecordingWorkflowApiConnection());
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<TransferWorkflowConfiguration>(component => component
                     .Add(parameter => parameter.Display, true)
@@ -322,15 +342,19 @@ namespace FWO.Test
 
             SetField(component.Instance, "importPackage", ImportPackageWithoutGroups());
             component.Render();
+            IRenderedComponent<Dropdown<int>> targetDropdown = component.FindComponent<Dropdown<int>>();
 
             Assert.Multiple(() =>
             {
                 Assert.That(component.Find("#workflow-configuration-file"), Is.Not.Null);
                 Assert.That(component.Markup, Does.Contain("Shared"));
                 Assert.That(component.Markup, Does.Contain("import_as_new_configuration"));
-                Assert.That(component.FindAll("select option"), Has.Count.EqualTo(2));
+                Assert.That(targetDropdown.Instance.Elements, Is.EquivalentTo([0, 5]));
+                Assert.That(targetDropdown.Instance.NoneSelectedText, Is.EqualTo("import_as_new_configuration"));
                 Assert.That(component.Find("input.form-control"), Is.Not.Null);
             });
+            targetDropdown.Find("input").Focus();
+            Assert.That(component.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         [Test]
@@ -592,6 +616,7 @@ namespace FWO.Test
             context.Services.AddSingleton<UserConfig>(userConfig);
             context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
             context.Services.AddSingleton<AuthenticationStateProvider>(new SettingsStatesAuthStateProvider(userConfig.User.Roles));
+            context.Services.AddSingleton<DomEventService>();
             return context;
         }
 

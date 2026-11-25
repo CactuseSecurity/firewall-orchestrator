@@ -174,7 +174,8 @@ runs for pushes, so it never runs with pull request code.
 ## Install jobs
 
 On a pull request, each install job first checks the version (see
-[Version check before the installs](#version-check-before-the-installs)). Then it runs, in order:
+[Version check before the installs](#version-check-before-the-installs)). Then it replaces
+a slow apt mirror (see [Runners and queueing](#runners-and-queueing)) and runs, in order:
 
 1. the installer environment setup, `source scripts/install-ansible-from-venv.sh`, as an
    installation does it (see [Operating systems, Python and Ansible](#operating-systems-python-and-ansible))
@@ -289,6 +290,13 @@ run after a merge takes three install runners and five short Python jobs.
 
 Dependabot pull requests are grouped (see `.github/dependabot.yml`): minor and patch updates of
 one directory arrive as one pull request, major updates keep a pull request of their own.
+
+GitHub runs the jobs on AWS and on Azure (`Runner Image Provisioner` in the `Set up job` log).
+AWS-hosted runners use the Ubuntu mirror `us-east-2.ec2.archive.ubuntu.com`, which is often so slow
+that installing the .NET SDK takes more than half an hour instead of seconds (#5776). Each install
+job therefore first runs `scripts/ci/replace_ec2_apt_mirror.sh`, which replaces that mirror by
+`archive.ubuntu.com` in the runner's apt mirror list. Runners on Azure stay unchanged. The
+installer is not involved: it installs the same packages through apt as on any other system.
 
 No workflow uses a dependency cache: `sonarcloud-pr.yml` builds pull request code in the
 privileged `pull_request_target` context, and `scripts/ci/test_workflow_security_policy.py`

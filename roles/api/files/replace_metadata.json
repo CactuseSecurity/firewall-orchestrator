@@ -2653,7 +2653,7 @@
                       "column": "flow_timeobj_id",
                       "table": {
                         "name": "time_object",
-                        "schema": "public"
+                        "schema": "firewall"
                       }
                     }
                   }
@@ -10500,7 +10500,7 @@
                       "column": "removed",
                       "table": {
                         "name": "time_object",
-                        "schema": "public"
+                        "schema": "firewall"
                       }
                     }
                   }
@@ -10512,7 +10512,7 @@
                       "column": "created",
                       "table": {
                         "name": "time_object",
-                        "schema": "public"
+                        "schema": "firewall"
                       }
                     }
                   }
@@ -12491,7 +12491,7 @@
                       "column": "mgm_id",
                       "table": {
                         "name": "time_object",
-                        "schema": "public"
+                        "schema": "firewall"
                       }
                     }
                   }
@@ -27736,7 +27736,13 @@
             {
               "table": {
                 "name": "time_object",
-                "schema": "public"
+                "schema": "firewall"
+              },
+              "configuration": {
+                "column_config": {},
+                "custom_column_names": {},
+                "custom_name": "time_object",
+                "custom_root_fields": {}
               },
               "object_relationships": [
                 {

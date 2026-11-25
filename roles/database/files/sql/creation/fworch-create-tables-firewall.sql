@@ -357,6 +357,20 @@ Create table firewall.rule_to_zone
 	primary key (rule_id, zone_id, created)
 );
 
+create table firewall.time_object
+(
+    time_obj_id BIGSERIAL PRIMARY KEY,
+    mgm_id Integer NOT NULL,
+    time_obj_uid Varchar,
+    time_obj_name Varchar,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    created BIGINT,
+    removed BIGINT,
+    flow_timeobj_id BIGINT,
+    flow_active BOOLEAN NOT NULL Default FALSE
+);
+
 create table firewall.rule_time
 (
     rule_time_id BIGSERIAL PRIMARY KEY,

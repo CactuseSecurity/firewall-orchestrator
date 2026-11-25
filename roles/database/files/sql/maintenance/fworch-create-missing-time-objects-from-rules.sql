@@ -21,7 +21,7 @@ WITH referenced_time_objects AS (
         r.mgm_id,
         btrim(ref.time_obj_uid)
 )
-INSERT INTO time_object (
+INSERT INTO firewall.time_object (
     mgm_id,
     time_obj_uid,
     time_obj_name,
@@ -35,7 +35,7 @@ SELECT
 FROM referenced_time_objects
 WHERE NOT EXISTS (
     SELECT 1
-    FROM time_object AS t
+    FROM firewall.time_object AS t
     WHERE t.mgm_id = referenced_time_objects.mgm_id
       AND t.time_obj_uid = referenced_time_objects.time_obj_uid
 );
@@ -65,7 +65,7 @@ SELECT
 FROM rule_time_refs AS rtr
 JOIN LATERAL (
     SELECT t.time_obj_id
-    FROM time_object AS t
+    FROM firewall.time_object AS t
     WHERE t.mgm_id = rtr.mgm_id
       AND t.time_obj_uid = rtr.time_obj_uid
       AND COALESCE(t.created, rtr.created) <= rtr.created

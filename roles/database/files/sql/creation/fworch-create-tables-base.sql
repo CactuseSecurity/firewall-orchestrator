@@ -441,20 +441,6 @@ Create table "device_specific_config_value"
 	primary key ("node_id","config_key")
 );
 
-create table time_object
-(
-    time_obj_id BIGSERIAL PRIMARY KEY,
-    mgm_id Integer NOT NULL,
-    time_obj_uid Varchar,
-    time_obj_name Varchar,
-    start_time TIMESTAMP WITH TIME ZONE,
-    end_time TIMESTAMP WITH TIME ZONE,
-    created BIGINT,
-    removed BIGINT,
-	flow_timeobj_id BIGINT,
-	flow_active BOOLEAN NOT NULL Default FALSE
-);
-
 -- central, append-only history for modelling and workflow changes
 CREATE TABLE change_history
 (

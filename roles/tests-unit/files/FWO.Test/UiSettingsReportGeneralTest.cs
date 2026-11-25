@@ -123,6 +123,8 @@ namespace FWO.Test
                     Assert.That(wrapper.Markup, Does.Contain("No roles found"));
                     Assert.That(wrapper.Find("#cbx_auto_fill_right_sidebar"), Is.Not.Null);
                     Assert.That(wrapper.FindComponent<RulesViewSelect>(), Is.Not.Null);
+                    Assert.That(wrapper.Find("label[for='dropdown-input-defaultRulesView']"), Is.Not.Null);
+                    Assert.That(wrapper.Find("#dropdown-input-defaultRulesView"), Is.Not.Null);
                     Assert.That(wrapper.Find("button.btn-primary"), Is.Not.Null);
                 });
             });

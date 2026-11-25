@@ -281,6 +281,7 @@ namespace FWO.Test
                 Assert.That(algorithmIds.Select(algorithmDropdown.Instance.ElementToString), Is.EqualTo(kAlgorithmTextKeysInOrder));
                 Assert.That(wrapper.Find("#dropdown-input-pathAnalysisAlgorithm").GetAttribute("value"),
                     Is.EqualTo(kAlgorithmTextKeysInOrder[1]));
+                Assert.That(wrapper.Find("label[for='dropdown-input-pathAnalysisAlgorithm']"), Is.Not.Null);
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
             });
             IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();

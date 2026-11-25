@@ -134,6 +134,10 @@ namespace FWO.Test
                 Assert.That(apiConn.NotificationLogOffset, Is.Zero);
                 Assert.That(GetPrivateField<List<NotificationLogEntry>>(setup.Component, "notificationLogEntries"), Has.Count.EqualTo(1));
                 Assert.That(GetPrivateField<bool>(setup.Component, "InitComplete"), Is.True);
+                Assert.That(setup.Rendered.Find("label[for='dropdown-input-notification-log-type']"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("#dropdown-input-notification-log-type"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("label[for='dropdown-input-notification-log-status']"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("#dropdown-input-notification-log-status"), Is.Not.Null);
             });
             Dropdown<string> typeDropdown = setup.Rendered.FindComponents<Dropdown<string>>()
                 .Single(dropdown => dropdown.Instance.Id == "notification-log-type").Instance;

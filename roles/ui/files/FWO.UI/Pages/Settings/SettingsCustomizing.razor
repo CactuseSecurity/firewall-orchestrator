@@ -272,7 +272,7 @@
                 </Dropdown>
             </div>
         </SettingsRow>
-        <SettingsRow LabelKey="path_analysis_algorithm" LabelFor="pathAnalysisAlgorithm"
+        <SettingsRow LabelKey="path_analysis_algorithm" LabelFor="dropdown-input-pathAnalysisAlgorithm"
                      Tooltip="@(userConfig.PureLine("H5580") + "\r\n" + userConfig.PureLine("H5575") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5572"))">
             <div class="settings-input-md">
                 <Dropdown Id="pathAnalysisAlgorithm" ElementType="long" @bind-SelectedElement="configData!.PathAnalysisAlgorithm"

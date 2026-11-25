@@ -1,7 +1,10 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.6 - 25.11.2026
+
 - CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
+- dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
+- dependencies: update NuGet packages (AngleSharp to 1.11.0)
 - UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
   - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new queries `getNetworkObjectDetailsByIds`, `getNetworkServiceDetailsByIds`, `getUserDetailsByIds`), including objects of a super manager; the links target this tab
   - the Report and Rule tabs of rule and change reports show the objects and group members as of the generated report, independent of the current time filter; before, the imports of the All tab were used, so users without this tab (e.g. reporters, or after selecting a tenant) got no rule details in the Rule tab

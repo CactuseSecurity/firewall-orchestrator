@@ -17,6 +17,11 @@ namespace FWO.Test
         public List<Dictionary<string, object>> RuleQueryVariables { get; } = [];
 
         /// <summary>
+        /// Times the import ids of the all tab were requested for, in pairs of start and end.
+        /// </summary>
+        public List<string> RequestedImportTimes { get; } = [];
+
+        /// <summary>
         /// Import id of all managements at any time.
         /// </summary>
         public long? RelevantImportId { get; set; }
@@ -38,6 +43,10 @@ namespace FWO.Test
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
+            if (query == ReportQueries.getRelevantImportIdsAtTime)
+            {
+                RequestedImportTimes.Add((string)((Dictionary<string, object>)variables!)[QueryVar.Time]);
+            }
             if (responseType == typeof(List<ManagementReport>))
             {
                 List<ManagementReport> reports = SimulatedReport.DetailedReport().ReportData.ManagementData;

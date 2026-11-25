@@ -153,6 +153,24 @@ class TestFwoApiCall:
         assert result["data"]["insert_rule"]["returning"] == [{"rule_id": 1}, {"rule_id": 2}]
         assert api.query_info == {}
 
+    def test_chunked_label_id_query_sends_every_value(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The label ids of the rule labels are read by one list, so that every chunk filters by its own values."""
+        session = _FakeSession(
+            [
+                _FakeResponse(payload={"data": {"labelling_label_value": [{"label_id": 1, "value": "v0"}]}}),
+                _FakeResponse(payload={"data": {"labelling_label_value": [{"label_id": 2, "value": "v1000"}]}}),
+            ]
+        )
+        _patch_session(monkeypatch, session)
+        values = [f"v{index}" for index in range(API_CALL_CHUNK_SIZE + 1)]
+        query = FwoApi.get_graphql_code([str(Path(GRAPHQL_QUERY_PATH) / "labelling" / "getLabelIdsOfValues.graphql")])
+
+        result = FwoApi(API_URL, TEST_JWT).call(query, {"values": values}, analyze_payload=True)
+
+        sent_values = [json.loads(request[2])["variables"]["values"] for request in session.requests]
+        assert [value for chunk in sent_values for value in chunk] == values
+        assert [row["label_id"] for row in result["data"]["labelling_label_value"]] == [1, 2]
+
     def test_call_chunks_large_query_and_keeps_rows_of_all_chunks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         session = _FakeSession(
             [

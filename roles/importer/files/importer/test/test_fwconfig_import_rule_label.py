@@ -41,10 +41,11 @@ def build_rule(src_labels: RuleLabels | None = None, dst_labels: RuleLabels | No
 def answer_api(query: str, query_variables: dict[str, Any], analyze_payload: bool = False) -> dict[str, Any]:  # noqa: ARG001
     if "addLabelChangeEvent" in query:
         return {"data": {"insert_labelling_label_change_event_one": {"id": EVENT_ID}}}
-    if "getLabelIds" in query:
+    if "getLabelIdsOfValues" in query:
         labels = [
-            {"label_id": label_id, "value": value, "label_key": {"key_name": key_name, "allow_multiple_values": False}}
+            {"label_id": label_id, "value": value, "label_key": {"key_name": key_name}}
             for (key_name, value), label_id in LABEL_IDS.items()
+            if value in query_variables["values"]
         ]
         return {"data": {"labelling_label_value": labels}}
     if "removeRuleLabels" in query:
@@ -107,16 +108,26 @@ class TestFwConfigImportRuleLabel:
         assert (added, closed) == (0, 3)
         assert calls_of(label_api_call, "removeRuleLabels") == [{"ruleIds": [5, 6], "removedEventId": EVENT_ID}]
         assert calls_of(label_api_call, "addRuleLabels") == []
-        assert calls_of(label_api_call, "getLabelIds") == []
+        assert calls_of(label_api_call, "getLabelIdsOfValues") == []
 
     def test_label_ids_are_read_for_all_used_keys_and_values(self, label_api_call: FwoApiCall) -> None:
         rules = {10: build_rule(src_labels=[{"Stage": "Prod"}]), 11: build_rule(dst_labels=[{"AppRole": "AR1"}])}
 
         FwConfigImportRuleLabel(label_api_call, IMPORT_ID).write_rule_label_assignments(rules, [])
 
-        assert calls_of(label_api_call, "getLabelIds") == [
-            {"keyNames": ["AppRole", "Stage"], "values": ["AR1", "Prod"]}
+        assert calls_of(label_api_call, "getLabelIdsOfValues") == [{"values": ["AR1", "Prod"]}]
+
+    def test_values_of_other_keys_are_left_out(self, api_call: FwoApiCall) -> None:
+        rules = {10: build_rule(src_labels=[{"Stage": "Prod"}])}
+        rows: list[dict[str, Any]] = [
+            {"label_id": 7, "value": "Prod", "label_key": {"key_name": "Stage"}},
+            {"label_id": 8, "value": "Prod", "label_key": {"key_name": "Env"}},
         ]
+        api_call.call = unittest.mock.MagicMock(return_value={"data": {"labelling_label_value": rows}})
+
+        label_ids = FwConfigImportRuleLabel(api_call, IMPORT_ID).get_label_ids(rules)
+
+        assert label_ids == {("Stage", "Prod"): 7}
 
     def test_duplicate_values_within_a_group_are_written_once(self) -> None:
         rows = FwConfigImportRuleLabel.build_assignments(10, [{"AppRole": ["AR1", "AR1"]}], LABEL_IDS, EVENT_ID)

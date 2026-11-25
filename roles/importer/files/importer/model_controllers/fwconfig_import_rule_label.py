@@ -121,7 +121,12 @@ class FwConfigImportRuleLabel:
         return assignments
 
     def get_label_ids(self, rules: dict[int, RuleNormalized]) -> dict[tuple[str, str], int]:
-        """Return the label_id of every label value used by the given rules by (key name, value)."""
+        """
+        Return the label_id of every label value used by the given rules by (key name, value).
+
+        The query filters by the values only and the keys are selected here: a filter by two lists would break when the
+        API call is chunked, as the chunks slice both lists in parallel, so that later chunks would lack the key names.
+        """
         key_names: set[str] = set()
         values: set[str] = set()
         for rule in rules.values():
@@ -129,13 +134,13 @@ class FwConfigImportRuleLabel:
                 for _, key_name, value in get_side_label_values(side_labels):
                     key_names.add(key_name)
                     values.add(value)
-        result = self.call_api(
-            "getLabelIds", {"keyNames": sorted(key_names), "values": sorted(values)}, "reading of label ids"
-        )
-        return {
-            (label["label_key"]["key_name"], label["value"]): int(label["label_id"])
-            for label in result["data"]["labelling_label_value"]
-        }
+        result = self.call_api("getLabelIdsOfValues", {"values": sorted(values)}, "reading of label ids")
+        label_ids: dict[tuple[str, str], int] = {}
+        for label in result["data"]["labelling_label_value"]:
+            key_name: str = label["label_key"]["key_name"]
+            if key_name in key_names:
+                label_ids[(key_name, label["value"])] = int(label["label_id"])
+        return label_ids
 
     def call_api(self, operation: str, query_variables: dict[str, Any], description: str) -> dict[str, Any]:
         query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + LABELLING_QUERY_PATH + operation + ".graphql"])

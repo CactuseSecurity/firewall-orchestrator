@@ -1,5 +1,18 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.6 - 25.11.2026
+
+- dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
+- UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
+  - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new queries `getNetworkObjectDetailsByIds`, `getNetworkServiceDetailsByIds`, `getUserDetailsByIds`), including objects of a super manager; the links target this tab
+  - the Report and Rule tabs of rule and change reports show the objects and group members as of the generated report, independent of the current time filter; before, the imports of the All tab were used, so users without this tab (e.g. reporters, or after selecting a tenant) got no rule details in the Rule tab
+  - right sidebar tab order is All - Report - Rule; Report and Rule tab are only shown once a rule or change report has been generated
+  - clicking a change report row shows the rule versions in the Rule tab (added: new version, deleted: old version, modified: before and after); this also works for NAT rules, whose detail query `getNatRuleDetails` was rejected by the API
+  - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
+  - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
+  - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+
+
 ## 9.9.5 - 23.11.2026
 - security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
   - the report job skips such a schedule and logs an error; the other schedules of the run are processed
@@ -11,6 +24,11 @@
   - a download cut off at the limit is reported as a failed import, never processed truncated
   - a redirect is rejected without reading its body (GHSA-8xmf-c89r-584p)
 - notifications: new setting email priority (Low, Normal, High) per notification (`notification.email_priority`, default Normal); Low and High set the email headers Importance, Priority and X-Priority, Normal sets none; applies to all notifications edited in the notification editor, including workflow action emails; report schedule emails stay at Normal
+- UI: consistent settings layout, movable and resizable popups, login position
+  - settings pages share a two-column row layout (new `SettingsRow` component): all inputs of a page are aligned, small Bootstrap controls with width presets, switches for yes/no settings, check box groups in a wrapping grid; migrated: defaults, personal, user, password, password policy, email, importer, logging, notifications, report, recertification, compliance, modelling notifications, modelling, workflow customizing, change trigger, app data import, internet, network matrix and the external request settings in workflow customizing; the edit dialogs behind list pages keep their layout for now
+  - popups can be moved by their top strip and resized by a handle in the lower right corner (not for full screen popups, extra small popups only movable); a moved or resized popup is kept inside the window when the window shrinks; title and round close button stay visible while the popup body scrolls
+  - the login form is placed in the upper third of the page; switches, check boxes and radio buttons show the pointer cursor
+  - compliance settings: the labels "Elements per fetch" and "Available processors" are localized (new text keys)
 
 
 ## 9.9.4 - 17.11.2026

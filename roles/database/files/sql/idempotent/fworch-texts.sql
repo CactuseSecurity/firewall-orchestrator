@@ -671,6 +671,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Modellierung: Der Report &quot;Modell: Soll-Ist&quot;, der Verbindungsstatus (&quot;Status aktualisieren&quot; und die Hintergrund-Analyse) und die Beantragung analysieren nun dieselben Verbindungen auf dieselbe Weise und beachten einheitlich die Einstellung &quot;Gel&ouml;schte App Server ausrollen&quot;. Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, nicht nutzbare Schnittstellen) f&uuml;hrt der Report mit Grund unter &quot;Nicht analysierte Verbindungen&quot; auf; ihr Verbindungsstatus zeigt kein Soll-Ist-Ergebnis mehr. Reine Dokumentations-Verbindungen werden im Report nicht mehr verglichen. Mit der Option &quot;Gruppen aufl&ouml;sen&quot; z&auml;hlt eine Gruppe in Produktion mit zus&auml;tzlichen Mitgliedern als Abweichung, eine Gruppe mit genau den modellierten Mitgliedern dagegen nicht.</li>
     <li>Benachrichtigungen: F&uuml;r jede Email-Benachrichtigung kann eine Email-Priorit&auml;t (Niedrig, Normal, Hoch) eingestellt werden. Niedrig und Hoch setzen die Header Importance, Priority und X-Priority, die g&auml;ngige Email-Programme als Markierung anzeigen.</li>
     <li>Workflow: Die Referenz auf ein Ticket eines vorgelagerten Workflows (z.B. bei Anlage &uuml;ber die API) kann angezeigt werden. Ist in den Workflow-Anpassungen eine Bezeichnung (z.B. &quot;ChangeId&quot;) eingetragen, erscheint die Referenz im Ticket-Dialog, als Spalte der Ticketliste und in der &Uuml;berschrift der Auftragsansichten.</li>
+    <li>Oberfl&auml;che: Dialoge lassen sich am oberen Rand verschieben und &uuml;ber die rechte untere Ecke in der Gr&ouml;&szlig;e &auml;ndern; Titel und Schlie&szlig;en-Knopf bleiben beim Scrollen sichtbar. Die Einstellungsseiten haben ein einheitliches Layout mit b&uuml;ndig ausgerichteten Eingabefeldern, Schaltern f&uuml;r Ja/Nein-Einstellungen und gruppierten Auswahlfeldern. Das Anmeldefeld steht im oberen Drittel der Seite.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -704,6 +705,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Modelling: the report &quot;Model: Variances&quot;, the connection state (&quot;Refresh State&quot; and the background analysis) and the request now analyse the same connections in the same way and all follow the setting &quot;Rollout removed App Servers&quot;. The report lists connections with modelling issues (e.g. empty app roles, deleted objects, unusable interfaces) with their reason under &quot;Connections not analysed&quot;; their connection state no longer shows a variance result. Documentation-only connections are no longer compared in the report. With the option &quot;Resolve Groups&quot;, a production group with additional members counts as a difference, while a group with exactly the modelled members does not.</li>
     <li>Notifications: an email priority (low, normal, high) can be set for each email notification. Low and high set the headers Importance, Priority and X-Priority, which common email clients display as a marker.</li>
     <li>Workflow: the reference to a ticket of a preceding workflow (e.g. when created via the API) can be displayed. If a label (e.g. &quot;ChangeId&quot;) is entered in Workflow Customizing, the reference is shown in the ticket dialog, as a column of the ticket list and in the headline of the task views.</li>
+    <li>User interface: dialogs can be moved by their top edge and resized by their lower right corner; title and close button stay visible while scrolling. The settings pages have a uniform layout with aligned input fields, switches for yes/no settings and grouped check boxes. The login form is placed in the upper third of the page.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1005,6 +1007,10 @@ INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;
 INSERT INTO txt VALUES ('rule_added',           'English', 	'Rule added');
 INSERT INTO txt VALUES ('rule_modified',        'German', 	'Regel modifiziert');
 INSERT INTO txt VALUES ('rule_modified',        'English', 	'Rule modified');
+INSERT INTO txt VALUES ('rule_version_before_change', 'German', 	'vor &Auml;nderung');
+INSERT INTO txt VALUES ('rule_version_before_change', 'English', 	'before change');
+INSERT INTO txt VALUES ('rule_version_after_change', 'German', 	'nach &Auml;nderung');
+INSERT INTO txt VALUES ('rule_version_after_change', 'English', 	'after change');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
 INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
 INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
@@ -3742,6 +3748,10 @@ INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'G
 INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'English', 'Not assessable (existing violation hidden by filter setting)');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
+INSERT INTO txt VALUES ('complianceCheckElementsPerFetch','German', 'Pro Abruf geladene Elemente');
+INSERT INTO txt VALUES ('complianceCheckElementsPerFetch','English','Elements per fetch');
+INSERT INTO txt VALUES ('complianceCheckAvailableProcessors','German', 'Verf&uuml;gbare Prozessoren');
+INSERT INTO txt VALUES ('complianceCheckAvailableProcessors','English','Available processors');
 INSERT INTO txt VALUES ('autoCalcInternetZone','German', 'Internetzone automatisch berechnen');
 INSERT INTO txt VALUES ('autoCalcInternetZone','English','Auto-calculate internet zone');
 INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'German', 'Auto-berechnete Internetzone hinzuf&uuml;gen');
@@ -5999,6 +6009,10 @@ INSERT INTO txt VALUES ('H1527', 'English', 'In the Rules report, Rules view cho
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
     Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>
+    In &Auml;nderungsreports zeigt der Reiter "Report" die Objekte der ge&auml;nderten Regeln in ihren Versionen vor und nach der &Auml;nderung sowie die ge&auml;nderten Objekte selbst.
+    Die Objekt-Links im Report verweisen auf diese Eintr&auml;ge.
+    Wird eine ge&auml;nderte Regel im Report ausgew&auml;hlt, zeigt der Reiter "Regel" ihre Versionen vor und nach der &Auml;nderung.<br>
+    Die Reiter "Report" und "Regel" erscheinen erst, nachdem ein Report erstellt wurde.<br>
     ("Alle"- und "Regel"-Reiter werden mit derselben Funktionalit&auml;t auch im Rezertifizierungsdialog angeboten).<br>
     In eigent&uuml;merbasierten Reports erscheint der Reiter "Benutzte Objekte", in dem alle in den Verbindungen verwendeten Objekte aufgelistet werden.<br>
     Folgende Daten werden soweit verf&uuml;gbar dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
@@ -6006,6 +6020,10 @@ INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere R
 INSERT INTO txt VALUES ('H1601', 'English', 'There are several tabs shown in the right sidebar, depending on the report type: In rule based reports the "All" tab displays all currently fetched objects,
     whereas in the "Report" tab only the objects of the rules of the report are shown.
     In the "Rule" tab only objects of rules selected in the report output are dispalyed.<br>
+    In change reports the "Report" tab shows the objects of the changed rules in their versions before and after the change as well as the changed objects themselves.
+    The object links in the report point to these entries.
+    If a changed rule is selected in the report, the "Rule" tab shows its versions before and after the change.<br>
+    The "Report" and "Rule" tabs only appear after a report has been generated.<br>
     ("All" and "Rule" tab are also offered in the Recertification dialogue with the same functionality).<br>
     In owner based reports the Tab "Used Objects" is displayed, where all objects used in the connections are listed.<br>
     The following data are displayed if available, grouped by the selected devices:

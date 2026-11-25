@@ -14,9 +14,10 @@
 @inject GlobalConfig globalConfig
 @inject UiClientAddress clientAddress
 
+<div class="login-page">
 @if (showLoginForm)
 {
-    <div class="row text-center mt-2">
+    <div class="row text-center">
         <div class="col-xl col-lg col-md col-sm col"></div>
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-8 col-10">
             @if (globalConfig.UseCustomLogo)
@@ -81,7 +82,7 @@
 {
     <div class="row m-4 justify-content-center">
         <h2 class="text-center"> @(userConfig.GetText("change_password")) </h2>
-        <div class="shadow-sm card p-3" style="width: 250px;">
+        <div class="shadow-sm card p-3 password-change-card">
             <form class="d-flex flex-column">
                 <div class="form-group">
                     <input type="password" class="form-control @InputClass" id="OldPasswordInput"
@@ -114,6 +115,7 @@
         </div>
     </div>
 }
+</div>
 
 @code
 {

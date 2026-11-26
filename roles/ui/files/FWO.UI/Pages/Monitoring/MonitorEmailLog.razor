@@ -19,27 +19,24 @@
             <input id="notification-log-id" type="number" class="form-control form-control-sm" @bind="notificationIdFilter" />
         </div>
         <div class="col-sm-3">
-            <label for="notification-log-type" class="col-form-label col-form-label-sm">@(userConfig.GetText("notification_type"))</label>
-            <select id="notification-log-type" class="form-select form-select-sm" @bind="notificationTypeFilter">
-                <option value="">@(userConfig.GetText("all"))</option>
-                @foreach (NotificationClient notificationClient in Enum.GetValues<NotificationClient>())
-                {
-                    if (notificationClient != NotificationClient.None)
-                    {
-                        <option value="@notificationClient">@(userConfig.GetText(notificationClient.ToString()))</option>
-                    }
-                }
-            </select>
+            <label for="dropdown-input-notification-log-type" class="col-form-label col-form-label-sm">@(userConfig.GetText("notification_type"))</label>
+            <Dropdown Id="notification-log-type" ElementType="string" @bind-SelectedElement="notificationTypeFilter"
+                      Elements="NotificationTypes" ElementToString="@(type => userConfig.GetText(type))"
+                      NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true">
+                <ElementTemplate Context="type">
+                    @(userConfig.GetText(type))
+                </ElementTemplate>
+            </Dropdown>
         </div>
         <div class="col-sm-3">
-            <label for="notification-log-status" class="col-form-label col-form-label-sm">@(userConfig.GetText("state"))</label>
-            <select id="notification-log-status" class="form-select form-select-sm" @bind="statusFilter">
-                <option value="">@(userConfig.GetText("all"))</option>
-                @foreach (NotificationLogStatus status in Enum.GetValues<NotificationLogStatus>())
-                {
-                    <option value="@status">@(userConfig.GetText(status.ToString()))</option>
-                }
-            </select>
+            <label for="dropdown-input-notification-log-status" class="col-form-label col-form-label-sm">@(userConfig.GetText("state"))</label>
+            <Dropdown Id="notification-log-status" ElementType="string" @bind-SelectedElement="statusFilter"
+                      Elements="NotificationStatuses" ElementToString="@(status => userConfig.GetText(status))"
+                      NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true">
+                <ElementTemplate Context="status">
+                    @(userConfig.GetText(status))
+                </ElementTemplate>
+            </Dropdown>
         </div>
         <div class="col-sm-3">
             <label for="notification-log-error" class="col-form-label col-form-label-sm">@(userConfig.GetText("error"))</label>
@@ -103,9 +100,14 @@ else
     private bool HasNextPage { get; set; }
 
     private int? notificationIdFilter;
-    private string notificationTypeFilter = "";
-    private string statusFilter = "";
+    private string? notificationTypeFilter;
+    private string? statusFilter;
     private string errorFilter = "";
+    private IEnumerable<string> NotificationTypes => Enum.GetValues<NotificationClient>()
+        .Where(notificationClient => notificationClient != NotificationClient.None)
+        .Select(notificationClient => notificationClient.ToString());
+    private IEnumerable<string> NotificationStatuses => Enum.GetValues<NotificationLogStatus>()
+        .Select(status => status.ToString());
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,8 +162,8 @@ else
     private async Task ClearFilters()
     {
         notificationIdFilter = null;
-        notificationTypeFilter = "";
-        statusFilter = "";
+        notificationTypeFilter = null;
+        statusFilter = null;
         errorFilter = "";
         await ApplyFilters();
     }

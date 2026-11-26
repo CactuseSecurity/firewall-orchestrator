@@ -18,6 +18,11 @@
   - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
   - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
   - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+- UI fix: the All tab of the right sidebar no longer lists several versions of the same object, service or user in rule reports (#4730)
+  - the version removed by the latest import was returned in addition to the new one; change reports still list all versions of their time range
+  - switching from a change report back to a rule report with report time "now" no longer keeps the time range of the change report
+- UI fix: the right sidebar of the variance and connection reports shows the IP of network objects without a name instead of an empty row (#4972)
+  - the header above the modelled objects of the variance report shows the owner name instead of being empty
 
 
 ## 9.9.5 - 23.11.2026

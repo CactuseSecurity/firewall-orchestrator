@@ -115,6 +115,18 @@ namespace FWO.Test
             Assert.That(DisplayBase.DisplayIpRange(ip1, ip2, inBrackets), Is.EqualTo(expected));
         }
 
+        [TestCase("server1", "10.0.0.1/32", "10.0.0.1/32", "server1")]
+        [TestCase("", "10.0.0.1/32", "10.0.0.1/32", "10.0.0.1")]
+        [TestCase(" ", "10.0.0.1/32", "", "10.0.0.1")]
+        [TestCase(null, "10.0.0.1/32", "10.0.0.5/32", "10.0.0.1-10.0.0.5")]
+        [TestCase("", null, null, "")]
+        public void DisplayNameOrIpFallsBackToIp(string? name, string? ip, string? ipEnd, string expected)
+        {
+            NetworkObject networkObject = new() { Name = name!, IP = ip, IpEnd = ipEnd };
+
+            Assert.That(DisplayBase.DisplayNameOrIp(networkObject), Is.EqualTo(expected));
+        }
+
         [Test]
         public void DisplayIpRangeThrowsForMixedIpFamilies()
         {

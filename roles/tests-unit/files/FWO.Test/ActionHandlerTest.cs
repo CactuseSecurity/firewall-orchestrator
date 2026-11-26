@@ -26,7 +26,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [NonParallelizable]
-    internal class ActionHandlerTest
+    internal partial class ActionHandlerTest
     {
         private static readonly int[] kExpectedNotificationIds = [3, 5];
 
@@ -2371,12 +2371,14 @@ namespace FWO.Test
             : ActionHandler(apiConnection, wfHandler)
         {
             public List<long> AttemptedTaskIds { get; } = [];
+            public List<NotificationPlaceholderData?> AttemptedPlaceholderData { get; } = [];
 
             public override Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
                 FwoOwner? owner, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
             {
                 long taskId = statefulObject is WfReqTask reqTask ? reqTask.Id : 0;
                 AttemptedTaskIds.Add(taskId);
+                AttemptedPlaceholderData.Add(placeholderData);
                 return Task.FromResult(!undeliverableTaskIds.Contains(taskId));
             }
         }

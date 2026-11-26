@@ -187,7 +187,8 @@ namespace FWO.Services.Workflow
             RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
             try
             {
-                return await TrySendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                // all items of the group share their placeholder values, as these are part of the bundle key
+                return await TrySendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn, item.PlaceholderData);
             }
             finally
             {

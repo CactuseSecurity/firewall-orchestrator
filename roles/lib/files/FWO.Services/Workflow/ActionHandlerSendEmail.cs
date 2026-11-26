@@ -38,13 +38,15 @@ namespace FWO.Services.Workflow
             try
             {
                 emailActionParams = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                if (CaptureBundledEmail(action, emailActionParams, statefulObject, scope, owner, userGrpDn))
+                // resolved before a possible capture: a bundled email is sent later, outside of the current state change
+                NotificationPlaceholderData? actionPlaceholderData = WithStateChangeComment(placeholderData);
+                if (CaptureBundledEmail(action, emailActionParams, statefulObject, scope, owner, userGrpDn, actionPlaceholderData))
                 {
                     Log.WriteDebug("SendEmail", "Captured workflow action email for bundled delivery.");
                     return true;
                 }
 
-                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, WithStateChangeComment(placeholderData));
+                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, actionPlaceholderData);
             }
             catch (Exception exc)
             {
@@ -110,7 +112,7 @@ namespace FWO.Services.Workflow
         }
 
         private bool CaptureBundledEmail(WfStateAction action, EmailActionParams emailActionParams, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
+            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn, NotificationPlaceholderData? placeholderData)
         {
             if (EmailBundleCollector == null || EmailBundleCollector.IsFlushing
                 || emailActionParams.AttachedContent != EmailAttachedContent.RequestedConnections
@@ -121,7 +123,7 @@ namespace FWO.Services.Workflow
                 return false;
             }
 
-            if (!EmailBundleCollector.TryAdd(action, reqTask, owner, userGrpDn))
+            if (!EmailBundleCollector.TryAdd(action, reqTask, owner, userGrpDn, placeholderData))
             {
                 Log.WriteWarning("SendEmail", $"Workflow email bundle for ticket {reqTask.TicketId} is full. " +
                     $"Sending the email of request task {reqTask.TaskNumber} immediately instead of bundling it.");

@@ -8,6 +8,7 @@
 - notifications: new placeholder `@@STATECHANGE_COMMENT@@` for workflow emails (subject and body) with the comment or reason entered together with the triggering state change
   - filled with the reason for rejecting an interface (reject popup in modelling, rejecting removed or orphaned requested interfaces), the comment of an approval and the comment of a ticket promotion
   - also available for actions executed in the middleware and for automatic promotions triggered by the state change
+  - also available in bundled request task emails (requested connections with bundling of the same task type): a captured email keeps its placeholder values until the bundle is sent, and emails with different values are sent separately instead of being merged
   - `@@REASON@@` remains the reason of the request; `@@CONTENT@@` is unchanged
   - an interface rejection reason is no longer appended to the end of the email body when the body already shows it via `@@STATECHANGE_COMMENT@@`
 - UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`

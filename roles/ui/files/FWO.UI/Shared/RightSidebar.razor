@@ -352,6 +352,7 @@
         else if (SelectedReportType.IsChangeReport())
         {
             (rsbTimeStart, rsbTimeEnd) = DynGraphqlQuery.ResolveTimeRange(LSBTime);
+            rsbTimeShortcut = ""; // the time of a rule report has to be set again when switching back to it
         }
 
         return prevStart != rsbTimeStart || prevEnd != rsbTimeEnd;

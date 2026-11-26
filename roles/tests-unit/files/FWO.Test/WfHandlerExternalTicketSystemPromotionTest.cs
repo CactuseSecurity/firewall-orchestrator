@@ -9,7 +9,7 @@ using System.Reflection;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests how the action "Prepare implementation" promotes the request tasks handed to an external ticket system to
+    /// Tests how the action "Create implementation tasks" promotes the request tasks handed to an external ticket system to
     /// its target state, so that they do not hold the ticket in the planning.
     /// </summary>
     [TestFixture]

@@ -285,4 +285,4 @@ For a feature-centric, thematically grouped view see
 - Notifications: an email priority (Low, Normal, High) can be set per notification; Low and High set the Importance, Priority and X-Priority headers, which common email clients show as a marker.
 
 ### 9.9.6 - 25.11.2026
-- The provisioning only starts by the state action "Create external requests", no longer directly by the modelling rollout; the action "Prepare implementation" (formerly "Create implementation tasks") promotes approved request tasks of an external ticket system to a configurable state (default "To Implement"), so Tufin can no longer overtake earlier tasks written to the firewall.
+- The provisioning only starts by the state action "Create external requests", no longer directly by the modelling rollout; the action "Create implementation tasks" promotes approved request tasks of an external ticket system to a configurable state (default "To Implement"), so Tufin can no longer overtake earlier tasks written to the firewall.

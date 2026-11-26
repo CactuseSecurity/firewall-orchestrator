@@ -10,7 +10,7 @@ namespace FWO.Services.Workflow
     /// </summary>
     public partial class WfHandler
     {
-        private const string kPrepareImplementationLogTitle = "Prepare Implementation";
+        private const string kCreateImplTasksLogTitle = "Create Implementation Tasks";
 
         /// <summary>Replaces the promotion of a request task, for unit tests only.</summary>
         internal Func<WfReqTask, int, Task>? ReqTaskPromotionOverride { get; set; }
@@ -23,7 +23,7 @@ namespace FWO.Services.Workflow
         /// <param name="ticket">Ticket whose request tasks are promoted.</param>
         /// <param name="scopeTask">Request task in the request task scope: only this task, a bundled task together with
         /// its bundle once every member has reached the state of this task. Null in the ticket scope.</param>
-        /// <param name="targetStateId">State to promote to, see <see cref="PrepareImplementationActionParams"/>.</param>
+        /// <param name="targetStateId">State to promote to, see <see cref="CreateImplTasksActionParams"/>.</param>
         /// <returns>The number of promoted request tasks.</returns>
         public async Task<int> PromoteRequestTasksOfExternalTicketSystem(WfTicket ticket, WfReqTask? scopeTask, int targetStateId)
         {
@@ -34,7 +34,7 @@ namespace FWO.Services.Workflow
             }
             if (reqTasks.Count > 0)
             {
-                Log.WriteInfo(kPrepareImplementationLogTitle, $"Promoted {reqTasks.Count} request tasks of ticket {ticket.Id} handed to an " +
+                Log.WriteInfo(kCreateImplTasksLogTitle, $"Promoted {reqTasks.Count} request tasks of ticket {ticket.Id} handed to an " +
                     $"external ticket system to state {targetStateId}.");
             }
             return reqTasks.Count;
@@ -83,7 +83,7 @@ namespace FWO.Services.Workflow
             }
             if (targetStateId < matrix.PreImplementationEndState)
             {
-                Log.WriteWarning(kPrepareImplementationLogTitle, $"Request task {reqTask.Id} is not promoted: the target state {targetStateId} is " +
+                Log.WriteWarning(kCreateImplTasksLogTitle, $"Request task {reqTask.Id} is not promoted: the target state {targetStateId} is " +
                     $"below the end state {matrix.PreImplementationEndState} of the phases before the implementation.");
                 return false;
             }

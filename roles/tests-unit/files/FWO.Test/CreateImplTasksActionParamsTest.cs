@@ -4,11 +4,11 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the parameters of the action "Prepare implementation": defaults, reading and writing, and the check of the
+    /// Tests the parameters of the action "Create implementation tasks": defaults, reading and writing, and the check of the
     /// target state for request tasks of an external ticket system.
     /// </summary>
     [TestFixture]
-    internal class PrepareImplementationActionParamsTest
+    internal class CreateImplTasksActionParamsTest
     {
         private const int kPlannedStateId = 149;
         private const int kPlanVerifiedStateId = 199;
@@ -24,17 +24,17 @@ namespace FWO.Test
         [TestCase("{not json")]
         public void FromExternalParams_WithoutValidTarget_DefaultsToToImplement(string externalParams)
         {
-            PrepareImplementationActionParams parameters = PrepareImplementationActionParams.FromExternalParams(externalParams);
+            CreateImplTasksActionParams parameters = CreateImplTasksActionParams.FromExternalParams(externalParams);
 
-            Assert.That(parameters.ExternalTicketSystemTargetStateId, Is.EqualTo(PrepareImplementationActionParams.kToImplementStateId));
+            Assert.That(parameters.ExternalTicketSystemTargetStateId, Is.EqualTo(CreateImplTasksActionParams.kToImplementStateId));
         }
 
         [Test]
         public void ToExternalParams_IsReadBackUnchanged()
         {
-            PrepareImplementationActionParams parameters = new() { ExternalTicketSystemTargetStateId = kPlanVerifiedStateId };
+            CreateImplTasksActionParams parameters = new() { ExternalTicketSystemTargetStateId = kPlanVerifiedStateId };
 
-            PrepareImplementationActionParams readBack = PrepareImplementationActionParams.FromExternalParams(parameters.ToExternalParams());
+            CreateImplTasksActionParams readBack = CreateImplTasksActionParams.FromExternalParams(parameters.ToExternalParams());
 
             Assert.That(readBack.ExternalTicketSystemTargetStateId, Is.EqualTo(kPlanVerifiedStateId));
         }
@@ -45,7 +45,7 @@ namespace FWO.Test
         [TestCase(kUnknownStateId, false)]
         public void HasValidTargetState_NeedsAnExistingStateNotBelowTheRequiredOne(int targetStateId, bool expected)
         {
-            PrepareImplementationActionParams parameters = new() { ExternalTicketSystemTargetStateId = targetStateId };
+            CreateImplTasksActionParams parameters = new() { ExternalTicketSystemTargetStateId = targetStateId };
 
             Assert.That(parameters.HasValidTargetState(kExistingStateIds, kPlannedStateId), Is.EqualTo(expected));
         }

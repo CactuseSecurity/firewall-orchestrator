@@ -646,9 +646,9 @@ namespace FWO.Services.Workflow
         /// bundled task together with its bundle once every member has reached the state. Bundles from a preceding
         /// bundle tasks action are taken into account. Afterwards the request tasks in scope that are handed to an
         /// external ticket system are promoted to the target state of the action, see
-        /// <see cref="PrepareImplementationActionParams"/>, as that system plans them itself.
+        /// <see cref="CreateImplTasksActionParams"/>, as that system plans them itself.
         /// </summary>
-        /// <param name="action">The executed action ("Prepare implementation").</param>
+        /// <param name="action">The executed action ("Create implementation tasks").</param>
         /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
         /// <param name="scope">Scope of the stateful object.</param>
         public async Task CreateImplTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope)
@@ -662,7 +662,7 @@ namespace FWO.Services.Workflow
             WfReqTask? scopeTask = scope == WfObjectScopes.RequestTask ? statefulObject as WfReqTask : null;
             int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket, scopeTask, IsOfferedAsButton(action));
             Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
-            PrepareImplementationActionParams actionParams = PrepareImplementationActionParams.FromExternalParams(action.ExternalParams);
+            CreateImplTasksActionParams actionParams = CreateImplTasksActionParams.FromExternalParams(action.ExternalParams);
             await wfHandler.PromoteRequestTasksOfExternalTicketSystem(wfHandler.ActTicket, scopeTask, actionParams.ExternalTicketSystemTargetStateId);
         }
 

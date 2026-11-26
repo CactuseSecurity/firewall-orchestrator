@@ -26,12 +26,12 @@
     [Parameter]
     public List<WfState> States { get; set; } = [];
 
-    private PrepareImplementationActionParams actParams = new();
+    private CreateImplTasksActionParams actParams = new();
     private WfState? selectedTargetState;
 
     protected override void OnParametersSet()
     {
-        actParams = PrepareImplementationActionParams.FromExternalParams(ActAction.ExternalParams);
+        actParams = CreateImplTasksActionParams.FromExternalParams(ActAction.ExternalParams);
         selectedTargetState = States.FirstOrDefault(state => state.Id == actParams.ExternalTicketSystemTargetStateId);
         UpdateExternalParams();
     }

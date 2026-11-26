@@ -278,9 +278,9 @@ namespace FWO.Data.Workflow
     }
 
     /// <summary>
-    /// Parameters of the state action "Prepare implementation" (action type CreateImplTasks).
+    /// Parameters of the state action "Create implementation tasks" (action type CreateImplTasks).
     /// </summary>
-    public class PrepareImplementationActionParams
+    public class CreateImplTasksActionParams
     {
         /// <summary>Id of the state "To Implement" created by every installation, the default target state.</summary>
         public const int kToImplementStateId = 200;
@@ -296,7 +296,7 @@ namespace FWO.Data.Workflow
         /// Reads the parameters of an action; empty or invalid parameters give the defaults.
         /// </summary>
         /// <param name="externalParams">The external parameters stored with the action.</param>
-        public static PrepareImplementationActionParams FromExternalParams(string externalParams)
+        public static CreateImplTasksActionParams FromExternalParams(string externalParams)
         {
             if (string.IsNullOrWhiteSpace(externalParams))
             {
@@ -305,11 +305,11 @@ namespace FWO.Data.Workflow
 
             try
             {
-                return System.Text.Json.JsonSerializer.Deserialize<PrepareImplementationActionParams>(externalParams) ?? new();
+                return System.Text.Json.JsonSerializer.Deserialize<CreateImplTasksActionParams>(externalParams) ?? new();
             }
             catch (System.Text.Json.JsonException exception)
             {
-                Log.WriteWarning("Prepare Implementation", $"Configured action parameters are invalid JSON. Falling back to defaults. {exception.Message}");
+                Log.WriteWarning("Create Implementation Tasks", $"Configured action parameters are invalid JSON. Falling back to defaults. {exception.Message}");
                 return new();
             }
         }

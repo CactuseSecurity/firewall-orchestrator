@@ -10,14 +10,14 @@ using System.Reflection;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the editor of the action "Prepare implementation": the target state for request tasks of an external
+    /// Tests the editor of the action "Create implementation tasks": the target state for request tasks of an external
     /// ticket system defaults to "To Implement" and is stored with the action.
     /// </summary>
     [TestFixture]
     internal class UiEditActionCreateImplTasksTest
     {
         private static readonly WfState kPlanned = new() { Id = 149, Name = "Planned" };
-        private static readonly WfState kToImplement = new() { Id = PrepareImplementationActionParams.kToImplementStateId, Name = "To Implement" };
+        private static readonly WfState kToImplement = new() { Id = CreateImplTasksActionParams.kToImplementStateId, Name = "To Implement" };
         private static readonly List<WfState> kStates = [kPlanned, kToImplement];
 
         private static BunitContext CreateContext()
@@ -53,7 +53,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(PrepareImplementationActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId,
+                Assert.That(CreateImplTasksActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId,
                     Is.EqualTo(kToImplement.Id));
                 Assert.That(SelectedState(rendered.Instance), Is.SameAs(kToImplement));
             });
@@ -66,7 +66,7 @@ namespace FWO.Test
             WfStateAction action = new()
             {
                 ActionType = nameof(StateActionTypes.CreateImplTasks),
-                ExternalParams = new PrepareImplementationActionParams { ExternalTicketSystemTargetStateId = kPlanned.Id }.ToExternalParams()
+                ExternalParams = new CreateImplTasksActionParams { ExternalTicketSystemTargetStateId = kPlanned.Id }.ToExternalParams()
             };
 
             IRenderedComponent<EditActionCreateImplTasks> rendered = Render(context, action);
@@ -86,7 +86,7 @@ namespace FWO.Test
 
             await rendered.InvokeAsync(() => (Task)onChanged.Invoke(rendered.Instance, arguments)!);
 
-            Assert.That(PrepareImplementationActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId,
+            Assert.That(CreateImplTasksActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId,
                 Is.EqualTo(kPlanned.Id));
         }
     }

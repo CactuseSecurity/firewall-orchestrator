@@ -235,7 +235,7 @@
             case nameof(StateActionTypes.SendEmail):
                 return sendEmailEditor != null && await sendEmailEditor.PrepareForSaveAsync();
             case nameof(StateActionTypes.CreateImplTasks):
-                return await HasValidPrepareImplementationTarget();
+                return await HasValidCreateImplTasksTarget();
             default:
                 return true;
         }
@@ -245,12 +245,12 @@
     /// Checks that the target state for request tasks of an external ticket system exists and is not below the end
     /// of the phases before the implementation in any task type, as such a task would hold its ticket there.
     /// </summary>
-    private async Task<bool> HasValidPrepareImplementationTarget()
+    private async Task<bool> HasValidCreateImplTasksTarget()
     {
         StateMatrixDict stateMatrices = new();
         await stateMatrices.Init(WorkflowPhases.implementation, apiConnection);
         int requiredStateId = stateMatrices.GetHighestPreImplementationEndState();
-        PrepareImplementationActionParams actionParams = PrepareImplementationActionParams.FromExternalParams(actAction.ExternalParams);
+        CreateImplTasksActionParams actionParams = CreateImplTasksActionParams.FromExternalParams(actAction.ExternalParams);
         if (actionParams.HasValidTargetState(States.Select(state => state.Id), requiredStateId))
         {
             return true;

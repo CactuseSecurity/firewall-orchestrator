@@ -187,7 +187,7 @@ Create index idx_flow_svcgroup_member_svcobj on flow.svcgroup_member (svcobj_id)
 
 Create unique index if not exists service_flow_svcobj_id_active_only_one_per_mgm on firewall.nw_service (mgm_id, flow_svcobj_id) where flow_active = true;
 Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm on firewall.nw_service (mgm_id, flow_svcgrp_id) where flow_active = true;
-Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
+Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on firewall.time_object (mgm_id, flow_timeobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwgrp_id) where flow_active = true;
 

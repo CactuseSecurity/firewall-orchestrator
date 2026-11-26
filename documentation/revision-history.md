@@ -13,6 +13,9 @@
   - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
   - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
   - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+- database: the table `time_object` moves from the `public` to the `firewall` schema, like the other firewall configuration tables in 9.2.1 (#5493)
+  - the GraphQL names (`time_object`, `time_objects`) stay unchanged, API clients are not affected
+  - direct SQL access needs `firewall.time_object` instead of `public.time_object`; unqualified references still work through the search path of the database
 
 
 ## 9.9.5 - 23.11.2026

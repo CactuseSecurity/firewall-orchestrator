@@ -49,6 +49,8 @@ namespace FWO.Test
         private const string kQueryOperationType = "query";
         private const string kMutationOperationType = "mutation";
         private const string kPublicSchema = "public";
+        private const string kConfigurationProperty = "configuration";
+        private const string kCustomNameProperty = "custom_name";
         private const string kByPkRootSuffix = "_by_pk";
         private const string kFragmentSpread = "...";
         private const string kAffectedRowsField = "affected_rows";
@@ -110,6 +112,11 @@ namespace FWO.Test
         private static readonly List<string> kDistinctTableRoots = ["alert", "modelling_connection"];
 
         /// <summary>
+        /// Root field name the table of kMetadataWithCustomTableRoot reaches.
+        /// </summary>
+        private static readonly List<string> kCustomTableRoots = ["time_object"];
+
+        /// <summary>
         /// A metadata document tracking two tables which reach two root field names, as the tracked tables
         /// of replace_metadata.json do.
         /// </summary>
@@ -117,6 +124,17 @@ namespace FWO.Test
             {""tables"": [
                 {""table"": {""schema"": ""public"", ""name"": ""alert""}},
                 {""table"": {""schema"": ""modelling"", ""name"": ""connection""}}
+            ]}
+        ]}}}";
+
+        /// <summary>
+        /// A metadata document tracking a table of a schema other than public whose custom name keeps the
+        /// schema out of its root field name.
+        /// </summary>
+        private const string kMetadataWithCustomTableRoot = @"{""args"": {""metadata"": {""sources"": [
+            {""tables"": [
+                {""table"": {""schema"": ""firewall"", ""name"": ""time_object""},
+                 ""configuration"": {""custom_name"": ""time_object""}}
             ]}
         ]}}}";
 
@@ -298,6 +316,18 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// A custom name replaces the generated root field name, so a table outside the public schema may be
+        /// addressed by the API calls without its schema, which time_object is.
+        /// </summary>
+        [Test]
+        public void Metadata_ReadsTablesByTheirCustomName()
+        {
+            Dictionary<string, TableMetadata> tables = ReadMetadata(kMetadataWithCustomTableRoot);
+
+            Assert.That(tables.Keys, Is.EquivalentTo(kCustomTableRoots));
+        }
+
+        /// <summary>
         /// Two tracked tables reaching one root field name are refused, because the calls of one of them
         /// would otherwise be checked against the permissions of the other and pass on them.
         /// </summary>
@@ -470,7 +500,7 @@ namespace FWO.Test
             {
                 foreach (JsonElement table in source.GetProperty("tables").EnumerateArray())
                 {
-                    string tableRoot = ReadTableRoot(table.GetProperty("table"));
+                    string tableRoot = ReadTableRoot(table);
                     if (!tables.TryAdd(tableRoot, ReadTablePermissions(table)))
                     {
                         throw new InvalidOperationException(kAmbiguousTableRoot + tableRoot);
@@ -481,13 +511,21 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Builds the name the root fields of a table carry, which Hasura prefixes with the schema for
-        /// every schema but public.
+        /// Builds the name the root fields of a table carry: its custom name or, without one, its name, which
+        /// Hasura prefixes with the schema for every schema but public.
         /// </summary>
         private static string ReadTableRoot(JsonElement table)
         {
-            string schema = table.GetProperty("schema").GetString() ?? "";
-            string name = table.GetProperty("name").GetString() ?? "";
+            if (table.TryGetProperty(kConfigurationProperty, out JsonElement configuration)
+                && configuration.TryGetProperty(kCustomNameProperty, out JsonElement customName)
+                && customName.GetString() is { Length: > 0 } customRoot)
+            {
+                return customRoot;
+            }
+
+            JsonElement identifier = table.GetProperty("table");
+            string schema = identifier.GetProperty("schema").GetString() ?? "";
+            string name = identifier.GetProperty("name").GetString() ?? "";
             return schema == kPublicSchema ? name : $"{schema}_{name}";
         }
 

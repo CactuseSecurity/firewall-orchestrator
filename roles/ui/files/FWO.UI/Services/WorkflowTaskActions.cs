@@ -31,7 +31,10 @@ namespace FWO.Ui.Services
                     || (canChangeTask && wfHandler.CanPerformActionOnActTicket(action)))];
         }
 
-        /// <summary>Performs an action on each target and reloads the ticket afterwards.</summary>
+        /// <summary>
+        /// Performs an action on each target and reloads the ticket afterwards, also if the action fails for a target:
+        /// the targets before it may already be changed and must not be shown (and changed again) in their old state.
+        /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
         /// <param name="action">The action to perform.</param>
         /// <param name="scope">The scope of the targets.</param>
@@ -43,11 +46,18 @@ namespace FWO.Ui.Services
             {
                 return;
             }
-            foreach ((WfStatefulObject task, FwoOwner? owner, long ticketId) in targets)
+            try
             {
-                await wfHandler.ActionHandler.PerformAction(action, task, scope, owner, ticketId);
+                foreach ((WfStatefulObject task, FwoOwner? owner, long ticketId) in targets)
+                {
+                    await wfHandler.ActionHandler.PerformAction(action, task, scope, owner, ticketId);
+                }
             }
-            await wfHandler.ReloadActTicket();
+            finally
+            {
+                // reports its own errors, so the error of the action is not hidden
+                await wfHandler.ReloadActTicket();
+            }
         }
 
         /// <summary>Returns whether the user may change all request tasks of a group (a single task or a bundle displayed as one).</summary>
@@ -89,14 +99,27 @@ namespace FWO.Ui.Services
                 CanChangeImplementationTask(wfHandler, implementationTask, requestTask));
         }
 
-        /// <summary>Performs an action on every request task of a group and reloads the ticket afterwards.</summary>
+        /// <summary>
+        /// Performs an action on every request task of a group and reloads the ticket afterwards. Promoting one task of a
+        /// bundle moves its lagging bundled tasks along, so a task whose state changed while the action ran on the
+        /// previous tasks is skipped instead of being promoted a second time.
+        /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
         /// <param name="action">The action to perform.</param>
         /// <param name="taskGroup">The request tasks: a single task or a bundle displayed as one.</param>
         public static Task PerformOnRequestTasks(WfHandler wfHandler, WfStateAction action, IReadOnlyList<WfReqTask> taskGroup)
         {
-            return Perform(wfHandler, action, WfObjectScopes.RequestTask,
-                taskGroup.Select(task => ((WfStatefulObject)task, task.Owners.FirstOrDefault()?.Owner, task.TicketId)));
+            List<int> initialStateIds = [.. taskGroup.Select(task => task.StateId)];
+            // evaluated lazily while the actions run, so each task is checked right before its action
+            return Perform(wfHandler, action, WfObjectScopes.RequestTask, taskGroup
+                .Where((task, index) => CurrentStateId(wfHandler, task) == initialStateIds[index])
+                .Select(task => ((WfStatefulObject)task, task.Owners.FirstOrDefault()?.Owner, task.TicketId)));
+        }
+
+        /// <summary>The state of a request task in the current ticket, which may hold a replaced instance of the task.</summary>
+        private static int CurrentStateId(WfHandler wfHandler, WfReqTask task)
+        {
+            return wfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == task.Id)?.StateId ?? task.StateId;
         }
 
         /// <summary>Performs an action on an implementation task and reloads the ticket afterwards.</summary>

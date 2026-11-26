@@ -392,28 +392,39 @@ namespace FWO.Ui.Services
             GroupName = element.GroupName
         };
 
+        /// <summary>Returns the management set on the implementation task, or else on its request task; a device does not define it.</summary>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="requestTask">The request task of the implementation task.</param>
         private static int? ConfiguredManagementId(WfImplTask implementationTask, WfReqTask requestTask)
         {
             return implementationTask.ManagementId ?? requestTask.ManagementId;
         }
 
+        /// <summary>Returns the element holding the name of a time object or object task: the time element, or else the first object element.</summary>
+        /// <param name="implementationTask">The implementation task.</param>
         private static WfImplElement? NamedElement(WfImplTask implementationTask)
         {
             return implementationTask.ImplElements.FirstOrDefault(candidate => candidate.Field == ElemFieldType.time.ToString())
                 ?? ElementsForDisplay(implementationTask, ObjectElementField(implementationTask)).FirstOrDefault();
         }
 
+        /// <summary>Returns the ip address, range or network of a network element.</summary>
+        /// <param name="element">The network element.</param>
         private static string NetworkContent(WfImplElement element)
         {
             return NwObjDisplay.DisplayIp(element.IpString ?? element.Cidr?.CidrString, element.IpEnd ?? element.CidrEnd?.CidrString);
         }
 
+        /// <summary>Returns the ip address of a group member, or its name if it has none.</summary>
+        /// <param name="member">The group member.</param>
         private static string NetworkMemberContent(WfReqElement member)
         {
             string ip = NwObjDisplay.DisplayIp(member.IpString, member.IpEnd);
             return string.IsNullOrWhiteSpace(ip) ? member.Name ?? member.GroupName ?? "" : ip;
         }
 
+        /// <summary>Joins the non-empty member values, showing at most the maximum number of elements followed by the count of the others.</summary>
+        /// <param name="values">The displayed values of the group members.</param>
         private static string TruncatedGroupContent(IEnumerable<string> values)
         {
             List<string> content = [.. values.Where(value => !string.IsNullOrWhiteSpace(value))];
@@ -423,6 +434,9 @@ namespace FWO.Ui.Services
                 : result;
         }
 
+        /// <summary>Returns the validity as "begin - end", or only the given one of both.</summary>
+        /// <param name="begin">The formatted begin, or empty.</param>
+        /// <param name="end">The formatted end, or empty.</param>
         private static string Validity(string begin, string end)
         {
             if (string.IsNullOrWhiteSpace(begin))
@@ -433,6 +447,8 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>Finds the members of a group referenced by an element: of the referenced group task or the group task with the same name.</summary>
+        /// <param name="element">The element referencing the group.</param>
+        /// <param name="field">The element field (source, destination or service).</param>
         private List<WfReqElement> FindGroupMembers(WfImplElement element, ElemFieldType field)
         {
             string memberField = field == ElemFieldType.service
@@ -452,6 +468,8 @@ namespace FWO.Ui.Services
                 .ToList() ?? [];
         }
 
+        /// <summary>Returns whether a request task creates or modifies a group.</summary>
+        /// <param name="task">The request task.</param>
         private static bool IsGroupRequestTask(WfReqTask task) => task.TaskType is nameof(WfTaskType.group_create)
             or nameof(WfTaskType.group_modify);
     }

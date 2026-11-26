@@ -106,12 +106,13 @@ namespace FWO.Ui.Services
         public List<PlanningTaskListRow> Build(IEnumerable<List<WfReqTask>> taskGroups, TaskListTable table, PlanningTaskListMode mode)
         {
             List<ApprovalTaskListRow> requestRows = new ApprovalTaskListRowBuilder(context, userConfig, states).Build(taskGroups, table);
+            bool showRequestFreeText = ApprovalTaskListRowBuilder.ShowsRequestFreeText(table, context.Visibility);
             List<PlanningTaskListRow> rows = [];
             foreach (ApprovalTaskListRow requestRow in requestRows)
             {
                 if (mode == PlanningTaskListMode.AllTasks)
                 {
-                    rows.Add(BuildRequestTaskRow(requestRow));
+                    rows.Add(BuildRequestTaskRow(requestRow, showRequestFreeText));
                 }
                 rows.AddRange(ImplementationTasksOf(requestRow.TaskGroup)
                     .Select(owned => BuildImplementationTaskRow(requestRow.TaskGroup, owned.RequestTask, owned.ImplementationTask)));
@@ -141,6 +142,13 @@ namespace FWO.Ui.Services
             return objectVisibility ?? new() { ShowReason = visibility.ShowReason };
         }
 
+        /// <summary>
+        /// Adds the rule columns of the access table; the zone and owner columns hold request-task information only
+        /// and are shown with all tasks.
+        /// </summary>
+        /// <param name="columns">The columns to add to.</param>
+        /// <param name="allTasks">Whether request tasks are shown too.</param>
+        /// <param name="visibility">The configured field visibility of access tasks.</param>
         private static void AddAccessColumns(List<TaskListColumn> columns, bool allTasks, AccessTaskFieldVisibilityConfig visibility)
         {
             AddIf(columns, allTasks, new(ApprovalTaskListRowBuilder.kSourceZone, "source_zone"));
@@ -157,6 +165,13 @@ namespace FWO.Ui.Services
             AddIf(columns, visibility.ShowTracking, new(ApprovalTaskListRowBuilder.kTrack, "track"));
         }
 
+        /// <summary>
+        /// Adds the columns of the address, service and other tables: content only for objects and groups, the zone
+        /// (request-task information only) for addresses with all tasks.
+        /// </summary>
+        /// <param name="columns">The columns to add to.</param>
+        /// <param name="table">The table.</param>
+        /// <param name="allTasks">Whether request tasks are shown too.</param>
         private static void AddObjectColumns(List<TaskListColumn> columns, TaskListTable table, bool allTasks)
         {
             columns.Add(new(ApprovalTaskListRowBuilder.kTaskType, "task_type"));
@@ -168,19 +183,30 @@ namespace FWO.Ui.Services
             columns.Add(new(ApprovalTaskListRowBuilder.kManagement, "management"));
         }
 
-        private PlanningTaskListRow BuildRequestTaskRow(ApprovalTaskListRow requestRow)
+        /// <summary>
+        /// Builds the row of a request task from its approval task list cells. The free text column also holds the free
+        /// text of the implementation tasks, so the free text of the request task stays empty where the approval task
+        /// list view hides it.
+        /// </summary>
+        /// <param name="requestRow">The approval task list row of the request task (or bundle displayed as one).</param>
+        /// <param name="showFreeText">Whether the free text of the request task is shown.</param>
+        private PlanningTaskListRow BuildRequestTaskRow(ApprovalTaskListRow requestRow, bool showFreeText)
         {
             Dictionary<string, TaskListCell> cells = new()
             {
                 [kLevel] = ReadOnly(userConfig.GetText("RequestTask"))
             };
-            foreach (string key in kRequestTaskKeys)
+            foreach (string key in kRequestTaskKeys.Where(key => showFreeText || key != ApprovalTaskListRowBuilder.kFreeText))
             {
                 cells[key] = requestRow.Cell(key);
             }
             return new PlanningTaskListRow(requestRow.Task, null, cells) { TaskGroup = requestRow.TaskGroup };
         }
 
+        /// <summary>Builds the row of an implementation task; management, device, free text and name open their editor if the task may be changed.</summary>
+        /// <param name="taskGroup">The request tasks of the row group, whose ids are shown with only implementation tasks.</param>
+        /// <param name="requestTask">The request task the implementation task belongs to.</param>
+        /// <param name="implementationTask">The implementation task.</param>
         private PlanningTaskListRow BuildImplementationTaskRow(IReadOnlyList<WfReqTask> taskGroup, WfReqTask requestTask, WfImplTask implementationTask)
         {
             bool canEdit = implActions.CanEdit(implementationTask, requestTask);
@@ -205,6 +231,11 @@ namespace FWO.Ui.Services
             return new PlanningTaskListRow(requestTask, implementationTask, cells) { TaskGroup = taskGroup };
         }
 
+        /// <summary>Adds the device of rule implementation tasks and the rule position, action, tracking, source, destination and services of rule tasks.</summary>
+        /// <param name="cells">The cells of the row.</param>
+        /// <param name="requestTask">The request task the implementation task belongs to.</param>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="canEdit">Whether the implementation task may be changed.</param>
         private void AddRuleCells(Dictionary<string, TaskListCell> cells, WfReqTask requestTask, WfImplTask implementationTask, bool canEdit)
         {
             if (PlanningImplTaskDisplayLogic.IsRuleImplementationTask(implementationTask))
@@ -224,6 +255,11 @@ namespace FWO.Ui.Services
             cells[ApprovalTaskListRowBuilder.kService] = Values(implLogic.ServiceDisplayRows(implementationTask));
         }
 
+        /// <summary>Adds the object and content of group and object tasks, and the rule uid of rule delete tasks.</summary>
+        /// <param name="cells">The cells of the row.</param>
+        /// <param name="requestTask">The request task the implementation task belongs to.</param>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="canEdit">Whether the implementation task may be changed.</param>
         private void AddObjectCells(Dictionary<string, TaskListCell> cells, WfReqTask requestTask, WfImplTask implementationTask, bool canEdit)
         {
             Func<Task>? editName = canEdit && PlanningImplTaskDisplayLogic.HasEditableName(implementationTask)
@@ -259,6 +295,8 @@ namespace FWO.Ui.Services
             };
         }
 
+        /// <summary>Returns a read-only cell with one "name (content)" value per element; empty elements are left out.</summary>
+        /// <param name="elements">The displayed elements.</param>
         private static TaskListCell Values(IEnumerable<PlanningImplElementRow> elements) =>
             new([.. elements.Select(NameWithDetail).Where(value => !string.IsNullOrWhiteSpace(value))], null);
 

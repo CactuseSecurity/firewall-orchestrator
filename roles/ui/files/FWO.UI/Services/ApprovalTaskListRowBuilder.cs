@@ -157,8 +157,7 @@ namespace FWO.Ui.Services
             ObjectTaskFieldVisibilityConfig metadataVisibility = MetadataVisibility(table, visibility, objectVisibility);
             AddIf(columns, !isAccess && metadataVisibility.ShowManagement, new(kManagement, "management"));
             AddIf(columns, metadataVisibility.ShowReason, new(kReason, "reason"));
-            AddIf(columns, visibility.ShowFreeText && table is TaskListTable.Access or TaskListTable.Other,
-                new(kFreeText, "free_text"));
+            AddIf(columns, ShowsRequestFreeText(table, visibility), new(kFreeText, "free_text"));
             if (isAccess)
             {
                 AddIf(columns, visibility.ShowTitle, new(kTitle, "title"));
@@ -168,6 +167,14 @@ namespace FWO.Ui.Services
             AddIf(columns, metadataVisibility.ShowHandler, new(kHandler, "handler"));
             AddIf(columns, metadataVisibility.ShowAssigned, new(kAssigned, "assigned"));
             return columns;
+        }
+
+        /// <summary>Returns whether the free text of request tasks is shown in a table: if configured, for access and other tasks.</summary>
+        /// <param name="table">The table.</param>
+        /// <param name="visibility">The configured field visibility.</param>
+        public static bool ShowsRequestFreeText(TaskListTable table, AccessTaskFieldVisibilityConfig visibility)
+        {
+            return visibility.ShowFreeText && table is TaskListTable.Access or TaskListTable.Other;
         }
 
         /// <summary>

@@ -319,6 +319,29 @@ internal sealed class UiPlanningTaskListViewTest
     }
 
     [Test]
+    public async Task PlanningDetailsView_ResetsAlsoIfTheRequestTaskActionFails()
+    {
+        await using BunitContext context = CreateContext();
+        WfHandler handler = CreateHandler();
+        handler.ActionHandler = new ActionHandler(new SimulatedApiConnection(), handler);
+        await handler.ActionHandler.Init([new WfState { Id = 1 }]);
+        int resetCount = 0;
+        IRenderedComponent<PlanningDetailsView> cut = RenderListView(context, handler, () =>
+        {
+            resetCount++;
+            return Task.CompletedTask;
+        });
+        // unparsable parameters make the action fail
+        WfStateAction failingAction = new() { ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "{" };
+        IReadOnlyList<WfReqTask> taskGroup = [handler.ActTicket.Tasks[0]];
+
+        Assert.ThrowsAsync<System.Text.Json.JsonException>(() => cut.InvokeAsync(() =>
+            UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "PerformRequestTaskGroupAction", taskGroup, failingAction)));
+
+        Assert.That(resetCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task PlanningDetailsView_ListViewSavesEditedImplementationTask()
     {
         await using BunitContext context = CreateContext();

@@ -74,12 +74,14 @@
         }
     }
 
+    /// <summary>Returns the visible columns of a table for the current mode and the configured field visibility.</summary>
     private List<TaskListColumn> VisibleColumns(TaskListTable table, List<List<WfReqTask>> taskGroups)
     {
         return PlanningTaskListRowBuilder.VisibleColumns(table, mode, Context.Visibility,
             ApprovalTaskListRowBuilder.ObjectVisibilityFor(table, taskGroups, Context.ObjectVisibility));
     }
 
+    /// <summary>Creates the row builder; editable cells of implementation tasks open the editors of this view.</summary>
     private PlanningTaskListRowBuilder CreateRowBuilder()
     {
         PlanningImplTaskListActions implActions = new()
@@ -103,11 +105,13 @@
         ? "planning_list_show_impl_tasks"
         : "planning_list_show_all_tasks";
 
+    /// <summary>Switches between all tasks and only implementation tasks.</summary>
     private void ToggleMode()
     {
         mode = mode == PlanningTaskListMode.AllTasks ? PlanningTaskListMode.ImplementationTasks : PlanningTaskListMode.AllTasks;
     }
 
+    /// <summary>Returns whether a row offers actions: a configured action, or creating (request task) or deleting (implementation task) an implementation task.</summary>
     private bool HasActions(PlanningTaskListRow row) => row.ImplementationTask is WfImplTask implementationTask
         ? CanEditImplementationTask(implementationTask, row.RequestTask)
             || WorkflowTaskActions.VisibleForImplementationTask(WfHandler, implementationTask, row.RequestTask).Count > 0
@@ -145,16 +149,24 @@
             }
         </text>;
 
-    /// <summary>Performs a configured action on an implementation task, then reloads the ticket and resets the parent.</summary>
+    /// <summary>Performs a configured action on an implementation task, then reloads the ticket and resets the parent, also if the action fails.</summary>
     private async Task PerformImplementationTaskAction(WfReqTask requestTask, WfImplTask implementationTask, WfStateAction action)
     {
-        await WorkflowTaskActions.PerformOnImplementationTask(WfHandler, action, implementationTask, requestTask);
-        await ResetParent();
+        try
+        {
+            await WorkflowTaskActions.PerformOnImplementationTask(WfHandler, action, implementationTask, requestTask);
+        }
+        finally
+        {
+            await ResetParent();
+        }
     }
 
+    /// <summary>Returns whether the user may change an implementation task and its request task.</summary>
     private bool CanEditImplementationTask(WfImplTask implementationTask, WfReqTask requestTask) =>
         WorkflowTaskActions.CanChangeImplementationTask(WfHandler, implementationTask, requestTask);
 
+    /// <summary>Saves the implementation task changed in an editor and resets the parent.</summary>
     private async Task SaveImplementationTask()
     {
         await WfHandler.ChangeImplTask();

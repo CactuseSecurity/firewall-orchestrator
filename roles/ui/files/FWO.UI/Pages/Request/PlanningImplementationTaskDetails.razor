@@ -353,11 +353,17 @@
         WorkflowTaskActions.Buttons(WorkflowTaskActions.VisibleForImplementationTask(WfHandler, implementationTask, RequestTask),
             action => PerformImplementationTaskAction(implementationTask, action));
 
-    /// <summary>Performs a configured action on an implementation task, then reloads the ticket and resets the parent.</summary>
+    /// <summary>Performs a configured action on an implementation task, then reloads the ticket and resets the parent, also if the action fails.</summary>
     private async Task PerformImplementationTaskAction(WfImplTask implementationTask, WfStateAction action)
     {
-        await WorkflowTaskActions.PerformOnImplementationTask(WfHandler, action, implementationTask, RequestTask);
-        await ResetParent();
+        try
+        {
+            await WorkflowTaskActions.PerformOnImplementationTask(WfHandler, action, implementationTask, RequestTask);
+        }
+        finally
+        {
+            await ResetParent();
+        }
     }
 
     private string RuleActionName(WfImplTask implementationTask) => ImplLogic.RuleActionName(implementationTask);

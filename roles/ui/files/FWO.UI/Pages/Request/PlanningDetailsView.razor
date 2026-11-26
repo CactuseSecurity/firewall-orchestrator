@@ -196,11 +196,20 @@
         WorkflowTaskActions.Buttons(WorkflowTaskActions.VisibleForRequestTasks(WfHandler, taskGroup),
             action => PerformRequestTaskGroupAction(taskGroup, action));
 
-    /// <summary>Performs a configured action on all tasks of a bundle displayed as one, then reloads the ticket and resets the view.</summary>
+    /// <summary>
+    /// Performs a configured action on all tasks of a bundle displayed as one, then reloads the ticket and resets the view,
+    /// also if the action fails for a task after changing the previous ones.
+    /// </summary>
     private async Task PerformRequestTaskGroupAction(IReadOnlyList<WfReqTask> taskGroup, WfStateAction action)
     {
-        await WorkflowTaskActions.PerformOnRequestTasks(WfHandler, action, taskGroup);
-        await Reset();
+        try
+        {
+            await WorkflowTaskActions.PerformOnRequestTasks(WfHandler, action, taskGroup);
+        }
+        finally
+        {
+            await Reset();
+        }
     }
 
     private async Task Reset()
@@ -269,33 +278,33 @@
         builder.CloseElement();
         if (taskGroup.Count > 1)
         {
-            builder.OpenElement(24, "span");
-            builder.AddAttribute(25, "class", "badge badge-secondary");
-            builder.AddContent(26, taskGroup.Count);
+            builder.OpenElement(9, "span");
+            builder.AddAttribute(10, "class", "badge badge-secondary");
+            builder.AddContent(11, taskGroup.Count);
             builder.CloseElement();
         }
-        builder.OpenElement(9, "span");
-        builder.AddAttribute(10, "class", "ms-auto");
-        builder.AddContent(11, States.GetName(requestTask.StateId));
+        builder.OpenElement(12, "span");
+        builder.AddAttribute(13, "class", "ms-auto");
+        builder.AddContent(14, States.GetName(requestTask.StateId));
         builder.CloseElement();
-        builder.OpenElement(12, "button");
-        builder.AddAttribute(13, "type", "button");
-        builder.AddAttribute(14, "class", "btn btn-sm btn-light ml-2");
-        builder.AddAttribute(15, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+        builder.OpenElement(15, "button");
+        builder.AddAttribute(16, "type", "button");
+        builder.AddAttribute(17, "class", "btn btn-sm btn-light ml-2");
+        builder.AddAttribute(18, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
             () => ToggleRequestTaskDetails(requestTask)));
-        builder.AddEventStopPropagationAttribute(16, "onclick", true);
-        builder.AddContent(17, DisplayService.DisplayButton(userConfig, "details",
+        builder.AddEventStopPropagationAttribute(19, "onclick", true);
+        builder.AddContent(20, DisplayService.DisplayButton(userConfig, "details",
             RequestTaskDetailsExpanded(requestTask) ? Icons.CollapseUp : Icons.CollapseDown));
         builder.CloseElement();
         if (WorkflowTaskActions.CanChangeRequestTasks(WfHandler, taskGroup))
         {
-            builder.OpenElement(18, "button");
-            builder.AddAttribute(19, "type", "button");
-            builder.AddAttribute(20, "class", "btn btn-sm btn-success ml-2");
-            builder.AddAttribute(21, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+            builder.OpenElement(21, "button");
+            builder.AddAttribute(22, "type", "button");
+            builder.AddAttribute(23, "class", "btn btn-sm btn-success ml-2");
+            builder.AddAttribute(24, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
                 () => OpenImplementationTaskCreation(TaskBundleHelper.CreationRequestTask(taskGroup))));
-            builder.AddEventStopPropagationAttribute(22, "onclick", true);
-            builder.AddContent(23, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
+            builder.AddEventStopPropagationAttribute(25, "onclick", true);
+            builder.AddContent(26, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
                 userConfig.GetText("implementation")));
             builder.CloseElement();
         }

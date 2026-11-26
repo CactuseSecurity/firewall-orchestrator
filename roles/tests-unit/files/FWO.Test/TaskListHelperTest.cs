@@ -1,4 +1,6 @@
+using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Services;
 using FWO.Services.Workflow;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components;
@@ -11,6 +13,7 @@ namespace FWO.Test;
 internal sealed class TaskListHelperTest
 {
     private static readonly List<string> kValuesWithBlanks = ["a", " ", "b", "a", ""];
+    private static readonly List<int> kOncePromotedStates = [2, 2];
 
     [Test]
     public void Values_DropEmptyAndDuplicateValues()
@@ -171,6 +174,73 @@ internal sealed class TaskListHelperTest
             Assert.That(handler.ActTicket, Is.SameAs(ticket));
             Assert.That(WorkflowTaskActions.VisibleForImplementationTask(handler, implementationTask, requestTask), Is.Empty);
         });
+    }
+
+    [Test]
+    public async Task PerformOnRequestTasks_PromotesBundleOnlyOnce()
+    {
+        string taskType = WfTaskType.access.ToString();
+        StateMatrix matrix = new()
+        {
+            LowestInputState = 0,
+            LowestStartedState = 2,
+            LowestEndState = 5,
+            Matrix = new() { [0] = [2], [2] = [3] }
+        };
+        WfReqTask first = new() { Id = 7, TicketId = 1, TaskType = taskType, StateId = 0 };
+        WfReqTask second = new() { Id = 8, TicketId = 1, TaskType = taskType, StateId = 0 };
+        first.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+        second.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+        WfTicket ticket = new() { Id = 1, Tasks = [first, second] };
+        WfHandler handler = new()
+        {
+            ActTicket = ticket,
+            userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+            MasterStateMatrix = matrix,
+            ActStateMatrix = matrix
+        };
+        handler.TicketList.Add(ticket);
+        UiRequestWorkflowTest.SetMatrix(handler, taskType, matrix);
+        handler.ActionHandler = new ActionHandler(new SimulatedApiConnection(), handler);
+        // without a target state, auto promotion uses the next allowed transition
+        WfStateAction autoPromote = new() { ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "" };
+
+        await WorkflowTaskActions.PerformOnRequestTasks(handler, autoPromote, [first, second]);
+
+        // the second task is moved along with the first one and must not be promoted again to state 3
+        Assert.That(handler.ActTicket.Tasks.Select(task => task.StateId), Is.EqualTo(kOncePromotedStates));
+    }
+
+    [Test]
+    public void PerformOnRequestTasks_ReloadsTicketAlsoIfTheActionFails()
+    {
+        WfTicket reloadedTicket = new() { Id = 1, Title = "reloaded" };
+        TicketReloadApiConn apiConnection = new() { Ticket = reloadedTicket };
+        SimulatedUserConfig userConfig = new();
+        WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConnection, null!, WorkflowPhases.planning);
+        handler.ActionHandler = new ActionHandler(apiConnection, handler);
+        typeof(WfHandler).GetField("dbAcc", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .SetValue(handler, new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
+        WfReqTask requestTask = new() { Id = 7, TicketId = 1, TaskType = WfTaskType.access.ToString() };
+        handler.ActTicket = new WfTicket { Id = 1, Title = "stale", Tasks = [requestTask] };
+        // unparsable parameters make the action fail
+        WfStateAction failingAction = new() { ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "{" };
+
+        Assert.ThrowsAsync<System.Text.Json.JsonException>(() => WorkflowTaskActions.PerformOnRequestTasks(handler, failingAction, [requestTask]));
+
+        Assert.That(handler.ActTicket.Title, Is.EqualTo("reloaded"));
+    }
+
+    private sealed class TicketReloadApiConn : SimulatedApiConnection
+    {
+        public WfTicket Ticket { get; set; } = new();
+
+        public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+        {
+            return query == FWO.Api.Client.Queries.RequestQueries.getTicketById
+                ? Task.FromResult((T)(object)Ticket)
+                : throw new NotImplementedException($"Unexpected query: {query}");
+        }
     }
 
     [Test]

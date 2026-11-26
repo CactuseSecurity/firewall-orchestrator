@@ -231,6 +231,31 @@ internal sealed class PlanningTaskListRowBuilderTest
     }
 
     [Test]
+    public void Build_RequestTaskFreeTextFollowsTheApprovalListVisibility()
+    {
+        WfImplTask implTask = AccessImplTask(71, 7);
+        implTask.FreeText = "impl text";
+        WfReqTask requestTask = AccessRequestTask(7, [implTask]);
+        requestTask.FreeText = "request text";
+
+        List<PlanningTaskListRow> shown = CreateBuilder([requestTask], false, new AccessTaskFieldVisibilityConfig { ShowFreeText = true })
+            .Build(Singles(requestTask), TaskListTable.Access, PlanningTaskListMode.AllTasks);
+        List<PlanningTaskListRow> hidden = CreateBuilder([requestTask], false, new AccessTaskFieldVisibilityConfig { ShowFreeText = false })
+            .Build(Singles(requestTask), TaskListTable.Access, PlanningTaskListMode.AllTasks);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shown[0].Cell(ApprovalTaskListRowBuilder.kFreeText).Text, Is.EqualTo("request text"));
+            Assert.That(hidden[0].Cell(ApprovalTaskListRowBuilder.kFreeText).Values, Is.Empty);
+            // the implementation tasks keep their own free text
+            Assert.That(hidden[1].Cell(ApprovalTaskListRowBuilder.kFreeText).Text, Is.EqualTo("impl text"));
+            // as in the approval task list view, object tables never show the free text of request tasks
+            Assert.That(ApprovalTaskListRowBuilder.ShowsRequestFreeText(TaskListTable.Address, new AccessTaskFieldVisibilityConfig { ShowFreeText = true }), Is.False);
+            Assert.That(ApprovalTaskListRowBuilder.ShowsRequestFreeText(TaskListTable.Other, new AccessTaskFieldVisibilityConfig { ShowFreeText = true }), Is.True);
+        });
+    }
+
+    [Test]
     public void Build_RuleDeleteImplementationTaskShowsRuleUid()
     {
         WfImplTask ruleDelete = new()
@@ -285,7 +310,7 @@ internal sealed class PlanningTaskListRowBuilderTest
         };
     }
 
-    private PlanningTaskListRowBuilder CreateBuilder(List<WfReqTask> tasks, bool canEdit)
+    private PlanningTaskListRowBuilder CreateBuilder(List<WfReqTask> tasks, bool canEdit, AccessTaskFieldVisibilityConfig? visibility = null)
     {
         SimulatedUserConfig userConfig = new();
         Management management = new() { Id = 4, Name = "Management A" };
@@ -297,7 +322,7 @@ internal sealed class PlanningTaskListRowBuilderTest
         };
         ApprovalTaskDisplayLogic displayLogic = new(handler, userConfig, kRuleActions, kTrackings, kProtocols, kNoZones,
             ApprovalTaskElementDisplayMode.Resolved);
-        ApprovalTaskViewContext context = new(displayLogic, new AccessTaskFieldVisibilityConfig(), kProtocols, new ApprovalTaskViewActions());
+        ApprovalTaskViewContext context = new(displayLogic, visibility ?? new AccessTaskFieldVisibilityConfig(), kProtocols, new ApprovalTaskViewActions());
         PlanningImplTaskListActions implActions = new()
         {
             CanEdit = (_, _) => canEdit,

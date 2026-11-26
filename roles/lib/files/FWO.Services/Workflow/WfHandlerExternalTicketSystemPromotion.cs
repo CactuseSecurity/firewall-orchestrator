@@ -4,8 +4,8 @@ using FWO.Logging;
 namespace FWO.Services.Workflow
 {
     /// <summary>
-    /// Promotes the request tasks handed to an external ticket system past the planning in the action "Prepare
-    /// implementation": they get no implementation tasks, as the external ticket system plans them itself, so nobody
+    /// Promotes the request tasks handed to an external ticket system past the planning in the action "Create
+    /// implementation tasks": they get no implementation tasks, as the external ticket system plans them itself, so nobody
     /// would plan them in FWO and they would hold the ticket in the planning.
     /// </summary>
     public partial class WfHandler

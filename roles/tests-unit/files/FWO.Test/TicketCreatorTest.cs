@@ -22,7 +22,11 @@ namespace FWO.Test
     {
         private static readonly string[] kExpectedRuleUids = ["rule-1", "rule-2"];
 
-        private sealed class TicketCreatorTestApiConn : SimulatedApiConnection
+        /// <summary>
+        /// Answers the queries of a ticket creation. Internal and inheritable, so tests of components that create tickets
+        /// can add the answers to their own queries.
+        /// </summary>
+        internal class TicketCreatorTestApiConn : SimulatedApiConnection
         {
             private long nextId = 100;
             private WfTicket lastCreatedTicket = new();

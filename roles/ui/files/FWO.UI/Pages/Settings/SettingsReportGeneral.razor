@@ -37,7 +37,7 @@
         </div>
     }
     <form onsubmit="return false">
-        <SettingsRow LabelKey="default_rules_view" TooltipKey="H5460" LabelFor="defaultRulesView">
+        <SettingsRow LabelKey="default_rules_view" TooltipKey="H5460" LabelFor="dropdown-input-defaultRulesView">
             <div class="settings-input-md">
                 <RulesViewSelect Id="defaultRulesView" @bind-ManagementRulebaseView="configData!.DefaultManagementRulebaseView" />
             </div>
@@ -90,14 +90,9 @@
             else if (availableRoles.Count > 0)
             {
                 <div class="settings-subgrid">
-                    <label for="reportTypeVisibilityRole">@(userConfig.GetText("role")):</label>
-                    <select id="reportTypeVisibilityRole" class="form-select form-select-sm settings-input-md" @bind="selectedRole">
-                        <option value=""></option>
-                        @foreach (string role in availableRoles)
-                        {
-                            <option value="@role">@role</option>
-                        }
-                    </select>
+                    <label for="dropdown-input-reportTypeVisibilityRole">@(userConfig.GetText("role")):</label>
+                    <Dropdown Id="reportTypeVisibilityRole" ElementType="string" @bind-SelectedElement="selectedRole"
+                              Elements="availableRoles" ElementToString="@(role => role)" Nullable="true" />
                     @if (!string.IsNullOrEmpty(selectedRole) && reportTypeVisibilityByRole.TryGetValue(selectedRole, out Dictionary<ReportType, ReportTypeVisibilityOption>? visibilityForRole))
                     {
                         @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
@@ -162,7 +157,7 @@ else
     private bool ShowMigrateSchedulerConfigDialog;
     private List<string> availableRoles = [];
     private bool rolesLoaded = false;
-    private string selectedRole = "";
+    private string? selectedRole;
     private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> reportTypeVisibilityByRole = [];
 
     /// <summary>
@@ -193,7 +188,7 @@ else
 
             availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name)
                 .Where(n => !RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
-            selectedRole = "";
+            selectedRole = null;
             savedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(configData.ReportTypeVisibilityByRole);
             reportTypeVisibilityByRole = BuildReportTypeVisibilityByRole(availableRoles, savedReportTypeVisibilityByRole);
             if (availableRoles.Count == 0)

@@ -1,9 +1,15 @@
+using Bunit;
+using FWO.Api.Client;
+using FWO.Config.Api;
 using System.Reflection;
 using System.Text.Json;
 using System.Linq;
 using FWO.Config.Api.Data;
 using FWO.Data.Enums;
+using FWO.Ui.Services;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -25,6 +31,29 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<List<string>>(component, "pathsToAdd"), Has.One.EqualTo("/usr/local/fworch/scripts/customizing/log_data_import/import_log_data_from_git.py"));
                 Assert.That(GetPrivateField<string>(component, "activePath"), Is.Empty);
             });
+        }
+
+        [Test]
+        public async Task SettingsLogging_RendersImportAndDefaultRangeSelectors()
+        {
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+
+            IRenderedComponent<SettingsLogging> rendered = context.Render<SettingsLogging>();
+
+            Assert.That(rendered.FindComponents<Dropdown<LogDataImportIntervalUnit>>(), Has.Count.EqualTo(1));
+            Assert.That(rendered.FindComponents<Dropdown<LogTimeRangeUnit>>(), Has.Count.EqualTo(1));
+            rendered.FindComponent<Dropdown<LogDataImportIntervalUnit>>().Find("input").Focus();
+            Assert.That(rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Minuten"));
+            rendered.FindComponent<Dropdown<LogTimeRangeUnit>>().Find("input").Focus();
+            Assert.That(rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Wochen"));
         }
 
         [Test]
@@ -125,6 +154,34 @@ namespace FWO.Test
             InvokePrivateMethod("ApplyLogTimeRange", component);
 
             Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(129600));
+        }
+
+        [Test]
+        public void ApplyLogTimeRangeUnit_UpdatesUnitAndRecalculatesSeconds()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            SetPrivateField(component, "logTimeRangeValue", 2);
+            SetPrivateField(component, "logTimeRangeUnit", LogTimeRangeUnit.Days);
+
+            InvokePrivateMethodWithUnit("ApplyLogTimeRangeUnit", component, LogTimeRangeUnit.Hours);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<LogTimeRangeUnit>(component, "logTimeRangeUnit"), Is.EqualTo(LogTimeRangeUnit.Hours));
+                Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(7200));
+            });
+        }
+
+        [Test]
+        public void ApplyLogTimeRangeUnit_DoesNothingWhenUnitIsUnchanged()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            SetPrivateField(component, "logTimeRangeUnit", LogTimeRangeUnit.Days);
+            GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds = 123;
+
+            InvokePrivateMethodWithUnit("ApplyLogTimeRangeUnit", component, LogTimeRangeUnit.Days);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(123));
         }
 
         [Test]
@@ -265,6 +322,14 @@ namespace FWO.Test
             MethodInfo method = typeof(SettingsLogging).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(SettingsLogging).FullName, methodName);
             method.Invoke(component, null);
+        }
+
+        private static void InvokePrivateMethodWithUnit(string methodName, SettingsLogging component, LogTimeRangeUnit unit)
+        {
+            MethodInfo method = typeof(SettingsLogging).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(SettingsLogging).FullName, methodName);
+            object?[] parameters = [unit];
+            method.Invoke(component, parameters);
         }
 
         private static async Task InvokePrivateMethodAsync(string methodName, object component)

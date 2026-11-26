@@ -29,5 +29,6 @@ query getNotifications ($client: String! ){
     last_sent
     logging
     active
+    email_priority
   }
 }

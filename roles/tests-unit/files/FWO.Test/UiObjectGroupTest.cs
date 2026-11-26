@@ -95,5 +95,32 @@ namespace FWO.Test
             Assert.That(cut.Markup, Does.Contain("Owner A"));
             Assert.That(cut.Markup, Does.Contain("Owner B"));
         }
+
+        [Test]
+        public void ShowsIpOfNamelessNetworkObjects()
+        {
+            const string kPayload = "<img src=x onerror=console.log(1)>\"'&amp;";
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            Services.AddScoped(_ => JSInterop.JSRuntime);
+            Services.AddLocalization();
+
+            List<NetworkObject> networkObjects =
+            [
+                new() { Id = 1, Name = "", IP = "3.4.5.6/32", IpEnd = "3.4.5.6/32" },
+                new() { Id = 2, Name = kPayload, IP = "150.0.7.70/32", IpEnd = "150.0.7.70/32" }
+            ];
+
+            IRenderedComponent<ObjectGroup<OwnerConnectionReport>> cut = Render<ObjectGroup<OwnerConnectionReport>>(parameters => parameters
+                .Add(p => p.Tab, RsbTab.usedObj)
+                .Add(p => p.PageSize, 0)
+                .Add(p => p.StartCollapsed, false)
+                .Add(p => p.Content, new OwnerConnectionReport { Name = "Owner A" })
+                .Add(p => p.NameExtractor, ownerReport => ownerReport.Name)
+                .Add(p => p.NetworkObjectExtractor, _ => networkObjects));
+
+            Assert.That(cut.Find("b[id$='nwobj0x1']").TextContent, Is.EqualTo("3.4.5.6"));
+            Assert.That(cut.Find("b[id$='nwobj0x2']").TextContent, Is.EqualTo(kPayload));
+            Assert.That(cut.FindAll("img[onerror]"), Is.Empty);
+        }
     }
 }

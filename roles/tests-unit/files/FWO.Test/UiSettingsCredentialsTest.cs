@@ -12,6 +12,7 @@ using FWO.Middleware.Server;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -34,7 +35,6 @@ namespace FWO.Test
     {
         private const string kSettingsLevel = "Global";
         private static readonly List<int> kRemainingCredentialIds = [1, 3];
-        private static readonly List<string> kAdditionalCredentialChoices = ["", "3"];
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
@@ -323,8 +323,19 @@ namespace FWO.Test
 
             setup.Rendered.FindAll("button").First(button => button.TextContent.Trim() == "Edit").Click();
 
-            Assert.That(setup.Rendered.FindAll("#additionalCredential option").Select(option => option.GetAttribute("value")),
-                Is.EquivalentTo(kAdditionalCredentialChoices));
+            Dropdown<int?> additionalCredentialDropdown = setup.Rendered.FindComponent<Dropdown<int?>>().Instance;
+            List<int?> expectedCredentialIds = [3];
+            Assert.Multiple(() =>
+            {
+                Assert.That(additionalCredentialDropdown.NoneSelectedText, Is.EqualTo("None"));
+                Assert.That(additionalCredentialDropdown.Elements, Is.EquivalentTo(expectedCredentialIds));
+                Assert.That(setup.Rendered.Find("label[for='dropdown-input-additionalCredential']"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("#dropdown-input-additionalCredential"), Is.Not.Null);
+            });
+            setup.Rendered.FindComponent<Dropdown<int?>>().Find("input").Focus();
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("cred-three"));
+            Assert.That(additionalCredentialDropdown.ElementToString(99), Is.Empty);
         }
 
         /// <summary>

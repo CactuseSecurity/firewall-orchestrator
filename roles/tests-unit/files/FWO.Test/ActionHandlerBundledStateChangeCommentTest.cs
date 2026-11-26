@@ -17,6 +17,8 @@ namespace FWO.Test
     internal partial class ActionHandlerTest
     {
         private const string kBundledComment = "approved with <conditions>";
+        private const string kBundledConnectionTitle = "billing-db-access";
+        private const string kCallerContent = "free text of the caller";
 
         private static WfStateAction BundlingEmailAction()
         {
@@ -41,6 +43,30 @@ namespace FWO.Test
             return new WfReqTask { Id = id, TicketId = 7, TaskType = WfTaskType.access.ToString(), TaskNumber = taskNumber, StateId = 60 };
         }
 
+        /// <summary>
+        /// Request task of the bundled email, with a connection that can be recognized in the email body.
+        /// </summary>
+        private static WfReqTask BundledConnectionTask()
+        {
+            WfReqTask task = BundledAccessTask(11, 1);
+            task.Title = kBundledConnectionTitle;
+            task.RequestAction = RequestAction.create.ToString();
+            task.Elements =
+            [
+                new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "billing-app", IpString = "10.9.9.1/32" },
+                new WfReqElement { Field = ElemFieldType.destination.ToString(), Name = "billing-db", IpString = "10.9.9.2/32" }
+            ];
+            return task;
+        }
+
+        /// <summary>
+        /// Message data of the recorded email without the soft line breaks of its quoted-printable encoding.
+        /// </summary>
+        private static string ReadableMessage(RecordingSmtpServer server)
+        {
+            return server.Data.Replace("=\r\n", "").Replace("=\n", "");
+        }
+
         [Test]
         public async Task FlushEmailBundleCollector_SendsTheStateChangeCommentTheEmailWasCapturedWith()
         {
@@ -55,12 +81,12 @@ namespace FWO.Test
                         NotificationClient = NotificationClient.WfAction,
                         Layout = NotificationLayout.HtmlInBody,
                         EmailSubject = $"Promoted: {Placeholder.STATECHANGE_COMMENT}",
-                        EmailBody = $"<p>Comment: {Placeholder.STATECHANGE_COMMENT}</p>",
+                        EmailBody = $"<p>Comment: {Placeholder.STATECHANGE_COMMENT}</p>{Placeholder.CONTENT}",
                         RecipientTo = EmailRecipientOption.OtherAddresses,
                         EmailAddressTo = "to@example.test"
                     }
                 ],
-                FullTicket = CreateTicket(BundledAccessTask(11, 1))
+                FullTicket = CreateTicket(BundledConnectionTask())
             };
             apiConn.FullTicket.Id = 7;
             SimulatedUserConfig userConfig = new()
@@ -77,7 +103,9 @@ namespace FWO.Test
             await capturingHandler.Init();
             using (capturingWfHandler.BeginStateChangeComment(kBundledComment))
             {
-                await capturingHandler.SendEmail(BundlingEmailAction(), BundledAccessTask(11, 1), WfObjectScopes.RequestTask, null);
+                // the caller content must not replace the generated list of the requested connections
+                await capturingHandler.SendEmail(BundlingEmailAction(), BundledConnectionTask(), WfObjectScopes.RequestTask, null,
+                    placeholderData: new NotificationPlaceholderData { Content = kCallerContent });
             }
             Assert.That(collector.PendingItems, Has.Count.EqualTo(1), "the email must be captured, not sent at once");
 
@@ -89,11 +117,15 @@ namespace FWO.Test
             await flushingHandler.FlushEmailBundleCollector();
             await server.WaitForSessionEnd();
 
+            string message = ReadableMessage(server);
             Assert.Multiple(() =>
             {
                 Assert.That(collector.PendingItems, Is.Empty);
-                Assert.That(server.Data, Does.Contain($"Subject: Promoted: {kBundledComment}"));
-                Assert.That(server.Data, Does.Contain("Comment: approved with &lt;conditions&gt;"));
+                Assert.That(message, Does.Contain($"Subject: Promoted: {kBundledComment}"));
+                Assert.That(message, Does.Contain("Comment: approved with &lt;conditions&gt;"));
+                Assert.That(message, Does.Contain(kBundledConnectionTitle), "the body keeps the requested connection");
+                Assert.That(message, Does.Contain("billing-db"));
+                Assert.That(message, Does.Not.Contain(kCallerContent));
             });
         }
 
@@ -136,6 +168,24 @@ namespace FWO.Test
                 Assert.That(collector.PendingItems[0].PlaceholderData?.StateChangeComment, Is.EqualTo("approved"));
                 Assert.That(collector.PendingItems[0].PlaceholderData?.Reason, Is.EqualTo("reason"));
                 Assert.That(collector.PendingItems[0].BundleKey, Is.EqualTo(originalBundleKey));
+            });
+        }
+
+        [Test]
+        public void WorkflowEmailBundleCollector_KeepsTheCommentButNotTheCallerContent()
+        {
+            WorkflowEmailBundleCollector collector = new();
+
+            collector.TryAdd(BundlingEmailAction(), BundledAccessTask(11, 1), null, null,
+                new NotificationPlaceholderData { StateChangeComment = "approved", Content = "first text" });
+            collector.TryAdd(BundlingEmailAction(), BundledAccessTask(12, 2), null, null,
+                new NotificationPlaceholderData { StateChangeComment = "approved", Content = "second text" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(collector.PendingItems.Select(item => item.PlaceholderData?.StateChangeComment), Has.All.EqualTo("approved"));
+                Assert.That(collector.PendingItems.Select(item => item.PlaceholderData?.Content), Has.All.Empty);
+                Assert.That(collector.PendingItems[1].BundleKey, Is.EqualTo(collector.PendingItems[0].BundleKey), "differing caller content does not split the bundle");
             });
         }
 

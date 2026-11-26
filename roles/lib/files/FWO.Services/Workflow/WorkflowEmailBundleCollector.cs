@@ -119,7 +119,9 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Copy of the placeholder values the email was triggered with, e.g. the comment of the state change. The
-        /// bundle is flushed by a later request without that state change, so these values are kept here.
+        /// bundle is flushed by a later request without that state change, so these values are kept here. The free
+        /// text content of the caller is not kept: a bundled email shows the generated list of the requested
+        /// connections, which caller content would replace.
         /// </summary>
         public NotificationPlaceholderData? PlaceholderData { get; }
 
@@ -144,8 +146,24 @@ namespace FWO.Services.Workflow
             RequestTask = new WfReqTask(requestTask);
             Owner = owner;
             UserGrpDn = userGrpDn;
-            PlaceholderData = placeholderData?.Copy();
+            PlaceholderData = WithoutCallerContent(placeholderData);
             BundleKey = BuildBundleKey(Action, RequestTask, Owner, UserGrpDn, PlaceholderData);
+        }
+
+        /// <summary>
+        /// Copies the placeholder values without the free text content of the caller. Only emails with the requested
+        /// connections are bundled, and a non-empty caller content would replace that generated list in the body.
+        /// </summary>
+        /// <param name="placeholderData">Placeholder values the email was triggered with, if any</param>
+        /// <returns>The copied values without content; null if there are none</returns>
+        private static NotificationPlaceholderData? WithoutCallerContent(NotificationPlaceholderData? placeholderData)
+        {
+            NotificationPlaceholderData? copy = placeholderData?.Copy();
+            if (copy != null)
+            {
+                copy.Content = "";
+            }
+            return copy;
         }
 
         /// <summary>

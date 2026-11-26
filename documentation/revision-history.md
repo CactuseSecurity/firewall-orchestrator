@@ -8,7 +8,7 @@
 - notifications: new placeholder `@@STATECHANGE_COMMENT@@` for workflow emails (subject and body) with the comment or reason entered together with the triggering state change
   - filled with the reason for rejecting an interface (reject popup in modelling, rejecting removed or orphaned requested interfaces), the comment of an approval and the comment of a ticket promotion
   - also available for actions executed in the middleware and for automatic promotions triggered by the state change
-  - also available in bundled request task emails (requested connections with bundling of the same task type): a captured email keeps its placeholder values until the bundle is sent, and emails with different values are sent separately instead of being merged
+  - also available in bundled request task emails (requested connections with bundling of the same task type): a captured email keeps its placeholder values until the bundle is sent, except free text content of the caller, so the email still lists the requested connections; emails with different values are sent separately instead of being merged
   - `@@REASON@@` remains the reason of the request; `@@CONTENT@@` is unchanged
   - an interface rejection reason is no longer appended to the end of the email body when the body already shows it via `@@STATECHANGE_COMMENT@@`
 - REST API: `owners/get` accepts the optional `exactMatch` flag (#5833); when `true`, plain text in the `name` and `appIdExternal` filters must match the whole value (case-insensitive) instead of being matched as contains; a blank text filter combined with `exactMatch` is rejected with 400

@@ -33,7 +33,7 @@ namespace FWO.Middleware.Client
         public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/", checkCertificates: true)
         { }
 
-        public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
+        public virtual async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
             RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(parameters);
@@ -89,7 +89,7 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
+        public virtual async Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
         {
             RestRequest request = new("Role", Method.Get);
             return await restClient.ExecuteAsync<List<RoleGetReturnParameters>>(request);
@@ -354,13 +354,13 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<RestResponse<ComplianceCheckStartResult>> StartComplianceCheck()
+        public virtual async Task<RestResponse<ComplianceCheckStartResult>> StartComplianceCheck()
         {
             RestRequest request = new("Compliance/ComplianceCheck/Start", Method.Post);
             return await restClient.ExecuteAsync<ComplianceCheckStartResult>(request);
         }
 
-        public async Task<RestResponse<ComplianceCheckJobStatus>> GetComplianceCheckStatus(string jobId)
+        public virtual async Task<RestResponse<ComplianceCheckJobStatus>> GetComplianceCheckStatus(string jobId)
         {
             RestRequest request = new($"Compliance/ComplianceCheck/Status/{jobId}", Method.Get);
             return await restClient.ExecuteAsync<ComplianceCheckJobStatus>(request);

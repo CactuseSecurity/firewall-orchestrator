@@ -66,25 +66,27 @@
             <div class="form-group row mb-2">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
                 <div class="col-sm-9">
-                    <select class="form-select form-select-sm" @bind="editGroup.Phase">
-                        <option value="">@(userConfig.GetText("all"))</option>
-                        @foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
-                        {
-                            <option value="@phase.ToString()">@(userConfig.GetText(phase.ToString()))</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="string" @bind-SelectedElement="editGroup.Phase"
+                              Elements="Enum.GetValues<WorkflowPhases>().Select(phase => phase.ToString())"
+                              ElementToString="@(phase => userConfig.GetText(phase))"
+                              NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true">
+                        <ElementTemplate Context="phase">
+                            @(userConfig.GetText(phase))
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row mb-3">
                 <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("visibility_group")):</label>
                 <div class="col-sm-9">
-                    <select class="form-select form-select-sm" @bind="editGroup.VisibilityGroupId">
-                        <option value="">-</option>
-                        @foreach (WorkflowVisibilityGroup group in visibilityGroups)
-                        {
-                            <option value="@group.Id">@group.Name</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="int?" @bind-SelectedElement="editGroup.VisibilityGroupId"
+                              Elements="visibilityGroups.Select(group => (int?)group.Id)"
+                              ElementToString="@(id => visibilityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "")"
+                              NoneSelectedText="-" Nullable="true">
+                        <ElementTemplate Context="id">
+                            @(visibilityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "")
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
             </div>
             <div class="form-group row mb-3">
@@ -120,22 +122,24 @@
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto" TableItem="StateMatrixTransition" Items="editGroup.Transitions" PageSize="0" ColumnReorder="false">
                 <Column TableItem="StateMatrixTransition" Title="@(userConfig.GetText("from_state"))" Field="@(transition => transition.FromStateId)" Sortable="false" Filterable="false">
                     <Template>
-                        <select class="form-select form-select-sm" @bind="context.FromStateId">
-                            @foreach (WfState state in States)
-                            {
-                                <option value="@state.Id">@StateDisplayName(state)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="int" @bind-SelectedElement="context.FromStateId"
+                                  Elements="States.Select(state => state.Id)"
+                                  ElementToString="@(id => StateDisplayName(States.FirstOrDefault(state => state.Id == id)))">
+                            <ElementTemplate Context="id">
+                                @StateDisplayName(States.FirstOrDefault(state => state.Id == id))
+                            </ElementTemplate>
+                        </Dropdown>
                     </Template>
                 </Column>
                 <Column TableItem="StateMatrixTransition" Title="@(userConfig.GetText("to_state"))" Field="@(transition => transition.ToStateId)" Sortable="false" Filterable="false">
                     <Template>
-                        <select class="form-select form-select-sm" @bind="context.ToStateId">
-                            @foreach (WfState state in States)
-                            {
-                                <option value="@state.Id">@StateDisplayName(state)</option>
-                            }
-                        </select>
+                        <Dropdown ElementType="int" @bind-SelectedElement="context.ToStateId"
+                                  Elements="States.Select(state => state.Id)"
+                                  ElementToString="@(id => StateDisplayName(States.FirstOrDefault(state => state.Id == id)))">
+                            <ElementTemplate Context="id">
+                                @StateDisplayName(States.FirstOrDefault(state => state.Id == id))
+                            </ElementTemplate>
+                        </Dropdown>
                     </Template>
                 </Column>
                 <Column TableItem="StateMatrixTransition" Title="@(userConfig.GetText("action"))" Field="@(transition => transition.FromStateId)" Sortable="false" Filterable="false">
@@ -268,6 +272,11 @@
 
     private void AddTransition()
     {
+        if (States.Count == 0)
+        {
+            return;
+        }
+
         int stateId = States.First().Id;
         editGroup.Transitions.Add(new StateMatrixTransition { FromStateId = stateId, ToStateId = stateId });
     }
@@ -368,7 +377,7 @@
     /// <summary>
     /// Formats a state for selection in a transition group.
     /// </summary>
-    private static string StateDisplayName(WfState state) => $"{state.Name} ({state.Id})";
+    private static string StateDisplayName(WfState? state) => state == null ? "" : $"{state.Name} ({state.Id})";
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

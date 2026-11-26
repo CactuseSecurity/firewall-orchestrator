@@ -2,7 +2,9 @@
 
 ## 9.9.6 - 25.11.2026
 
+- CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
 - dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
+- dependencies: update NuGet packages (AngleSharp to 1.11.0)
 - UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
   - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new queries `getNetworkObjectDetailsByIds`, `getNetworkServiceDetailsByIds`, `getUserDetailsByIds`), including objects of a super manager; the links target this tab
   - the Report and Rule tabs of rule and change reports show the objects and group members as of the generated report, independent of the current time filter; before, the imports of the All tab were used, so users without this tab (e.g. reporters, or after selecting a tenant) got no rule details in the Rule tab
@@ -18,6 +20,11 @@
   - the state "in progress" reported by Tufin SecureChange is taken over into the request tasks again (mapping of the external state `ExtReqInProgress`, optional); only a change of the state updates the ticket, a request staying in progress does not
   - middleware REST API: `POST ExternalRequest` (reinit of the external requests of a ticket) is restricted to admins; modellers no longer start the provisioning directly
   - with "Consider visibility" switched on, the state actions of a ticket (e.g. "Prepare implementation", "Create external requests") act on the whole ticket, including request tasks hidden from the user who triggers them; before, such tasks (e.g. object tasks hidden from a member of an exclusive visibility group) got no implementation tasks and were not provisioned, and the actions were refused when the ticket state itself was hidden from the user. The user still has to see at least one task of the ticket
+- UI fix: the All tab of the right sidebar no longer lists several versions of the same object, service or user in rule reports (#4730)
+  - the version removed by the latest import was returned in addition to the new one; change reports still list all versions of their time range
+  - switching from a change report back to a rule report with report time "now" no longer keeps the time range of the change report
+- UI fix: the right sidebar of the variance and connection reports shows the IP of network objects without a name instead of an empty row (#4972)
+  - the header above the modelled objects of the variance report shows the owner name instead of being empty
 
 
 ## 9.9.5 - 23.11.2026

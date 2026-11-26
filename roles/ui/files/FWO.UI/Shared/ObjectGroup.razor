@@ -41,7 +41,7 @@
                             <Template>
                                 <div style="@(context.Highlighted ? GlobalConst.kStyleHighlightedRed : "")">
                                     <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
-                                    <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
+                                    <b id="@(GetID(ObjCategory.nobj, context.Id))">@(DisplayBase.DisplayNameOrIp(context))</b>
                                 </div>
                             </Template>
                         </Column>

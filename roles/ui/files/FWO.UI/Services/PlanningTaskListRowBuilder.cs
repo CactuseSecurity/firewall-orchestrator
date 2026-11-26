@@ -65,10 +65,14 @@ namespace FWO.Ui.Services
         /// <param name="visibility">The configured field visibility of access tasks.</param>
         /// <param name="objectVisibility">The configured visibility of object and group tasks if the table only holds those
         /// (see <see cref="ApprovalTaskListRowBuilder.ObjectVisibilityFor"/>), otherwise null.</param>
+        /// <param name="implColumns">The columns needed by the implementation tasks of the table (see
+        /// <see cref="ImplementationColumnsFor"/>); null for a table without implementation tasks.</param>
         public static List<TaskListColumn> VisibleColumns(TaskListTable table, PlanningTaskListMode mode,
-            AccessTaskFieldVisibilityConfig visibility, ObjectTaskFieldVisibilityConfig? objectVisibility = null)
+            AccessTaskFieldVisibilityConfig visibility, ObjectTaskFieldVisibilityConfig? objectVisibility = null,
+            PlanningImplColumns? implColumns = null)
         {
             bool allTasks = mode == PlanningTaskListMode.AllTasks;
+            implColumns ??= PlanningImplColumns.None;
             List<TaskListColumn> columns =
             [
                 new(ApprovalTaskListRowBuilder.kId, "id"),
@@ -81,10 +85,13 @@ namespace FWO.Ui.Services
             }
             else
             {
-                AddObjectColumns(columns, table, allTasks);
+                AddObjectColumns(columns, table, allTasks, implColumns.RuleColumns, visibility);
             }
             AddIf(columns, allTasks && metadataVisibility.ShowReason, new(ApprovalTaskListRowBuilder.kReason, "reason"));
-            columns.Add(new(ApprovalTaskListRowBuilder.kFreeText, "free_text"));
+            // the free text of request tasks follows the approval task list view; that of implementation tasks is
+            // shown (and edited) in the same column, so the column stays as long as an implementation task needs it
+            AddIf(columns, (allTasks && ApprovalTaskListRowBuilder.ShowsRequestFreeText(table, visibility)) || implColumns.FreeText,
+                new(ApprovalTaskListRowBuilder.kFreeText, "free_text"));
             if (table == TaskListTable.Access)
             {
                 AddIf(columns, visibility.ShowTitle, new(ApprovalTaskListRowBuilder.kTitle, "title"));
@@ -166,21 +173,59 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Returns the columns needed by the implementation tasks of a table (for a bundle: of all its tasks): the rule
+        /// columns of rule implementation tasks, and the free text if a task has one or the planner may change it.
+        /// </summary>
+        /// <param name="table">The table.</param>
+        /// <param name="taskGroups">All request task groups of the ticket: single tasks or bundles displayed as one.</param>
+        public static PlanningImplColumns ImplementationColumnsFor(TaskListTable table, IEnumerable<List<WfReqTask>> taskGroups)
+        {
+            List<WfImplTask> implementationTasks = [.. taskGroups
+                .Where(taskGroup => taskGroup.Count > 0 && ApprovalTaskListRowBuilder.TableOf(taskGroup[0]) == table)
+                .SelectMany(taskGroup => taskGroup.SelectMany(requestTask => requestTask.ImplementationTasks))];
+            bool freeText = implementationTasks.Any(implementationTask => !string.IsNullOrWhiteSpace(implementationTask.FreeText)
+                || PlanningImplTaskDisplayLogic.CanEditFreeText(implementationTask));
+            return new(RuleColumns(implementationTasks), freeText);
+        }
+
+        /// <summary>Returns the rule columns needed by implementation tasks.</summary>
+        private static PlanningRuleColumns RuleColumns(List<WfImplTask> implementationTasks)
+        {
+            if (implementationTasks.Any(PlanningImplTaskDisplayLogic.IsRuleTask))
+            {
+                return PlanningRuleColumns.All;
+            }
+            return implementationTasks.Any(PlanningImplTaskDisplayLogic.IsRuleImplementationTask) ? PlanningRuleColumns.Device : PlanningRuleColumns.None;
+        }
+
+        /// <summary>
         /// Adds the columns of the address, service and other tables: content only for objects and groups, the zone
-        /// (request-task information only) for addresses with all tasks.
+        /// (request-task information only) for addresses with all tasks, and the rule columns needed by the
+        /// implementation tasks of the table, as in the access table.
         /// </summary>
         /// <param name="columns">The columns to add to.</param>
         /// <param name="table">The table.</param>
         /// <param name="allTasks">Whether request tasks are shown too.</param>
-        private static void AddObjectColumns(List<TaskListColumn> columns, TaskListTable table, bool allTasks)
+        /// <param name="ruleColumns">The rule columns needed by the implementation tasks of the table.</param>
+        /// <param name="visibility">The configured field visibility of access tasks, applied to rule action and tracking.</param>
+        private static void AddObjectColumns(List<TaskListColumn> columns, TaskListTable table, bool allTasks,
+            PlanningRuleColumns ruleColumns, AccessTaskFieldVisibilityConfig visibility)
         {
+            bool ruleContent = ruleColumns == PlanningRuleColumns.All;
             columns.Add(new(ApprovalTaskListRowBuilder.kTaskType, "task_type"));
             columns.Add(new(ApprovalTaskListRowBuilder.kState, "state"));
             columns.Add(new(ApprovalTaskListRowBuilder.kTitle, "title"));
             columns.Add(new(ApprovalTaskListRowBuilder.kObject, "object"));
             AddIf(columns, table != TaskListTable.Other, new(ApprovalTaskListRowBuilder.kContent, "content"));
             AddIf(columns, allTasks && table == TaskListTable.Address, new(ApprovalTaskListRowBuilder.kZone, "zone"));
+            AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kSource, "source"));
+            AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kDestination, "destination"));
+            AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kService, "service"));
             columns.Add(new(ApprovalTaskListRowBuilder.kManagement, "management"));
+            AddIf(columns, ruleColumns != PlanningRuleColumns.None, new(kDevice, "device"));
+            AddIf(columns, ruleContent, new(kRulePosition, "rule_position"));
+            AddIf(columns, ruleContent && visibility.ShowRuleAction, new(ApprovalTaskListRowBuilder.kRuleAction, "rule_action"));
+            AddIf(columns, ruleContent && visibility.ShowTracking, new(ApprovalTaskListRowBuilder.kTrack, "track"));
         }
 
         /// <summary>

@@ -39,8 +39,24 @@ namespace FWO.Ui.Services
         /// <param name="action">The action to perform.</param>
         /// <param name="scope">The scope of the targets.</param>
         /// <param name="targets">The tasks with the owner and ticket id passed to the action.</param>
-        public static async Task Perform(WfHandler wfHandler, WfStateAction action, WfObjectScopes scope,
+        public static Task Perform(WfHandler wfHandler, WfStateAction action, WfObjectScopes scope,
             IEnumerable<(WfStatefulObject Task, FwoOwner? Owner, long TicketId)> targets)
+        {
+            return RunAndReload(wfHandler, async actionHandler =>
+            {
+                foreach ((WfStatefulObject task, FwoOwner? owner, long ticketId) in targets)
+                {
+                    await actionHandler.PerformAction(action, task, scope, owner, ticketId);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Runs actions if an action handler exists and reloads the ticket afterwards, also if an action fails.
+        /// </summary>
+        /// <param name="wfHandler">The workflow handler providing the action handler.</param>
+        /// <param name="performActions">Performs the actions with the action handler.</param>
+        private static async Task RunAndReload(WfHandler wfHandler, Func<ActionHandler, Task> performActions)
         {
             if (wfHandler.ActionHandler == null)
             {
@@ -48,10 +64,7 @@ namespace FWO.Ui.Services
             }
             try
             {
-                foreach ((WfStatefulObject task, FwoOwner? owner, long ticketId) in targets)
-                {
-                    await wfHandler.ActionHandler.PerformAction(action, task, scope, owner, ticketId);
-                }
+                await performActions(wfHandler.ActionHandler);
             }
             finally
             {
@@ -102,7 +115,8 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Performs an action on every request task of a group and reloads the ticket afterwards. Promoting one task of a
         /// bundle moves its lagging bundled tasks along, so a task whose state changed while the action ran on the
-        /// previous tasks is skipped instead of being promoted a second time.
+        /// previous tasks is skipped instead of being promoted a second time. A state changing action delegated to the
+        /// middleware changes only the stored states, so the ticket is reloaded before each further task to see them.
         /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
         /// <param name="action">The action to perform.</param>
@@ -110,10 +124,22 @@ namespace FWO.Ui.Services
         public static Task PerformOnRequestTasks(WfHandler wfHandler, WfStateAction action, IReadOnlyList<WfReqTask> taskGroup)
         {
             List<int> initialStateIds = [.. taskGroup.Select(task => task.StateId)];
-            // evaluated lazily while the actions run, so each task is checked right before its action
-            return Perform(wfHandler, action, WfObjectScopes.RequestTask, taskGroup
-                .Where((task, index) => CurrentStateId(wfHandler, task) == initialStateIds[index])
-                .Select(task => ((WfStatefulObject)task, task.Owners.FirstOrDefault()?.Owner, task.TicketId)));
+            bool reloadBetweenTasks = wfHandler.MiddlewareClient != null && !WfStateAction.IsReadonlyType(action.ActionType);
+            return RunAndReload(wfHandler, async actionHandler =>
+            {
+                for (int index = 0; index < taskGroup.Count; index++)
+                {
+                    WfReqTask task = taskGroup[index];
+                    if (index > 0 && reloadBetweenTasks)
+                    {
+                        await wfHandler.ReloadActTicket();
+                    }
+                    if (CurrentStateId(wfHandler, task) == initialStateIds[index])
+                    {
+                        await actionHandler.PerformAction(action, task, WfObjectScopes.RequestTask, task.Owners.FirstOrDefault()?.Owner, task.TicketId);
+                    }
+                }
+            });
         }
 
         /// <summary>The state of a request task in the current ticket, which may hold a replaced instance of the task.</summary>

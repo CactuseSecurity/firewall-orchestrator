@@ -206,6 +206,36 @@ internal sealed class UiPlanningTaskListViewTest
     }
 
     [Test]
+    public async Task PlanningDetailsView_ListViewAssignsTheDeviceOfRuleDeleteTasks()
+    {
+        await using BunitContext context = CreateContext();
+        WfHandler handler = CreateHandler();
+        string ruleDelete = WfTaskType.rule_delete.ToString();
+        WfImplTask implementationTask = new() { Id = 31, ReqTaskId = 13, TicketId = 7, StateId = 1, TaskType = ruleDelete, ManagementId = 4 };
+        WfReqTask requestTask = new() { Id = 13, Title = "list rule delete", StateId = 1, TaskType = ruleDelete, ImplementationTasks = [implementationTask] };
+        handler.ActTicket.Tasks.Add(requestTask);
+        UiRequestWorkflowTest.SetMatrix(handler, ruleDelete, new StateMatrix { LowestInputState = 0, LowestStartedState = 2, LowestEndState = 10 });
+        IRenderedComponent<PlanningDetailsView> cut = RenderListView(context, handler);
+        string otherTable = ".planning-task-list[data-table=\"Other\"]";
+        List<string> otherColumns = [.. cut.FindAll($"{otherTable} th[data-column-key]").Select(header => header.GetAttribute("data-column-key") ?? "")];
+        int deviceColumn = otherColumns.IndexOf(PlanningTaskListRowBuilder.kDevice);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(deviceColumn, Is.GreaterThanOrEqualTo(0));
+            Assert.That(otherColumns, Does.Not.Contain(PlanningTaskListRowBuilder.kRulePosition));
+        });
+
+        cut.FindAll($"{otherTable} tr.planning-task-list-impl-row td")[deviceColumn].QuerySelector("button.task-list-edit")!.Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Editor(cut.FindComponent<PlanningTaskListView>()).DisplayDeviceEditor, Is.True);
+            Assert.That(handler.ActImplTask.Id, Is.EqualTo(31));
+        });
+    }
+
+    [Test]
     public async Task PlanningDetailsView_ListViewDoesNotEditImplementationTaskOutsideActionableStates()
     {
         await using BunitContext context = CreateContext();

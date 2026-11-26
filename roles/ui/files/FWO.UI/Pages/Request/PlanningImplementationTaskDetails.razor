@@ -154,6 +154,7 @@
     });
     private bool IsInitiallyExpanded => CreationMode || RequestTask.TaskType == WfTaskType.access.ToString();
 
+    /// <summary>Loads the rule actions, trackings and protocols displayed for the implementation tasks.</summary>
     protected override async Task OnInitializedAsync()
     {
         try
@@ -169,14 +170,27 @@
         }
     }
 
+    /// <summary>Opens the management editor of an implementation task of the request task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private Task OpenManagementEditor(WfImplTask implementationTask) => Editor.OpenManagement(implementationTask, RequestTask);
 
+    /// <summary>Opens the free text editor of an implementation task of the request task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private Task OpenFreeTextEditor(WfImplTask implementationTask) => Editor.OpenFreeText(implementationTask, RequestTask);
 
+    /// <summary>Opens the name editor of a group, object or time object implementation task of the request task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private Task OpenNameEditor(WfImplTask implementationTask) => Editor.OpenName(implementationTask, RequestTask);
 
+    /// <summary>Opens the device editor of a rule implementation task of the request task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private Task OpenDeviceEditor(WfImplTask implementationTask) => Editor.OpenDevice(implementationTask, RequestTask);
 
+    /// <summary>
+    /// Creates a request task holding the elements of an implementation task for the request task editors; for object
+    /// tasks only the first created or modified element.
+    /// </summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static WfReqTask CreateEditorTask(WfImplTask implementationTask)
     {
         IEnumerable<WfImplElement> elements = implementationTask.ImplElements;
@@ -202,6 +216,8 @@
         return editorTask;
     }
 
+    /// <summary>Converts an implementation element into a request element.</summary>
+    /// <param name="element">The implementation element.</param>
     private static WfReqElement ToRequestElement(WfImplElement element)
     {
         return new WfReqElement
@@ -231,6 +247,8 @@
         };
     }
 
+    /// <summary>Renders the members of a group implementation task, each with its change badge; a placeholder if there are none.</summary>
+    /// <param name="implementationTask">The group implementation task.</param>
     private RenderFragment ImplementationMembersValue(WfImplTask implementationTask) => builder =>
     {
         List<PlanningImplElementRow> members = ImplLogic.GroupMemberRows(implementationTask);
@@ -265,6 +283,10 @@
             ? member.Name
             : TaskListHelper.NameWithDetail(member.Name, member.Content);
 
+    /// <summary>Adds a member row, with a badge marking it as added, removed or unchanged if an action is given.</summary>
+    /// <param name="builder">The render tree builder.</param>
+    /// <param name="value">The displayed member.</param>
+    /// <param name="action">The member action; empty for no badge.</param>
     private void AddMemberListRow(RenderTreeBuilder builder, string value, string action)
     {
         builder.OpenElement(0, "div");
@@ -302,6 +324,8 @@
         await ResetParent();
     }
 
+    /// <summary>Returns the title of an implementation task: the management of management object tasks, otherwise the device.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string ImplementationTaskTitle(WfImplTask implementationTask)
     {
         if (WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType))
@@ -315,6 +339,8 @@
             : deviceName;
     }
 
+    /// <summary>Renders the header line of an implementation task: id, configured actions (not in creation mode), title, state and a delete button if the task may be changed.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private RenderFragment ImplementationTaskHeader(WfImplTask implementationTask) => builder =>
     {
         builder.OpenElement(0, "span");
@@ -349,6 +375,8 @@
         builder.CloseElement();
     };
 
+    /// <summary>Renders the buttons of the configured actions of an implementation task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private RenderFragment ImplementationTaskActionButtons(WfImplTask implementationTask) =>
         WorkflowTaskActions.Buttons(WorkflowTaskActions.VisibleForImplementationTask(WfHandler, implementationTask, RequestTask),
             action => PerformImplementationTaskAction(implementationTask, action));
@@ -366,18 +394,32 @@
         }
     }
 
+    /// <summary>Returns the name of the rule action of an implementation task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string RuleActionName(WfImplTask implementationTask) => ImplLogic.RuleActionName(implementationTask);
 
+    /// <summary>Returns the name of the tracking of an implementation task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string TrackingName(WfImplTask implementationTask) => ImplLogic.TrackingName(implementationTask);
 
+    /// <summary>Returns whether the task orders a time object.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static bool IsTimeObjectTask(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.IsTimeObjectTask(implementationTask);
 
+    /// <summary>Returns whether the task is implemented on a device: a rule task or a rule delete task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static bool IsRuleImplementationTask(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.IsRuleImplementationTask(implementationTask);
 
+    /// <summary>Returns whether the task creates or changes a rule.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static bool IsRuleTask(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.IsRuleTask(implementationTask);
 
+    /// <summary>Returns whether the free text is displayed: if it is filled or the task is a generic task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static bool HasFreeText(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.HasFreeText(implementationTask);
 
+    /// <summary>Returns whether the planner may change the free text; management object tasks keep it.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static bool CanEditFreeText(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.CanEditFreeText(implementationTask);
 
     /// <summary>A new implementation task only needs a changeable request task, an existing one must be changeable itself.</summary>
@@ -385,19 +427,32 @@
         ? WorkflowTaskActions.CanChangeRequestTasks(WfHandler, [RequestTask])
         : WorkflowTaskActions.CanChangeImplementationTask(WfHandler, implementationTask, RequestTask);
 
+    /// <summary>Returns the uid of the rule deleted by a rule delete task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private static string RuleUid(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.RuleUid(implementationTask);
 
+    /// <summary>Returns the name of the management of an implementation task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string ManagementName(WfImplTask implementationTask) => ImplLogic.ManagementName(implementationTask, RequestTask);
 
+    /// <summary>Returns the group name of a group task, falling back to the group name ordered by the request task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string GroupName(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.GroupName(implementationTask, RequestTask);
 
+    /// <summary>Returns the first owner of the request task; empty if it has none.</summary>
     private string OwnerName()
     {
         return RequestTask.Owners.FirstOrDefault()?.Owner.Display() ?? "";
     }
 
+    /// <summary>Returns the name of the device of an implementation task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string DeviceName(WfImplTask implementationTask) => ImplLogic.DeviceName(implementationTask, RequestTask);
 
+    /// <summary>Renders the source, destination or service elements of an implementation task as a name and content table.</summary>
+    /// <param name="label">The label of the field.</param>
+    /// <param name="implementationTask">The implementation task.</param>
+    /// <param name="field">The element field.</param>
     private RenderFragment ImplementationElementValue(string label, WfImplTask implementationTask, ElemFieldType field) => builder =>
     {
         builder.OpenElement(0, "div");
@@ -428,6 +483,9 @@
         builder.CloseElement();
     };
 
+    /// <summary>Returns the displayed elements of a field: services, or the network objects of source or destination.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
+    /// <param name="field">The element field.</param>
     private List<PlanningImplElementRow> ElementRows(WfImplTask implementationTask, ElemFieldType field) => field == ElemFieldType.service
         ? ImplLogic.ServiceDisplayRows(implementationTask)
         : ImplLogic.NetworkDisplayRows(implementationTask, field);
@@ -446,6 +504,10 @@
         AddTruncationRow(builder, elements.Count);
     }
 
+    /// <summary>Adds a localized header cell.</summary>
+    /// <param name="builder">The render tree builder.</param>
+    /// <param name="sequence">The first of the two sequence numbers used.</param>
+    /// <param name="textKey">The text key of the header.</param>
     private void AddTableHeader(RenderTreeBuilder builder, int sequence, string textKey)
     {
         builder.OpenElement(sequence, "th");
@@ -453,6 +515,10 @@
         builder.CloseElement();
     }
 
+    /// <summary>Adds a table row with two cells.</summary>
+    /// <param name="builder">The render tree builder.</param>
+    /// <param name="firstValue">The value of the first cell.</param>
+    /// <param name="secondValue">The value of the second cell.</param>
     private static void AddTableRow(RenderTreeBuilder builder, string firstValue, string secondValue)
     {
         builder.OpenElement(100, "tr");
@@ -465,6 +531,10 @@
         builder.CloseElement();
     }
 
+    /// <summary>Adds a placeholder row spanning all columns.</summary>
+    /// <param name="builder">The render tree builder.</param>
+    /// <param name="sequence">The first of the four sequence numbers used.</param>
+    /// <param name="columnCount">The number of columns spanned.</param>
     private static void AddEmptyTableRow(RenderTreeBuilder builder, int sequence, int columnCount)
     {
         builder.OpenElement(sequence, "tr");
@@ -475,6 +545,9 @@
         builder.CloseElement();
     }
 
+    /// <summary>Adds a row with the number of elements not displayed, if there are more than the displayed maximum.</summary>
+    /// <param name="builder">The render tree builder.</param>
+    /// <param name="elementCount">The number of elements.</param>
     private static void AddTruncationRow(RenderTreeBuilder builder, int elementCount)
     {
         if (elementCount <= kMaxDisplayedElements)
@@ -484,8 +557,15 @@
         AddTableRow(builder, "…", $"(+{elementCount - kMaxDisplayedElements})");
     }
 
+    /// <summary>Returns the time restriction of an implementation task.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask);
 
+    /// <summary>Renders a labeled value, with an edit button if an edit callback is given; a placeholder for an empty value.</summary>
+    /// <param name="label">The label.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="cssClass">The CSS classes of the field.</param>
+    /// <param name="edit">Opens the editor of the value; null if it cannot be edited.</param>
     private RenderFragment ReadOnlyValue(string label, string value, string cssClass = "col-xl-3 col-lg-6 mb-2", Func<Task>? edit = null) => builder =>
     {
         builder.OpenElement(0, "div");

@@ -2,10 +2,13 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
+using FWO.Test.Mocks;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components;
 using NUnit.Framework;
 using SoPro.FancyTable.Components;
+using System.Net;
+using System.Text;
 
 namespace FWO.Test;
 
@@ -13,7 +16,7 @@ namespace FWO.Test;
 internal sealed class TaskListHelperTest
 {
     private static readonly List<string> kValuesWithBlanks = ["a", " ", "b", "a", ""];
-    private static readonly List<int> kOncePromotedStates = [2, 2];
+    private static readonly IReadOnlyList<int> kOncePromotedStates = [2, 2];
 
     [Test]
     public void Values_DropEmptyAndDuplicateValues()
@@ -216,11 +219,7 @@ internal sealed class TaskListHelperTest
     {
         WfTicket reloadedTicket = new() { Id = 1, Title = "reloaded" };
         TicketReloadApiConn apiConnection = new() { Ticket = reloadedTicket };
-        SimulatedUserConfig userConfig = new();
-        WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConnection, null!, WorkflowPhases.planning);
-        handler.ActionHandler = new ActionHandler(apiConnection, handler);
-        typeof(WfHandler).GetField("dbAcc", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .SetValue(handler, new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
+        WfHandler handler = CreateReloadingHandler(apiConnection, null!);
         WfReqTask requestTask = new() { Id = 7, TicketId = 1, TaskType = WfTaskType.access.ToString() };
         handler.ActTicket = new WfTicket { Id = 1, Title = "stale", Tasks = [requestTask] };
         // unparsable parameters make the action fail
@@ -229,6 +228,61 @@ internal sealed class TaskListHelperTest
         Assert.ThrowsAsync<System.Text.Json.JsonException>(() => WorkflowTaskActions.PerformOnRequestTasks(handler, failingAction, [requestTask]));
 
         Assert.That(handler.ActTicket.Title, Is.EqualTo("reloaded"));
+    }
+
+    [Test]
+    public async Task PerformOnRequestTasks_SkipsTasksTheMiddlewareMovedAlong()
+    {
+        string taskType = WfTaskType.access.ToString();
+        WfReqTask first = new() { Id = 7, TicketId = 1, TaskType = taskType, StateId = 0 };
+        WfReqTask second = new() { Id = 8, TicketId = 1, TaskType = taskType, StateId = 0 };
+        WfTicket storedTicket = new()
+        {
+            Id = 1,
+            Tasks = [new() { Id = 7, TicketId = 1, TaskType = taskType, StateId = 0 }, new() { Id = 8, TicketId = 1, TaskType = taskType, StateId = 0 }]
+        };
+        TicketReloadApiConn apiConnection = new() { Ticket = storedTicket };
+        using TestMiddlewareClient middlewareClient = new();
+        // like the middleware, promoting one task of the bundle moves the other one along, only in the stored ticket
+        BundlePromotingMiddlewareHandler middlewareHandler = new(() => storedTicket.Tasks.ForEach(task => task.StateId = 2));
+        middlewareClient.UseHandler(middlewareHandler);
+        WfHandler handler = CreateReloadingHandler(apiConnection, middlewareClient);
+        handler.ActTicket = new WfTicket { Id = 1, Tasks = [first, second] };
+        WfStateAction autoPromote = new() { Id = 3, ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "" };
+
+        await WorkflowTaskActions.PerformOnRequestTasks(handler, autoPromote, [first, second]);
+
+        Assert.Multiple(() =>
+        {
+            // the second task would be rejected by the middleware, as it is no longer in the state it is sent with
+            Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+            Assert.That(handler.ActTicket.Tasks.Select(task => task.StateId), Is.EqualTo(kOncePromotedStates));
+        });
+    }
+
+    private static WfHandler CreateReloadingHandler(TicketReloadApiConn apiConnection, FWO.Middleware.Client.MiddlewareClient middlewareClient)
+    {
+        SimulatedUserConfig userConfig = new();
+        WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConnection, middlewareClient, WorkflowPhases.planning);
+        handler.ActionHandler = new ActionHandler(apiConnection, handler);
+        typeof(WfHandler).GetField("dbAcc", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .SetValue(handler, new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
+        return handler;
+    }
+
+    private sealed class BundlePromotingMiddlewareHandler(Action promoteBundle) : HttpMessageHandler
+    {
+        public int RequestCount { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            RequestCount++;
+            promoteBundle();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"success\":true,\"messages\":[],\"errorMessage\":\"\"}", Encoding.UTF8, "application/json")
+            });
+        }
     }
 
     private sealed class TicketReloadApiConn : SimulatedApiConnection

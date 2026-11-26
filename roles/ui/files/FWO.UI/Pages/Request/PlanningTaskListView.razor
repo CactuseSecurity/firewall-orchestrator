@@ -78,7 +78,8 @@
     private List<TaskListColumn> VisibleColumns(TaskListTable table, List<List<WfReqTask>> taskGroups)
     {
         return PlanningTaskListRowBuilder.VisibleColumns(table, mode, Context.Visibility,
-            ApprovalTaskListRowBuilder.ObjectVisibilityFor(table, taskGroups, Context.ObjectVisibility));
+            ApprovalTaskListRowBuilder.ObjectVisibilityFor(table, taskGroups, Context.ObjectVisibility),
+            PlanningTaskListRowBuilder.ImplementationColumnsFor(table, taskGroups));
     }
 
     /// <summary>Creates the row builder; editable cells of implementation tasks open the editors of this view.</summary>

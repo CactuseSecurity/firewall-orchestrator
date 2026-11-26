@@ -38,9 +38,13 @@
         }
     }
 
+    /// <summary>Highlights the implementation-task rows when they follow their request task (all tasks); otherwise no class.</summary>
+    /// <param name="row">The row.</param>
     private string? RowClass(PlanningTaskListRow row) =>
         Mode == PlanningTaskListMode.AllTasks && row.IsImplementationTask ? kImplementationTaskRowClass : null;
 
+    /// <summary>Builds the table columns from the visible columns, with the actions column after the id if a row offers actions.</summary>
+    /// <param name="showActions">Whether a row offers actions.</param>
     private List<FancyColumn<PlanningTaskListRow>> BuildColumns(bool showActions)
     {
         List<FancyColumn<PlanningTaskListRow>> fancyColumns = [.. Columns.Select(BuildColumn)];
@@ -51,6 +55,11 @@
         return fancyColumns;
     }
 
+    /// <summary>
+    /// Builds a table column showing the cells of a column key; sortable only with implementation tasks, the id column
+    /// sorted numerically and never hidden.
+    /// </summary>
+    /// <param name="column">The visible column.</param>
     private FancyColumn<PlanningTaskListRow> BuildColumn(TaskListColumn column)
     {
         bool isId = column.Key == ApprovalTaskListRowBuilder.kId;
@@ -71,6 +80,8 @@
         };
     }
 
+    /// <summary>Renders the actions of a row; empty if the row offers none.</summary>
+    /// <param name="row">The row.</param>
     private RenderFragment ActionsCell(PlanningTaskListRow row) =>
         @<div class="d-flex flex-nowrap gap-1">
             @if (RowActions != null && HasActions(row))

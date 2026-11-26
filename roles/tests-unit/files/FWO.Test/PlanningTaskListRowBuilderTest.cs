@@ -13,6 +13,11 @@ internal sealed class PlanningTaskListRowBuilderTest
     private static readonly List<Tracking> kTrackings = [new Tracking { Id = 2, Name = "log" }];
     private static readonly List<IpProtocol> kProtocols = [new IpProtocol { Id = 6, Name = "tcp" }];
     private static readonly List<NetworkZone> kNoZones = [];
+    private static readonly IReadOnlyList<string> kRuleContentColumns =
+    [
+        ApprovalTaskListRowBuilder.kSource, ApprovalTaskListRowBuilder.kDestination, ApprovalTaskListRowBuilder.kService,
+        PlanningTaskListRowBuilder.kDevice, PlanningTaskListRowBuilder.kRulePosition, ApprovalTaskListRowBuilder.kRuleAction
+    ];
 
     private readonly List<string> editCalls = [];
 
@@ -78,7 +83,7 @@ internal sealed class PlanningTaskListRowBuilderTest
         List<string> service = Keys(PlanningTaskListRowBuilder.VisibleColumns(TaskListTable.Service, PlanningTaskListMode.AllTasks,
             new AccessTaskFieldVisibilityConfig(), objectVisibility));
         List<string> other = Keys(PlanningTaskListRowBuilder.VisibleColumns(TaskListTable.Other, PlanningTaskListMode.AllTasks,
-            new AccessTaskFieldVisibilityConfig()));
+            new AccessTaskFieldVisibilityConfig { ShowFreeText = true }));
 
         Assert.Multiple(() =>
         {
@@ -89,6 +94,74 @@ internal sealed class PlanningTaskListRowBuilderTest
             Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kHandler));
             Assert.That(other, Does.Not.Contain(ApprovalTaskListRowBuilder.kContent));
             Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kFreeText));
+            Assert.That(other, Does.Not.Contain(PlanningTaskListRowBuilder.kDevice));
+        });
+    }
+
+    [Test]
+    public void VisibleColumns_OtherTableShowsTheRuleColumnsOfItsImplementationTasks()
+    {
+        WfReqTask ruleDelete = RequestTaskWithImplTask(6, WfTaskType.rule_delete);
+        WfReqTask ruleModify = RequestTaskWithImplTask(7, WfTaskType.rule_modify);
+        WfReqTask generic = RequestTaskWithImplTask(9, WfTaskType.generic);
+        AccessTaskFieldVisibilityConfig visibility = new() { ShowTracking = false };
+
+        PlanningImplColumns deleteOnly = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Other, Singles(ruleDelete, generic));
+        PlanningImplColumns withModify = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Other, Singles(generic, ruleModify, ruleDelete));
+        List<string> deleteColumns = Keys(PlanningTaskListRowBuilder.VisibleColumns(TaskListTable.Other, PlanningTaskListMode.ImplementationTasks,
+            visibility, null, deleteOnly));
+        List<string> modifyColumns = Keys(PlanningTaskListRowBuilder.VisibleColumns(TaskListTable.Other, PlanningTaskListMode.ImplementationTasks,
+            visibility, null, withModify));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Other, Singles(generic)).RuleColumns, Is.EqualTo(PlanningRuleColumns.None));
+            // the rule tasks are in the other table, not in the access table
+            Assert.That(PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Access, Singles(ruleModify)), Is.EqualTo(PlanningImplColumns.None));
+            Assert.That(deleteOnly.RuleColumns, Is.EqualTo(PlanningRuleColumns.Device));
+            Assert.That(withModify.RuleColumns, Is.EqualTo(PlanningRuleColumns.All));
+            Assert.That(deleteColumns, Does.Contain(PlanningTaskListRowBuilder.kDevice));
+            Assert.That(deleteColumns, Does.Not.Contain(PlanningTaskListRowBuilder.kRulePosition));
+            Assert.That(deleteColumns, Does.Not.Contain(ApprovalTaskListRowBuilder.kSource));
+            Assert.That(modifyColumns, Is.SupersetOf(kRuleContentColumns));
+            Assert.That(modifyColumns, Does.Not.Contain(ApprovalTaskListRowBuilder.kTrack));
+            Assert.That(modifyColumns.IndexOf(ApprovalTaskListRowBuilder.kManagement), Is.LessThan(modifyColumns.IndexOf(PlanningTaskListRowBuilder.kDevice)));
+            Assert.That(modifyColumns.IndexOf(PlanningTaskListRowBuilder.kDevice), Is.LessThan(modifyColumns.IndexOf(PlanningTaskListRowBuilder.kRulePosition)));
+        });
+    }
+
+    [Test]
+    public void VisibleColumns_FreeTextColumnOnlyIfRequestOrImplementationTasksNeedIt()
+    {
+        AccessTaskFieldVisibilityConfig shown = new() { ShowFreeText = true };
+        AccessTaskFieldVisibilityConfig hidden = new() { ShowFreeText = false };
+        WfReqTask accessWithImplTask = AccessRequestTask(7, [AccessImplTask(71, 7)]);
+        // management object tasks keep their free text, so it can only be shown, not added
+        WfReqTask group = RequestTaskWithImplTask(5, WfTaskType.group_create);
+        TaskListTable groupTable = ApprovalTaskListRowBuilder.TableOf(group);
+        PlanningImplColumns noImplTasks = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Access, Singles(AccessRequestTask(8, [])));
+        PlanningImplColumns editableFreeText = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Access, Singles(accessWithImplTask));
+        PlanningImplColumns groupWithoutFreeText = PlanningTaskListRowBuilder.ImplementationColumnsFor(groupTable, Singles(group));
+        group.ImplementationTasks[0].FreeText = "kept text";
+        PlanningImplColumns groupWithFreeText = PlanningTaskListRowBuilder.ImplementationColumnsFor(groupTable, Singles(group));
+
+        bool HasFreeText(TaskListTable table, PlanningTaskListMode mode, AccessTaskFieldVisibilityConfig visibility, PlanningImplColumns implColumns) =>
+            Keys(PlanningTaskListRowBuilder.VisibleColumns(table, mode, visibility, null, implColumns)).Contains(ApprovalTaskListRowBuilder.kFreeText);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(noImplTasks.FreeText, Is.False);
+            Assert.That(editableFreeText.FreeText, Is.True);
+            Assert.That(groupWithoutFreeText.FreeText, Is.False);
+            Assert.That(groupWithFreeText.FreeText, Is.True);
+            Assert.That(HasFreeText(TaskListTable.Access, PlanningTaskListMode.AllTasks, shown, noImplTasks), Is.True);
+            // like the approval task list view
+            Assert.That(HasFreeText(TaskListTable.Access, PlanningTaskListMode.AllTasks, hidden, noImplTasks), Is.False);
+            Assert.That(HasFreeText(groupTable, PlanningTaskListMode.AllTasks, shown, groupWithoutFreeText), Is.False);
+            // the request tasks and their free text are not shown
+            Assert.That(HasFreeText(TaskListTable.Access, PlanningTaskListMode.ImplementationTasks, shown, noImplTasks), Is.False);
+            Assert.That(HasFreeText(TaskListTable.Access, PlanningTaskListMode.AllTasks, hidden, editableFreeText), Is.True);
+            Assert.That(HasFreeText(groupTable, PlanningTaskListMode.ImplementationTasks, hidden, groupWithFreeText), Is.True);
         });
     }
 
@@ -275,6 +348,13 @@ internal sealed class PlanningTaskListRowBuilderTest
     private static List<string> Keys(List<TaskListColumn> columns) => [.. columns.Select(column => column.Key)];
 
     private static List<List<WfReqTask>> Singles(params WfReqTask[] tasks) => [.. tasks.Select(task => new List<WfReqTask> { task })];
+
+    private static WfReqTask RequestTaskWithImplTask(long id, WfTaskType taskType) => new()
+    {
+        Id = id,
+        TaskType = taskType.ToString(),
+        ImplementationTasks = [new WfImplTask { Id = id * 10 + 1, ReqTaskId = id, TaskType = taskType.ToString() }]
+    };
 
     private static WfReqTask AccessRequestTask(long id, List<WfImplTask> implementationTasks)
     {

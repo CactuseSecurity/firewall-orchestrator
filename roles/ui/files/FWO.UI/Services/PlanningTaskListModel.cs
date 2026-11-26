@@ -11,6 +11,29 @@ namespace FWO.Ui.Services
         ImplementationTasks
     }
 
+    /// <summary>
+    /// The rule columns a table of the planning task list view needs for its implementation tasks. The access table
+    /// always has them; the other tables only if they hold rule implementation tasks, e.g. of rule delete or modify tasks.
+    /// </summary>
+    public enum PlanningRuleColumns
+    {
+        /// <summary>No rule columns.</summary>
+        None,
+        /// <summary>The device, needed by implementation tasks of rule delete tasks.</summary>
+        Device,
+        /// <summary>The device and the rule content: rule position, source, destination, service, action and tracking.</summary>
+        All
+    }
+
+    /// <summary>The columns a table of the planning task list view needs for its implementation tasks.</summary>
+    /// <param name="RuleColumns">The rule columns, used by the tables other than the access table.</param>
+    /// <param name="FreeText">Whether an implementation task of the table has a free text or may get one.</param>
+    public sealed record PlanningImplColumns(PlanningRuleColumns RuleColumns, bool FreeText)
+    {
+        /// <summary>The columns of a table without implementation tasks.</summary>
+        public static readonly PlanningImplColumns None = new(PlanningRuleColumns.None, false);
+    }
+
     /// <summary>Edit callbacks offered for the cells of implementation-task rows of the planning task list view.</summary>
     public sealed class PlanningImplTaskListActions
     {

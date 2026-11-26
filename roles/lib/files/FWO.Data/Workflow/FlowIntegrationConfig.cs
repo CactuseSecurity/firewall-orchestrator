@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FWO.Data.Flow;
 
 namespace FWO.Data.Workflow
 {
@@ -74,6 +75,17 @@ namespace FWO.Data.Workflow
         /// </summary>
         [JsonIgnore]
         public bool IsEndOnly => TimeObjectBounds == FlowIntegrationTimeObjectBoundsOptions.EndOnly;
+
+        /// <summary>
+        /// Whether a Flow time object may be picked from the catalog: with end-only time objects only
+        /// objects without a start date are offered.
+        /// </summary>
+        /// <param name="timeObject">The catalog time object.</param>
+        /// <returns>True when the time object fits the configured bounds.</returns>
+        public bool IsSelectableTimeObject(FlowTimeObject timeObject)
+        {
+            return !IsEndOnly || !timeObject.StartTime.HasValue;
+        }
 
         /// <summary>
         /// Returns the start date to store for a time object: null when only end dates are allowed,

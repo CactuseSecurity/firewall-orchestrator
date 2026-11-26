@@ -2840,6 +2840,12 @@ INSERT INTO txt VALUES ('time_object_origin_suffix_approver', 'German', 'Suffix 
 INSERT INTO txt VALUES ('time_object_origin_suffix_approver', 'English', 'Approver time-object suffix');
 INSERT INTO txt VALUES ('time_object_origin_suffixes', 'German', 'Suffixe der Zeitobjekt-Herkunft');
 INSERT INTO txt VALUES ('time_object_origin_suffixes', 'English', 'Time-object origin suffixes');
+INSERT INTO txt VALUES ('time_object_bounds',   'German',   'Zeitobjekt-Grenzen');
+INSERT INTO txt VALUES ('time_object_bounds',   'English',  'Time object bounds');
+INSERT INTO txt VALUES ('start_and_end',        'German',   'Start- und Enddatum');
+INSERT INTO txt VALUES ('start_and_end',        'English',  'Start and end date');
+INSERT INTO txt VALUES ('end_only',             'German',   'Nur Enddatum');
+INSERT INTO txt VALUES ('end_only',             'English',  'End date only');
 INSERT INTO txt VALUES ('select_objects',       'German',   'Objekte ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_objects',       'English',  'Select objects');
 INSERT INTO txt VALUES ('select_services',      'German',   'Dienste ausw&auml;hlen');
@@ -3684,8 +3690,8 @@ INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
 INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'German',   'Flow-Objekt wird im Antragsmodul nicht mehr angeboten');
 INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'English',  'Flow object is no longer offered in the request module');
-INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'German',   'Zeitobjekte brauchen ein Enddatum, ein Startdatum allein wird nicht übernommen');
-INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'English',  'Time objects need an end date, a start date alone is not taken over');
+INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'German',   'Zeitobjekt ohne Enddatum, ein Startdatum allein ist nicht zul&auml;ssig');
+INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'English',  'Time object without end date, a start date alone is not allowed');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
@@ -7768,8 +7774,12 @@ INSERT INTO txt VALUES ('H5563', 'English', 'Priorities and Deadlines: The 5 ini
     For each priority an own interval (in days) for ticket and approval deadlines can be set, which is used by the automatic computation of the deadlines.
     The value 0 is interpreted as setting no deadline.
 ');
-INSERT INTO txt VALUES ('H5564', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul. &Uuml;ber Flow Integration wird festgelegt, ob Objekte, Dienste und Zeitobjekte aus der Flow DB, manuell oder aus beiden Quellen ausgew&auml;hlt werden. Zus&auml;tzlich kann die Genauigkeit von Zeitobjekten festgelegt werden.');
-INSERT INTO txt VALUES ('H5564', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module. Flow integration defines whether objects, services, and time objects are selected from the Flow DB, manually, or from both sources. The precision for time objects can also be configured.');
+INSERT INTO txt VALUES ('H5564', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul. &Uuml;ber Flow Integration wird festgelegt, ob Objekte, Dienste und Zeitobjekte aus der Flow DB, manuell oder aus beiden Quellen ausgew&auml;hlt werden. Zus&auml;tzlich kann die Genauigkeit von Zeitobjekten festgelegt werden.
+    Zeitobjekt-Grenzen legen fest, ob Zeitobjekte &uuml;ber Start- und Enddatum oder nur &uuml;ber das Enddatum definiert werden. Bei "Nur Enddatum" wird ein Startdatum weder abgefragt noch in die Flow DB &uuml;bernommen; Antr&auml;ge, die ein Startdatum ohne Enddatum enthalten, werden beim Anlegen des Flows abgelehnt. Antr&auml;ge ganz ohne Zeitangabe bleiben unbefristet m&ouml;glich.
+');
+INSERT INTO txt VALUES ('H5564', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module. Flow integration defines whether objects, services, and time objects are selected from the Flow DB, manually, or from both sources. The precision for time objects can also be configured.
+    Time object bounds define whether time objects are defined by a start and an end date or by their end date only. With "End date only" a start date is neither asked for nor taken over into the Flow DB; requests that contain a start date without an end date are refused when the flow is created. Requests without any time bound remain possible without time limit.
+');
 INSERT INTO txt VALUES ('H5565', 'German',  'Manuelle Eigent&uuml;merverwaltung erlauben: Es wird das manuelle Anlegen und Verwalten von Eigent&uuml;mern durch den Administrator gestattet.');
 INSERT INTO txt VALUES ('H5565', 'English', 'Allow manual owner administration: The manual creation and administration of owners can be permitted.');
 INSERT INTO txt VALUES ('H5566', 'German',  'B&uuml;ndelungsoptionen: Legen fest, wie Antrags-Auftr&auml;ge mit derselben Flow-B&uuml;ndel-ID beim Anlegen der Implementierungs-Auftr&auml;ge und in der Anzeige behandelt werden. Ob Implementierungs-Auftr&auml;ge automatisch angelegt werden, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; fest.');

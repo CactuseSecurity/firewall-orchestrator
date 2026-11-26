@@ -51,7 +51,7 @@ internal sealed class ApprovalTaskDetailsEditorService
         ApproverAllowedChangesConfig.Parse(context.UserConfig.ReqAllowedChangesByApprover);
 
     internal AccessTaskFieldVisibilityConfig AccessTaskVisibility =>
-        TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).AccessTask;
+        TicketFieldVisibilityConfig.ParseEffective(context.UserConfig.ReqTicketFieldVisibility, context.UserConfig.ReqFlowIntegration).AccessTask;
 
     internal ObjectTaskFieldVisibilityConfig ObjectTaskVisibility =>
         TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).ObjectTask;

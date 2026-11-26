@@ -491,7 +491,7 @@
 
     private async Task OnFlowTimeObjectSelected(FlowTimeObject timeObject)
     {
-        await OnTargetBeginDateChanged(timeObject.StartTime);
+        await OnTargetBeginDateChanged(FlowIntegration.GetEffectiveStartTime(timeObject.StartTime));
         await OnTargetEndDateChanged(timeObject.EndTime);
         await TargetDatesValidChanged.InvokeAsync(true);
     }

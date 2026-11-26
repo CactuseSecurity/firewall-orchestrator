@@ -349,6 +349,31 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     [Test]
+    public async Task OnFlowTimeObjectSelected_DropsStartWhenTimeObjectsAreEndOnly()
+    {
+        WfReqElement timeElement = new() { Field = ElemFieldType.time.ToString() };
+        WfReqTask task = new() { Id = 20, TaskType = WfTaskType.access.ToString(), Elements = [timeElement] };
+        WfHandler handler = new() { ActReqTask = task, ActTicket = new WfTicket { Tasks = [task] } };
+        SimulatedUserConfig userConfig = new()
+        {
+            ReqFlowIntegration = new FlowIntegrationConfig { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly }.ToConfigValue()
+        };
+        RequestTaskMetadataEditor component = CreateComponent(handler, userConfig);
+        DateTime end = new(2026, 8, 1, 17, 0, 0);
+        FlowTimeObject selected = new() { StartTime = new DateTime(2026, 8, 1, 8, 0, 0), EndTime = end, Name = "selected" };
+
+        await InvokePrivateTask(component, "OnFlowTimeObjectSelected", selected);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.TargetBeginDate, Is.Null);
+            Assert.That(task.TargetEndDate, Is.EqualTo(end));
+            Assert.That(timeElement.StartTime, Is.Null);
+            Assert.That(timeElement.EndTime, Is.EqualTo(end));
+        });
+    }
+
+    [Test]
     public void SelectedFlowTimeObjectNameAndTicketTimeObjects_UseTaskTimeElements()
     {
         DateTime begin = new(2026, 8, 1, 8, 0, 0);

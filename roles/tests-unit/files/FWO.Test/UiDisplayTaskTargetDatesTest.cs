@@ -387,6 +387,58 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TimeObjectSelector_EndOnlyOffersOnlyCatalogTimeObjectsWithoutStart()
+        {
+            FlowTimeObject withStart = new()
+            {
+                Id = 301,
+                Name = "Business Hours",
+                StartTime = new DateTime(2026, 8, 1, 8, 0, 0),
+                EndTime = new DateTime(2026, 8, 1, 17, 0, 0),
+                ShowInRequestModule = true
+            };
+            FlowTimeObject endOnly = new()
+            {
+                Id = 302,
+                Name = "Until end of year",
+                EndTime = new DateTime(2026, 12, 31, 23, 59, 0),
+                ShowInRequestModule = true
+            };
+            FlowTimeObject ticketTimeObject = new()
+            {
+                Id = -17,
+                Name = "Ticket maintenance",
+                StartTime = new DateTime(2026, 8, 1, 8, 0, 0),
+                EndTime = new DateTime(2026, 8, 1, 17, 0, 0)
+            };
+            await using BunitContext context = new();
+            UiRequestWorkflowTest.RequestWorkflowApiConn apiConn = new() { FlowTimeObjects = [withStart, endOnly] };
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig
+            {
+                ReqUseFlowDb = true,
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.FromFlowDb,
+                    TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly
+                }.ToConfigValue()
+            });
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
+                .Add(p => p.TicketTimeObjects, [ticketTimeObject]));
+
+            List<long> offeredIds = component.FindComponent<Dropdown<FlowTimeObject>>().Instance.Elements
+                .Select(timeObject => timeObject.Id).ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(offeredIds, Does.Not.Contain(withStart.Id));
+                Assert.That(offeredIds, Does.Contain(endOnly.Id));
+                Assert.That(offeredIds, Does.Contain(ticketTimeObject.Id));
+            });
+        }
+
+        [Test]
         public async Task TimeObjectSelector_TicketTimeObjectsAreAvailableWithoutFlowDb()
         {
             FlowTimeObject ticketTimeObject = new()

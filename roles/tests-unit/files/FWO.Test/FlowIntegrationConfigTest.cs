@@ -1,3 +1,4 @@
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using NUnit.Framework;
 
@@ -109,6 +110,23 @@ namespace FWO.Test
             config.ToConfigValue();
 
             Assert.That(config.TimeObjectBounds, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.StartAndEnd));
+        }
+
+        [Test]
+        public void IsSelectableTimeObject_OffersOnlyTimeObjectsWithoutStartWhenEndOnly()
+        {
+            FlowTimeObject withStart = new() { StartTime = new DateTime(2026, 6, 8, 8, 0, 0, DateTimeKind.Utc), EndTime = new DateTime(2026, 7, 9, 18, 0, 0, DateTimeKind.Utc) };
+            FlowTimeObject endOnly = new() { EndTime = new DateTime(2026, 7, 9, 18, 0, 0, DateTimeKind.Utc) };
+            FlowIntegrationConfig startAndEndConfig = new();
+            FlowIntegrationConfig endOnlyConfig = new() { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(startAndEndConfig.IsSelectableTimeObject(withStart), Is.True);
+                Assert.That(startAndEndConfig.IsSelectableTimeObject(endOnly), Is.True);
+                Assert.That(endOnlyConfig.IsSelectableTimeObject(withStart), Is.False);
+                Assert.That(endOnlyConfig.IsSelectableTimeObject(endOnly), Is.True);
+            });
         }
 
         [Test]

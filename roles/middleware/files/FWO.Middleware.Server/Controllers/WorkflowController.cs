@@ -565,7 +565,7 @@ namespace FWO.Middleware.Server.Controllers
             HashSet<int> visibilityGroupIds = GetClaimIds(user, "x-hasura-workflow-visibility-groups");
             if (statefulObject is WfTicket ticket && ticket.Tasks.Count > 0)
             {
-                return CallerCanAccessAnyTaskOfTicket(user, wfHandler, ticket, visibilityGroupIds);
+                return await CallerCanAccessAnyTaskOfTicket(user, actionApiConnection, wfHandler, ticket, visibilityGroupIds);
             }
 
             StateMatrix stateMatrix = scope == WfObjectScopes.Ticket ? wfHandler.MasterStateMatrix : wfHandler.ActStateMatrix;
@@ -573,41 +573,50 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return true;
             }
-            return await IsExplicitlyAssigned(user, actionApiConnection, statefulObject);
+            return await IsExplicitlyAssignedToAny(user, actionApiConnection, [statefulObject]);
         }
 
         /// <summary>
         /// Applies the rule of the ticket list to a ticket with request tasks: the ticket is visible as soon as one
-        /// of its request tasks, implementation tasks or approvals is, whatever state the ticket itself stands in.
-        /// A caller working on such a task moves the ticket state and triggers its actions, so the ticket scope has
-        /// to accept the same callers.
+        /// of its request tasks, implementation tasks or approvals is, or the caller is assigned to one of them,
+        /// directly or through a group, whatever state the ticket itself stands in. A caller working on such a task
+        /// moves the ticket state and triggers its actions, so the ticket scope has to accept the same callers.
         /// </summary>
-        private static bool CallerCanAccessAnyTaskOfTicket(ClaimsPrincipal user, WfHandler wfHandler, WfTicket ticket, HashSet<int> visibilityGroupIds)
+        private async Task<bool> CallerCanAccessAnyTaskOfTicket(ClaimsPrincipal user, ApiConnection actionApiConnection, WfHandler wfHandler,
+            WfTicket ticket, HashSet<int> visibilityGroupIds)
         {
             return wfHandler.IsAnyTaskOfTicketVisible(ticket, visibilityGroupIds)
-                || ticket.Tasks.Any(reqTask => IsTaskDirectlyAssignedToCaller(user, reqTask));
-        }
-
-        private static bool IsTaskDirectlyAssignedToCaller(ClaimsPrincipal user, WfReqTask reqTask)
-        {
-            return IsExplicitlyAssignedToUserOrGroups(user, reqTask, kNoGroups)
-                || reqTask.ImplementationTasks.Any(implTask => IsExplicitlyAssignedToUserOrGroups(user, implTask, kNoGroups))
-                || reqTask.Approvals.Any(approval => IsExplicitlyAssignedToUserOrGroups(user, approval, kNoGroups));
+                || await IsExplicitlyAssignedToAny(user, actionApiConnection, CollectTaskObjectsOfTicket(ticket));
         }
 
         /// <summary>
-        /// Decides whether the caller is explicitly assigned, resolving the ldap group memberships only if a
-        /// group assignment exists that could match at all. The group dns are no longer part of the jwt, so
-        /// every lookup costs an ldap round trip. The groups are resolved in the directory of the caller's local user,
-        /// not in the first directory that knows the dn (GHSA-695m-f6mv-9g72).
+        /// Collects the request tasks of a ticket together with their implementation tasks and approvals.
         /// </summary>
-        private async Task<bool> IsExplicitlyAssigned(ClaimsPrincipal user, ApiConnection actionApiConnection, WfStatefulObject statefulObject)
+        private static List<WfStatefulObject> CollectTaskObjectsOfTicket(WfTicket ticket)
         {
-            if (IsExplicitlyAssignedToUserOrGroups(user, statefulObject, kNoGroups))
+            List<WfStatefulObject> taskObjects = [];
+            foreach (WfReqTask reqTask in ticket.Tasks)
+            {
+                taskObjects.Add(reqTask);
+                taskObjects.AddRange(reqTask.ImplementationTasks);
+                taskObjects.AddRange(reqTask.Approvals);
+            }
+            return taskObjects;
+        }
+
+        /// <summary>
+        /// Decides whether the caller is explicitly assigned to at least one of the objects, resolving the ldap group
+        /// memberships only once and only if a group assignment exists that could match at all. The group dns are no
+        /// longer part of the jwt, so every lookup costs an ldap round trip. The groups are resolved in the directory
+        /// of the caller's local user, not in the first directory that knows the dn (GHSA-695m-f6mv-9g72).
+        /// </summary>
+        private async Task<bool> IsExplicitlyAssignedToAny(ClaimsPrincipal user, ApiConnection actionApiConnection, List<WfStatefulObject> statefulObjects)
+        {
+            if (statefulObjects.Any(statefulObject => IsExplicitlyAssignedToUserOrGroups(user, statefulObject, kNoGroups)))
             {
                 return true;
             }
-            if (CollectAssignedGroupDns(statefulObject).Count == 0)
+            if (!statefulObjects.Any(statefulObject => CollectAssignedGroupDns(statefulObject).Count > 0))
             {
                 return false;
             }
@@ -618,7 +627,7 @@ namespace FWO.Middleware.Server.Controllers
                 return false;
             }
             List<string> userGroups = await new UserGroupResolver(ldaps).GetGroupsForUser(caller.Dn, caller.LdapConnection?.Id ?? 0);
-            return IsExplicitlyAssignedToUserOrGroups(user, statefulObject, userGroups);
+            return statefulObjects.Any(statefulObject => IsExplicitlyAssignedToUserOrGroups(user, statefulObject, userGroups));
         }
 
         /// <summary>

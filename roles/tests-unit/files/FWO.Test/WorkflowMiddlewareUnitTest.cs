@@ -1947,6 +1947,49 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsTicketThroughApprovalAssignedToCallersGroup()
+        {
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = CreateTicketWithHiddenTaskApprovedByGroup($"cn=approvers,{kVisibilityGroupPath}");
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("approvers", userDn)];
+
+            bool allowed = await InvokeCallerCanAccessVisibility(ApproverWithVisibilityGroup(userDn), CreateHandlerWithExclusivePlannerGroup(),
+                WfObjectScopes.Ticket, ticket, ldaps, StoredCaller(userDn));
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesTicketThroughApprovalAssignedToForeignGroup()
+        {
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = CreateTicketWithHiddenTaskApprovedByGroup($"cn=approvers,{kVisibilityGroupPath}");
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("some-other-group", userDn)];
+
+            bool allowed = await InvokeCallerCanAccessVisibility(ApproverWithVisibilityGroup(userDn), CreateHandlerWithExclusivePlannerGroup(),
+                WfObjectScopes.Ticket, ticket, ldaps, StoredCaller(userDn));
+
+            Assert.That(allowed, Is.False);
+        }
+
+        private static WfTicket CreateTicketWithHiddenTaskApprovedByGroup(string approverGroupDn)
+        {
+            WfTicket ticket = new() { Id = 62, StateId = kApprovedStateId };
+            WfReqTask hiddenTask = new() { Id = 252, TaskType = WfTaskType.group_modify.ToString(), StateId = kApprovedStateId };
+            hiddenTask.Approvals.Add(new WfApproval { Id = 401, StateId = kApprovedStateId, ApproverGroup = approverGroupDn });
+            ticket.Tasks.Add(hiddenTask);
+            return ticket;
+        }
+
+        private static ClaimsPrincipal ApproverWithVisibilityGroup(string userDn)
+        {
+            return PrincipalWithRolesAndClaims(kApproverRole,
+                new Claim("x-hasura-workflow-visibility-groups", kPlannerVisibilityClaim),
+                new Claim("x-hasura-uuid", userDn),
+                new Claim("x-hasura-user-id", $"{kVisibilityCallerId}"));
+        }
+
+        [Test]
         public void WorkflowController_CreateWorkflowHandler_LoadsTheWholeTicketForTheActions()
         {
             WorkflowController controller = CreateWorkflowController(PlannerWithVisibilityGroup());

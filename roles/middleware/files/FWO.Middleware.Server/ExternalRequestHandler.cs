@@ -58,7 +58,7 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// External states that may stay without a mapping to an internal state: the request task then keeps its state
         /// </summary>
-        private static readonly List<string> kOptionallyMappedStates =
+        private static readonly IReadOnlyCollection<string> kOptionallyMappedStates =
         [
             ExtStates.ExtReqRequested.ToString(),
             ExtStates.ExtReqInProgress.ToString()

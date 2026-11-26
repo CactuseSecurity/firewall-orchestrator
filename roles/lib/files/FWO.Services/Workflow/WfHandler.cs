@@ -75,11 +75,11 @@ namespace FWO.Services.Workflow
         /// True when the workflow engine acts on its own behalf - background jobs and the external request
         /// chain - instead of on behalf of a signed-in user. Visibility groups restrict what a user is shown,
         /// so they must not narrow what the engine itself loads, promotes and derives ticket states from.
-        /// Stays false for every user-facing caller, the UI and the workflow REST controller included, where
-        /// visibility is an authorization boundary rather than a display rule.
-        /// The middleware's workflow action endpoint sets it too: it authorizes the caller on the object that
-        /// triggered the request, and the configured actions then work on the whole ticket, so a request task
-        /// hidden from the caller still gets its implementation tasks and external requests.
+        /// Stays false wherever a user reads or edits workflow data, the UI and the workflow REST controller's
+        /// ticket endpoints included, where visibility is an authorization boundary rather than a display rule.
+        /// The only user-triggered exception is the middleware's workflow action endpoint: it authorizes the caller
+        /// on the object that triggered the request first, and the configured actions then work on the whole ticket,
+        /// so a request task hidden from the caller still gets its implementation tasks and external requests.
         /// </summary>
         public bool SystemContext { get; init; }
         private readonly ApiConnection? apiConnection;

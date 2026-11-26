@@ -25,12 +25,12 @@ namespace FWO.Test
     {
         private const string kNoneAlgorithmName = "None";
         private const string kNetworkZoneTreeAlgorithmName = "Network Zone Tree";
-        private static readonly List<string> kAlgorithmIdsInOrder =
+        private static readonly List<long> kAlgorithmIdsInOrder =
         [
-            GlobalConst.kPathAnalysisAlgorithmNone.ToString(),
-            GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString(),
-            GlobalConst.kPathAnalysisAlgorithmForEachDevice.ToString(),
-            GlobalConst.kPathAnalysisAlgorithmFirstDevice.ToString()
+            GlobalConst.kPathAnalysisAlgorithmNone,
+            GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree,
+            GlobalConst.kPathAnalysisAlgorithmForEachDevice,
+            GlobalConst.kPathAnalysisAlgorithmFirstDevice
         ];
         private static readonly List<string> kAlgorithmTextKeysInOrder =
         [
@@ -274,14 +274,20 @@ namespace FWO.Test
 
             wrapper.WaitForAssertion(() =>
             {
-                List<AngleSharp.Dom.IElement> options = [.. wrapper.FindAll("#pathAnalysisAlgorithm option")];
-                Assert.That(options.Select(option => option.GetAttribute("value")), Is.EqualTo(kAlgorithmIdsInOrder));
+                IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+                List<long> algorithmIds = [.. algorithmDropdown.Instance.Elements];
+                Assert.That(algorithmIds, Is.EqualTo(kAlgorithmIdsInOrder));
                 // the simulated user config returns the text key: the name is localized, not taken from the database
-                Assert.That(options.Select(option => option.TextContent), Is.EqualTo(kAlgorithmTextKeysInOrder));
-                Assert.That(wrapper.Find("#pathAnalysisAlgorithm").GetAttribute("value"),
-                    Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
+                Assert.That(algorithmIds.Select(algorithmDropdown.Instance.ElementToString), Is.EqualTo(kAlgorithmTextKeysInOrder));
+                Assert.That(wrapper.Find("#dropdown-input-pathAnalysisAlgorithm").GetAttribute("value"),
+                    Is.EqualTo(kAlgorithmTextKeysInOrder[1]));
+                Assert.That(wrapper.Find("label[for='dropdown-input-pathAnalysisAlgorithm']"), Is.Not.Null);
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
             });
+            IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+            algorithmDropdown.Find("input").Focus();
+            Assert.That(wrapper.FindAll("button.dropdown-item"), Is.Not.Empty);
+            Assert.That(algorithmDropdown.Instance.ElementToString(99), Is.Empty);
         }
 
         [Test]
@@ -364,9 +370,9 @@ namespace FWO.Test
 
             wrapper.WaitForAssertion(() =>
             {
-                AngleSharp.Dom.IElement option = wrapper.Find($"#pathAnalysisAlgorithm option[value='{kUnknownAlgorithmId}']");
-                Assert.That(option.TextContent, Is.EqualTo(kUnknownAlgorithmName));
-                Assert.That(option.Children, Is.Empty, "the stored name is rendered as text");
+                IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+                Assert.That(algorithmDropdown.Instance.Elements, Does.Contain(kUnknownAlgorithmId));
+                Assert.That(algorithmDropdown.Instance.ElementToString(kUnknownAlgorithmId), Is.EqualTo(kUnknownAlgorithmName));
             });
         }
 

@@ -272,14 +272,17 @@
                 </Dropdown>
             </div>
         </SettingsRow>
-        <SettingsRow LabelKey="path_analysis_algorithm" LabelFor="pathAnalysisAlgorithm"
+        <SettingsRow LabelKey="path_analysis_algorithm" LabelFor="dropdown-input-pathAnalysisAlgorithm"
                      Tooltip="@(userConfig.PureLine("H5580") + "\r\n" + userConfig.PureLine("H5575") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5572"))">
-            <select id="pathAnalysisAlgorithm" class="form-select form-select-sm settings-input-md" @bind="configData!.PathAnalysisAlgorithm">
-                @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
-                {
-                    <option value="@algorithm.Id">@AlgorithmDisplayName(algorithm)</option>
-                }
-            </select>
+            <div class="settings-input-md">
+                <Dropdown Id="pathAnalysisAlgorithm" ElementType="long" @bind-SelectedElement="configData!.PathAnalysisAlgorithm"
+                          Elements="pathAnalysisAlgorithms.Select(algorithm => algorithm.Id)"
+                          ElementToString="@(id => AlgorithmDisplayName(pathAnalysisAlgorithms.FirstOrDefault(algorithm => algorithm.Id == id)))">
+                    <ElementTemplate Context="id">
+                        @AlgorithmDisplayName(pathAnalysisAlgorithms.FirstOrDefault(algorithm => algorithm.Id == id))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </SettingsRow>
         <SettingsRow LabelKey="reqBundlingOptions" TooltipKey="H5566">
             <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
@@ -491,8 +494,13 @@ else
     /// Returns the localized name of a path analysis algorithm, derived from its API name. An algorithm without API
     /// name, e.g. added to the database manually, keeps its stored name.
     /// </summary>
-    private string AlgorithmDisplayName(PathAnalysisAlgorithm algorithm)
+    private string AlgorithmDisplayName(PathAnalysisAlgorithm? algorithm)
     {
+        if (algorithm == null)
+        {
+            return "";
+        }
+
         string? apiName = PathAnalysisAlgorithmNames.GetName(algorithm.Id);
         return apiName == null ? algorithm.Name : userConfig.GetText(kAlgorithmTextPrefix + apiName);
     }

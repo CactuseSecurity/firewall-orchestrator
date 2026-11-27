@@ -11,12 +11,6 @@ query getAvailableInterfacesForApp($appId: Int!, $where: modelling_connection_bo
             { interface_permission: { _ilike: "restricted" }, permitted_owners: { app_id: { _eq: $appId } } }
           ]
         }
-        {
-          _or: [
-            { app_id: { _eq: $appId } }
-            { owner: { active: { _eq: true }, import_source: { _is_null: false }, owner_networks: { is_deleted: { _eq: false } } } }
-          ]
-        }
         $where
       ]
     }

@@ -35,9 +35,7 @@ public class ModellingObjectsController(ApiConnection apiConnection, GlobalConfi
     /// ignoring case. Only published interfaces are returned; requested, rejected and decommissioned interfaces are
     /// not. Public interfaces are always returned, restricted interfaces only when the application is one of their
     /// permitted owners, and private interfaces only when the application provides them. The application's own
-    /// interfaces are always returned. Interfaces of other applications are only returned when the providing
-    /// application is active, was imported (not created manually) and owns at least one IP address, network or
-    /// range. Source and destination list app servers, app roles, network areas and other
+    /// interfaces are always returned. Source and destination list app servers, app roles, network areas and other
     /// network groups separately, each with resolved members; deleted objects are left out. Addresses use compact
     /// notation: a single IP for a host, CIDR notation for a network and <c>ip1-ip2</c> for a range. Services use
     /// <c>port/protocol</c>, <c>portStart-portEnd/protocol</c>, or the protocol alone. Interfaces are ordered by name

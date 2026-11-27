@@ -536,6 +536,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditConnLeftSide_RequestInterfacePopupOffersOnlyRequestableApps()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            ModellingConnectionHandler handler = CreateLibraryHandler(new LibraryApiConnection(), userConfig);
+            handler.AllApps = [new FwoOwner { Id = 2, Name = "WithIps" }, new FwoOwner { Id = 3, Name = "WithoutIps" }];
+            handler.RequestableApps = [handler.AllApps[0]];
+
+            IRenderedComponent<EditConnLeftSide> component = RenderLibrary(context, handler);
+
+            Assert.That(component.FindComponent<RequestInterfacePopup>().Instance.Apps, Is.SameAs(handler.RequestableApps));
+        }
+
+        [Test]
         public async Task EditConnLeftSide_ConfirmationsAndRefreshesReportTheChangedHandler()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);

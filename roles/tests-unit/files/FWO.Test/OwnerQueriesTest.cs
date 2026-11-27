@@ -73,6 +73,15 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetActiveOwnersWithIpsOnlyReturnsActiveOwnersWithNonDeletedNetworks()
+        {
+            string query = OwnerQueries.getActiveOwnersWithIps;
+
+            Assert.That(query, Does.Contain("where: { id: { _gt: 0 }, active: { _eq: true }, owner_networks: { is_deleted: { _eq: false } } }"));
+            Assert.That(query, Does.Not.Contain("import_source: {"));
+        }
+
+        [Test]
         public void GetOwnersForDnsWithRecertificationUsesAllowRecertificationFilter()
         {
             string query = OwnerQueries.getOwnersForDnsWithRecertification;

@@ -541,6 +541,7 @@ namespace FWO.Test
                     [StmQueries.getTracking] = _ => new List<Tracking>(),
                     [DeviceQueries.getDeviceDetails] = _ => new List<Device>(),
                     [OwnerQueries.getOwnersWithConn] = _ => Owners.Select(owner => new FwoOwner(owner)).ToList(),
+                    [OwnerQueries.getActiveOwnersWithIps] = _ => Owners.Select(owner => new FwoOwner(owner)).ToList(),
                     [OwnerQueries.getEditableOwnersWithConn] = variables => AnswerEditableOwners(variables),
                     [ModellingQueries.getConnectionsResolved] = variables => AnswerConnections(variables),
                     [ModellingQueries.getDummyAppRole] = _ => new List<ModellingAppRole> { new() { Id = 999, IdString = "DUMMY", Name = "Dummy" } },

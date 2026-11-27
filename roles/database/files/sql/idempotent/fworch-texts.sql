@@ -10006,12 +10006,10 @@ INSERT INTO txt VALUES ('H9021', 'English', 'Connections are the main components
 INSERT INTO txt VALUES ('H9022', 'German',  'Schnittstellen: Sie dienen in erster Linie der Modellierung von (aus Sicht der Applikation) externen Verbindungen oder der B&uuml;ndelung interner Objekte.
     Es m&uuml;ssen in der Applikation neben dem Dienst entweder Quelle oder Ziel definiert werden. Die Schnittstellen k&ouml;nnen durch Setzen des entsprechendenn H&auml;kchens ver&ouml;ffentlicht und dadurch in den anderen Applikationen
     zur Auswahl angeboten werden. Sie k&ouml;nnen dann dort in der Definition von eigenen Verbindungen verwendet werden.
-    Angeboten werden neben den eigenen Schnittstellen nur Schnittstellen von Applikationen, die aktuell per Import (z.B. aus der CMDB) geliefert werden und mindestens eine IP-Adresse, ein Netz oder einen Bereich besitzen.
 ');
 INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily the modelling of (relative to the application) external connections or the bundling of internal objects.
     Besides the service either source or destination have to be defined in the application. The interfaces can be published by setting the respective flag and are then offered to other applications to use
     them in the definition of own connections.
-    Besides the own interfaces, only interfaces of applications are offered which are currently delivered by import (e.g. from the CMDB) and own at least one IP address, network or range.
 ');
 INSERT INTO txt VALUES ('H9023', 'German',  'Standard: Zentrale Objekte zur Modellierung der Kommunikationsverbindungen. Dabei m&uuml;ssen Quelle, Dienst und Ziel aus den in der Bibliothek
     angebotenen Ntzwerkobjekten bzw. Services gew&auml;hlt werden. Es k&ouml;nnen auch eigene oder externe Schnittstellen eingebunden werden. Dann m&uuml;ssen nur noch die "offenen Enden"
@@ -10073,7 +10071,8 @@ INSERT INTO txt VALUES ('H9043', 'English', 'Service Groups: Simple services can
 ');
 INSERT INTO txt VALUES ('H9051', 'German',  'Beantragung neuer Schnittstellen: Wenn externe Schnittstellen von anderen Applikationen ben&ouml;tigt werden, k&ouml;nnen diese &uuml;ber die entsprechende Schaltfl&auml;che in der Bibliothek beantragt werden.
     <ul>
-        <li>Es erscheint ein Dialog, in dem die externe Applikation ausgew&auml;hlt und eine Begr&uuml;ndung eingetragen werden m&uuml;ssen, sowie das H&auml;kchen, ob die Schnittstelle als Quelle oder Ziel genutzt werden soll.</li>
+        <li>Es erscheint ein Dialog, in dem die externe Applikation ausgew&auml;hlt und eine Begr&uuml;ndung eingetragen werden m&uuml;ssen, sowie das H&auml;kchen, ob die Schnittstelle als Quelle oder Ziel genutzt werden soll.
+            Zur Auswahl stehen nur aktive Applikationen, die mindestens eine IP-Adresse, ein Netz oder einen Bereich besitzen.</li>
         <li>Beim Abschicken der Anforderung wird
             <ul>
                 <li>bei der externen Applikation automatisch eine Dummy-Schnittstelle angelegt, die dann in der eigenen Schnittstellen-Auswahl erscheint und direkt zur Erstellung eigener Verbindungen genutzt werden kann.
@@ -10087,7 +10086,8 @@ INSERT INTO txt VALUES ('H9051', 'German',  'Beantragung neuer Schnittstellen: W
 ');
 INSERT INTO txt VALUES ('H9051', 'English', 'Request new interface: If external interfaces from other applications are needed, they can be requested via a button in the library.
     <ul>
-        <li>A dialogue is displayed to select the external Application. A reason field has to be filled as well as the checkbox, if the interface should be used as source or destination.</li>
+        <li>A dialogue is displayed to select the external Application. A reason field has to be filled as well as the checkbox, if the interface should be used as source or destination.
+            Only active applications owning at least one IP address, network or range can be selected.</li>
         <li>If the request is submitted
             <ul>
                 <li>a dummy interface is created automatically at the target application, which then appears in the own interface selection in the library and can be used for the definition of the own connection.

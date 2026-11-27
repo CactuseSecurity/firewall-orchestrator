@@ -18,7 +18,8 @@ namespace FWO.Ui.Services
     /// the start and end time columns compare the day of the dates with the date operators.
     /// Free text search and "contains" filters over all levels are not offered, as they are too slow on many tickets.
     /// A filter matches if any level of a ticket (ticket, request task, implementation task, approval)
-    /// matches; negated operators mean that no level matches.
+    /// matches; negated operators mean that no level matches. "Is empty" and "is not empty" on the date columns
+    /// only check the ticket's own date.
     /// </summary>
     public static class WorkflowTicketQueryBuilder
     {
@@ -41,6 +42,11 @@ namespace FWO.Ui.Services
         private const string kLt = "_lt";
         private const string kDayFormat = "yyyy-MM-dd";
         private const string kAfterLastDay = "infinity";
+
+        /// <summary>
+        /// Page size of the ticket table, also used when a request has no positive page size.
+        /// </summary>
+        public const int kDefaultPageSize = 10;
 
         private static readonly LevelFields kNameFields = new(kTitle, kTitle, kTitle, "approver_group");
         private static readonly LevelFields kStartFields = new("date_created", "start", "start", "date_opened");
@@ -75,8 +81,9 @@ namespace FWO.Ui.Services
                 }
             }
 
-            int pageSize = request.PageSize > 0 ? request.PageSize : int.MaxValue - 1;
-            int offset = request.PageSize > 0 ? (Math.Max(request.Page, 1) - 1) * request.PageSize : 0;
+            // The full ticket details are loaded per ticket, so a page size of 0 or less must not load all tickets.
+            int pageSize = request.PageSize > 0 ? request.PageSize : kDefaultPageSize;
+            int offset = (Math.Max(request.Page, 1) - 1) * pageSize;
             return new WorkflowTicketQuery(new Dictionary<string, object> { [kAnd] = conditions }, OrderBy(request), pageSize + 1, offset);
         }
 
@@ -229,7 +236,7 @@ namespace FWO.Ui.Services
 
         /// <summary>
         /// The name column shows the title of the ticket, request task or implementation task and the approver group of an
-        /// approval. Only "equals" and "starts with" are supported, other operators are ignored like by the table itself.
+        /// approval. Only "equals", "does not equal" and "starts with" are supported, other operators are ignored like by the table itself.
         /// </summary>
         private static Dictionary<string, object>? NameCondition(FancyColumnFilterOperator positiveOperator, string value)
         {
@@ -244,12 +251,17 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Compares the day of a date on all levels. The table sends the days as invariant "yyyy-MM-dd" strings; filters
         /// with another format or an unsupported operator are ignored like by the table itself.
+        /// "Is empty" and "is not empty" only check the ticket's own date: almost every ticket has a task or approval without
+        /// date, so e.g. "end time is empty" finds the open tickets.
         /// </summary>
         private static Dictionary<string, object>? DateCondition(LevelFields fields, FancyColumnFilterOperator positiveOperator, string value, string? valueTo)
         {
-            Dictionary<string, object>? comparison = positiveOperator == FancyColumnFilterOperator.IsNotEmpty
-                ? new Dictionary<string, object> { ["_is_null"] = false }
-                : DayComparison(positiveOperator, value, valueTo);
+            if (positiveOperator == FancyColumnFilterOperator.IsNotEmpty)
+            {
+                return Field(fields.Ticket, new Dictionary<string, object> { ["_is_null"] = false });
+            }
+
+            Dictionary<string, object>? comparison = DayComparison(positiveOperator, value, valueTo);
             return comparison == null ? null : AnyLevelCondition(fields, comparison);
         }
 

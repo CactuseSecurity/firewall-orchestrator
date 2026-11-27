@@ -97,7 +97,7 @@
 
     #region Consts - Private
 
-    private const int kDefaultPageSize = 10;
+    private const int kDefaultPageSize = WorkflowTicketQueryBuilder.kDefaultPageSize;
     private const int kColumnMinWidth = 80;
 
     private static readonly IReadOnlyCollection<WfTaskType> kNoTaskTypes = [];
@@ -119,8 +119,9 @@
     private static readonly ColumnBehavior kIdColumn = kServerColumn with { FilterOperators = kExactFilterOperators };
 
     // The name filter compares the titles of all levels, so only operators matching from the start of the title are offered.
+    // FancyTable preselects the first operator, so users typing part of a name get a prefix match instead of an exact one.
     private static readonly IReadOnlyList<FancyColumnFilterOperator> kNameFilterOperators =
-        [FancyColumnFilterOperator.Equals, FancyColumnFilterOperator.NotEquals, FancyColumnFilterOperator.StartsWith];
+        [FancyColumnFilterOperator.StartsWith, FancyColumnFilterOperator.Equals, FancyColumnFilterOperator.NotEquals];
     private static readonly ColumnBehavior kNameColumn = kServerColumn with { FilterOperators = kNameFilterOperators };
 
     // Date columns get a date picker and the comparison operators; the filter compares the day only.

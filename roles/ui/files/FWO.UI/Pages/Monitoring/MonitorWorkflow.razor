@@ -77,7 +77,6 @@ else
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private static readonly IReadOnlyList<WfTicket> kNoTickets = [];
-    private static readonly List<string> kMonitoringRoles = [Roles.Admin, Roles.Auditor];
 
     private readonly WorkflowTicketCountCache ticketCountCache = new();
     private List<WfTicket> tickets = [];
@@ -241,8 +240,9 @@ else
             }
 
             ticketCountCache.Store(query.Where, ticketCount);
-            bool hasMore = request.PageSize > 0 && fetchedTickets.Count > request.PageSize;
-            tickets = hasMore ? [.. fetchedTickets.Take(request.PageSize)] : fetchedTickets;
+            int pageSize = query.Limit - 1;
+            bool hasMore = fetchedTickets.Count > pageSize;
+            tickets = hasMore ? [.. fetchedTickets.Take(pageSize)] : fetchedTickets;
             wfHandler.TicketList = tickets;
             return new FancyItemsResult<WfTicket>(tickets, hasMore) { TotalCount = ticketCount };
         }
@@ -261,7 +261,7 @@ else
         // Unit tests can instantiate this page without a cascading authentication state; production rendering supplies one.
         return authenticationStateTask == null
             ? loadTickets()
-            : apiConnection.RunWithBestRole(authenticationStateTask.Result.User, kMonitoringRoles, loadTickets);
+            : apiConnection.RunWithMonitoringRole(authenticationStateTask.Result.User, loadTickets);
     }
 
     private Task OpenTicketStateChange(WfTicket ticket)

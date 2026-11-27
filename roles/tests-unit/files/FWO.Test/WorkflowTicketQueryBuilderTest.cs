@@ -90,6 +90,21 @@ namespace FWO.Test
             return AnyLevelCondition(fields, comparison);
         }
 
+        [TestCase(0)]
+        [TestCase(-1)]
+        public void Build_NonPositivePageSize_FallsBackToDefaultPageSize(int pageSize)
+        {
+            FancyItemsRequest request = new("", null, true, kNoFilters, 3, pageSize);
+
+            WorkflowTicketQuery query = Build(request);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(query.Limit, Is.EqualTo(WorkflowTicketQueryBuilder.kDefaultPageSize + 1));
+                Assert.That(query.Offset, Is.EqualTo(2 * WorkflowTicketQueryBuilder.kDefaultPageSize));
+            });
+        }
+
         [Test]
         public void Build_DefaultRequest_OrdersByIdDescAndPagesWithLimitPlusOne()
         {
@@ -258,7 +273,6 @@ namespace FWO.Test
         [TestCase(FancyColumnFilterOperator.GreaterThanOrEqual, """{"_gte":"2026-11-10"}""")]
         [TestCase(FancyColumnFilterOperator.LessThan, """{"_lt":"2026-11-10"}""")]
         [TestCase(FancyColumnFilterOperator.LessThanOrEqual, """{"_lt":"2026-11-11"}""")]
-        [TestCase(FancyColumnFilterOperator.IsNotEmpty, """{"_is_null":false}""")]
         public void StartTimeFilter_ComparesDayOnAllLevels(FancyColumnFilterOperator filterOperator, string comparison)
         {
             string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("start_time", filterOperator, "2026-11-10"))));
@@ -266,13 +280,31 @@ namespace FWO.Test
             Assert.That(condition, Is.EqualTo(DateCondition(kStartFields, comparison)));
         }
 
-        [TestCase(FancyColumnFilterOperator.NotEquals, """{"_gte":"2026-11-10","_lt":"2026-11-11"}""")]
-        [TestCase(FancyColumnFilterOperator.IsEmpty, """{"_is_null":false}""")]
-        public void EndTimeFilter_NegatedOperator_NegatesConditionOnAllLevels(FancyColumnFilterOperator filterOperator, string comparison)
+        [Test]
+        public void EndTimeFilter_NotEquals_NegatesConditionOnAllLevels()
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("end_time", filterOperator, "2026-11-10"))));
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("end_time", FancyColumnFilterOperator.NotEquals, "2026-11-10"))));
 
-            Assert.That(condition, Is.EqualTo(Negated(DateCondition(kEndFields, comparison))));
+            Assert.That(condition, Is.EqualTo(Negated(DateCondition(kEndFields, """{"_gte":"2026-11-10","_lt":"2026-11-11"}"""))));
+        }
+
+        /// <summary>
+        /// An open ticket with an approved approval must still be found by "end time is empty", so the emptiness
+        /// operators only look at the ticket's own date and ignore the dates of tasks and approvals.
+        /// </summary>
+        [TestCase("start_time", "date_created")]
+        [TestCase("end_time", "date_completed")]
+        public void DateFilter_EmptinessOperators_CheckTicketDateOnly(string columnKey, string ticketField)
+        {
+            string isNotEmpty = ExtraCondition(Build(Request(filter: new FancyColumnFilter(columnKey, FancyColumnFilterOperator.IsNotEmpty))));
+            string isEmpty = ExtraCondition(Build(Request(filter: new FancyColumnFilter(columnKey, FancyColumnFilterOperator.IsEmpty))));
+
+            string ticketHasDate = Normalize("{\"" + ticketField + "\":{\"_is_null\":false}}");
+            Assert.Multiple(() =>
+            {
+                Assert.That(isNotEmpty, Is.EqualTo(ticketHasDate));
+                Assert.That(isEmpty, Is.EqualTo(Negated(ticketHasDate)));
+            });
         }
 
         [TestCase("2026-11-01", "2026-11-10")]

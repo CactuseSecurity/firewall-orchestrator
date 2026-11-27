@@ -140,7 +140,7 @@ namespace FWO.Test
         }
 
         [TestCase("id", "Equals,NotEquals")]
-        [TestCase("name", "Equals,NotEquals,StartsWith")]
+        [TestCase("name", "StartsWith,Equals,NotEquals")]
         [TestCase("start_time", "Equals,NotEquals,GreaterThan,GreaterThanOrEqual,LessThan,LessThanOrEqual,Between,IsEmpty,IsNotEmpty")]
         [TestCase("end_time", "Equals,NotEquals,GreaterThan,GreaterThanOrEqual,LessThan,LessThanOrEqual,Between,IsEmpty,IsNotEmpty")]
         [TestCase("state", "Equals,NotEquals,Contains,NotContains,StartsWith,EndsWith,IsEmpty,IsNotEmpty")]

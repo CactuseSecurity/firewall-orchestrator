@@ -29,6 +29,7 @@ namespace FWO.Services
             public string NewInterfaceLinkName { get; init; } = "";
             public string NewInterfaceLinkUrl { get; init; } = "";
             public string Reason { get; init; } = "";
+            public string StateChangeComment { get; init; } = "";
             public string UserName { get; init; } = "";
             public string RequesterName { get; init; } = "";
             public string RequestDate { get; init; } = "";
@@ -40,7 +41,8 @@ namespace FWO.Services
         public const int kMaxCallerTextLength = 1000;
 
         /// <summary>
-        /// Maximum length of the caller-provided content of a workflow email, e.g. the reason for rejecting an interface.
+        /// Maximum length of the caller-provided content or state change comment of a workflow email,
+        /// e.g. the reason for rejecting an interface.
         /// </summary>
         public const int kMaxCallerContentLength = 10000;
 
@@ -103,13 +105,15 @@ namespace FWO.Services
                 .Replace(Placeholder.NEW_INTERFACE_NAME, insert(values.NewInterfaceName))
                 .Replace(Placeholder.NEW_INTERFACE_LINK, RenderLink(values.NewInterfaceLinkUrl, values.NewInterfaceLinkText, values.NewInterfaceLinkName, isHtmlBody))
                 .Replace(Placeholder.REASON, insert(values.Reason))
+                .Replace(Placeholder.STATECHANGE_COMMENT, insert(values.StateChangeComment))
                 .Replace(Placeholder.USER_NAME, insert(values.UserName));
         }
 
         /// <summary>
         /// Restricts placeholder values sent by a caller of the workflow action endpoint to what the caller may decide.
         /// The user name is the authenticated caller, link targets have to lead into the FWO UI, and reason and requester
-        /// are always taken from the workflow object. All remaining values are free text, which is encoded when inserted.
+        /// are always taken from the workflow object. All remaining values, including the comment the caller entered with
+        /// the state change, are free text, which is encoded when inserted.
         /// </summary>
         /// <param name="data">The values sent by the caller; null when none were sent.</param>
         /// <param name="callerName">Name of the authenticated caller.</param>
@@ -138,6 +142,7 @@ namespace FWO.Services
                 NewInterfaceLinkName = data.NewInterfaceLinkName,
                 NewInterfaceLinkUrl = NormalizeUiLink(data.NewInterfaceLinkUrl, uiHostName),
                 Content = data.Content,
+                StateChangeComment = data.StateChangeComment,
                 UserName = callerName,
                 RequestDate = data.RequestDate
             };
@@ -193,6 +198,10 @@ namespace FWO.Services
             if (data.Content.Length > kMaxCallerContentLength)
             {
                 return $"Notification content must not be longer than {kMaxCallerContentLength} characters.";
+            }
+            if ((data.StateChangeComment?.Length ?? 0) > kMaxCallerContentLength)
+            {
+                return $"Notification state change comment must not be longer than {kMaxCallerContentLength} characters.";
             }
 
             List<string> texts =
@@ -269,6 +278,7 @@ namespace FWO.Services
                 NewInterfaceLinkName = FirstNonEmpty(data.NewInterfaceLinkName, values.NewInterfaceLinkName),
                 NewInterfaceLinkUrl = FirstNonEmpty(data.NewInterfaceLinkUrl, values.NewInterfaceLinkUrl),
                 Reason = FirstNonEmpty(data.Reason, values.Reason),
+                StateChangeComment = FirstNonEmpty(data.StateChangeComment, values.StateChangeComment),
                 UserName = FirstNonEmpty(data.UserName, values.UserName),
                 RequesterName = FirstNonEmpty(data.RequesterName, values.RequesterName),
                 RequestDate = FirstNonEmpty(data.RequestDate, values.RequestDate)

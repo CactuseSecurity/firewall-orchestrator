@@ -26,7 +26,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [NonParallelizable]
-    internal class ActionHandlerTest
+    internal partial class ActionHandlerTest
     {
         private static readonly int[] kExpectedNotificationIds = [3, 5];
 
@@ -1838,6 +1838,59 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_AddsTheCurrentStateChangeComment()
+        {
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            WfImplTask implTask = new() { Id = 12, TicketId = 42, StateId = 5 };
+            NotificationPlaceholderData placeholderData = new() { InterfaceName = "Interface 1" };
+            using IDisposable commentScope = wfHandler.BeginStateChangeComment("Rejected because the interface is obsolete.");
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 0, placeholderData])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parameters.NotificationPlaceholders!.StateChangeComment, Is.EqualTo("Rejected because the interface is obsolete."));
+                Assert.That(parameters.NotificationPlaceholders.InterfaceName, Is.EqualTo("Interface 1"));
+                Assert.That(placeholderData.StateChangeComment, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void WithStateChangeComment_CreatesValuesWhenTheCallerHasNone()
+        {
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            using IDisposable commentScope = wfHandler.BeginStateChangeComment("approved with conditions");
+
+            NotificationPlaceholderData? data = handler.WithStateChangeComment(null);
+
+            Assert.That(data?.StateChangeComment, Is.EqualTo("approved with conditions"));
+        }
+
+        [Test]
+        public void WithStateChangeComment_KeepsTheCallersValues()
+        {
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
+            NotificationPlaceholderData callerData = new() { StateChangeComment = "caller comment" };
+
+            NotificationPlaceholderData? withoutScope = handler.WithStateChangeComment(callerData);
+            NotificationPlaceholderData? noData = handler.WithStateChangeComment(null);
+            using IDisposable commentScope = wfHandler.BeginStateChangeComment("handler comment");
+            NotificationPlaceholderData? withScope = handler.WithStateChangeComment(callerData);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutScope, Is.SameAs(callerData));
+                Assert.That(noData, Is.Null);
+                Assert.That(withScope, Is.SameAs(callerData));
+                Assert.That(withScope!.StateChangeComment, Is.EqualTo("caller comment"));
+            });
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_IncludesWorkflowEmailBundleId()
         {
             WfHandler wfHandler = new();
@@ -2318,12 +2371,14 @@ namespace FWO.Test
             : ActionHandler(apiConnection, wfHandler)
         {
             public List<long> AttemptedTaskIds { get; } = [];
+            public List<NotificationPlaceholderData?> AttemptedPlaceholderData { get; } = [];
 
             public override Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
                 FwoOwner? owner, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
             {
                 long taskId = statefulObject is WfReqTask reqTask ? reqTask.Id : 0;
                 AttemptedTaskIds.Add(taskId);
+                AttemptedPlaceholderData.Add(placeholderData);
                 return Task.FromResult(!undeliverableTaskIds.Contains(taskId));
             }
         }

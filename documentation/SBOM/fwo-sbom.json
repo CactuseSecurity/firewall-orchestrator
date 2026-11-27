@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:24cf8f8f-7f62-4249-a9bc-907e2719e383",
+  "serialNumber": "urn:uuid:1224b1ff-1e20-4f64-ac90-c43df171f220",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-24T07:58:15Z",
+    "timestamp": "2026-11-25T10:03:28Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.10.5",
+      "bom-ref": "pkg:nuget/AngleSharp@1.11.0",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.10.5",
+      "version": "1.11.0",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "968006A99B68394F42C1C6A17E960328468ADCCD89B44F110B358269019EE7EE91167ED035E7BED919A9C500AF68DE244BB92E19DB9C5DE688860508FA85D831"
+          "content": "5569337395D63479CFFCA8394474F11853A0563DEF119706680D2466D7C761BEA1AA6E72FAC23F7EA89651AB80C06C0B240E01CE01A4721B05198982F52291EC"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.10.5",
+      "purl": "pkg:nuget/AngleSharp@1.11.0",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -4987,7 +4987,7 @@
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
         "pkg:nuget/SoPro.FancyTable@1.7.1",
-        "pkg:nuget/AngleSharp@1.10.5",
+        "pkg:nuget/AngleSharp@1.11.0",
         "pkg:nuget/bunit@2.15.2",
         "pkg:nuget/coverlet.collector@10.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.15",
@@ -5002,18 +5002,18 @@
     {
       "ref": "pkg:nuget/AngleSharp.Css@1.4.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.5"
+        "pkg:nuget/AngleSharp@1.11.0"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.5",
+        "pkg:nuget/AngleSharp@1.11.0",
         "pkg:nuget/AngleSharp.Css@1.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.10.5",
+      "ref": "pkg:nuget/AngleSharp@1.11.0",
       "dependsOn": []
     },
     {
@@ -5029,7 +5029,7 @@
     {
       "ref": "pkg:nuget/bunit@2.15.2",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.5",
+        "pkg:nuget/AngleSharp@1.11.0",
         "pkg:nuget/AngleSharp.Css@1.4.1",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.15",

@@ -21,7 +21,7 @@ query getNetworkObjectDetails(
         active: { _eq: $active }
         _or: [
           { removed: { _is_null: true } }
-          { removed: { _gte: $import_id_start } }
+          { removed: { _gt: $import_id_start } }
         ]
         obj_create: { _lte: $import_id_end }
         obj_name: { _in: $obj_name }

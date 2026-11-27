@@ -46,9 +46,17 @@ namespace FWO.Report
             return GenerateHtmlFrame(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report);
         }
 
+        /// <summary>
+        /// Builds an owner report whose connections contain all modelled objects shown in the variance report.
+        /// </summary>
         public static OwnerConnectionReport CollectObjectsInReport(OwnerConnectionReport ownerReport)
         {
-            OwnerConnectionReport modifiedOwnerReport = new() { Connections = [.. ownerReport.Connections] };
+            OwnerConnectionReport modifiedOwnerReport = new()
+            {
+                Name = ownerReport.Name,
+                Owner = ownerReport.Owner,
+                Connections = [.. ownerReport.Connections]
+            };
             modifiedOwnerReport.Connections.AddRange(ownerReport.RuleDifferences.ConvertAll(o => o.ModelledConnection));
             if (ownerReport.MissingAppRoles.Count > 0 || ownerReport.DifferingAppRoles.Count > 0)
             {

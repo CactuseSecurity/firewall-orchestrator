@@ -44,6 +44,13 @@ namespace FWO.Data
         [JsonProperty("content"), JsonPropertyName("content")]
         public string Content { get; set; } = "";
 
+        /// <summary>
+        /// Comment or reason entered by the user together with the state change that triggers the notification,
+        /// e.g. the reason for rejecting an interface or the comment of an approval.
+        /// </summary>
+        [JsonProperty("statechange_comment"), JsonPropertyName("statechange_comment")]
+        public string StateChangeComment { get; set; } = "";
+
         [JsonProperty("user_name"), JsonPropertyName("user_name")]
         public string UserName { get; set; } = "";
 
@@ -52,5 +59,13 @@ namespace FWO.Data
 
         [JsonProperty("request_date"), JsonPropertyName("request_date")]
         public string RequestDate { get; set; } = "";
+
+        /// <summary>
+        /// Returns a copy of these values, so that a value can be added without changing the caller's object.
+        /// </summary>
+        public NotificationPlaceholderData Copy()
+        {
+            return (NotificationPlaceholderData)MemberwiseClone();
+        }
     }
 }

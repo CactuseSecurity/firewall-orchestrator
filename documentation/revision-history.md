@@ -2,7 +2,16 @@
 
 ## 9.9.6 - 25.11.2026
 
+- CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
 - dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
+- dependencies: update NuGet packages (AngleSharp to 1.11.0)
+- notifications: new placeholder `@@STATECHANGE_COMMENT@@` for workflow emails (subject and body) with the comment or reason entered together with the triggering state change
+  - filled with the reason for rejecting an interface (reject popup in modelling, rejecting removed or orphaned requested interfaces), the comment of an approval and the comment of a ticket promotion
+  - also available for actions executed in the middleware and for automatic promotions triggered by the state change
+  - also available in bundled request task emails (requested connections with bundling of the same task type): a captured email keeps its placeholder values until the bundle is sent, except free text content of the caller, so the email still lists the requested connections; emails with different values are sent separately instead of being merged
+  - `@@REASON@@` remains the reason of the request; `@@CONTENT@@` is unchanged
+  - an interface rejection reason is no longer appended to the end of the email body when the body already shows it via `@@STATECHANGE_COMMENT@@`
+- REST API: `owners/get` accepts the optional `exactMatch` flag (#5833); when `true`, plain text in the `name` and `appIdExternal` filters must match the whole value (case-insensitive) instead of being matched as contains; a blank text filter combined with `exactMatch` is rejected with 400
 - UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
   - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new queries `getNetworkObjectDetailsByIds`, `getNetworkServiceDetailsByIds`, `getUserDetailsByIds`), including objects of a super manager; the links target this tab
   - the Report and Rule tabs of rule and change reports show the objects and group members as of the generated report, independent of the current time filter; before, the imports of the All tab were used, so users without this tab (e.g. reporters, or after selecting a tenant) got no rule details in the Rule tab
@@ -11,6 +20,11 @@
   - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
   - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
   - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+- UI fix: the All tab of the right sidebar no longer lists several versions of the same object, service or user in rule reports (#4730)
+  - the version removed by the latest import was returned in addition to the new one; change reports still list all versions of their time range
+  - switching from a change report back to a rule report with report time "now" no longer keeps the time range of the change report
+- UI fix: the right sidebar of the variance and connection reports shows the IP of network objects without a name instead of an empty row (#4972)
+  - the header above the modelled objects of the variance report shows the owner name instead of being empty
 
 
 ## 9.9.5 - 23.11.2026

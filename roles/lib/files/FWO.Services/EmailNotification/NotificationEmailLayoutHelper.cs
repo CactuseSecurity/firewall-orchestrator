@@ -23,7 +23,13 @@ namespace FWO.Services
 
     public static class NotificationEmailLayoutHelper
     {
-        public static string BuildBody(FwoNotification notification, string? content)
+        /// <summary>
+        /// Inserts the content into the notification body in place of the content placeholder.
+        /// </summary>
+        /// <param name="notification">Notification whose body and layout are used.</param>
+        /// <param name="content">The content to insert.</param>
+        /// <param name="appendWithoutPlaceholder">True to append the content to the body if the body has no content placeholder.</param>
+        public static string BuildBody(FwoNotification notification, string? content, bool appendWithoutPlaceholder = true)
         {
             string notificationBody = notification.EmailBody ?? "";
             string resolvedContent = ResolveContent(notification.Layout, content);
@@ -32,7 +38,7 @@ namespace FWO.Services
                 return notificationBody.Replace(Placeholder.CONTENT, resolvedContent);
             }
 
-            return string.IsNullOrEmpty(resolvedContent) ? notificationBody : $"{notificationBody}{resolvedContent}";
+            return string.IsNullOrEmpty(resolvedContent) || !appendWithoutPlaceholder ? notificationBody : $"{notificationBody}{resolvedContent}";
         }
 
         public static string BuildBody(FwoNotification notification, NotificationEmailLayoutContent? content)

@@ -179,21 +179,27 @@
     <hr />
     <SettingsRow LabelKey="accesstoken_lifetime" TooltipKey="accesstoken_lifetime" LabelFor="accessTokenLifetime">
         <input id="accessTokenLifetime" type="number" min="@DynamicAccessTokenLifetimeMinValue" class="form-control form-control-sm settings-input-sm" @bind="accessTokenLifetimeValue" />
-        <select class="form-select form-select-sm settings-input-sm" value="@accessTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicAccessTokenLifetimeMinValue, ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit))">
-            @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
-            {
-                <option value="@unit">@unit.ToString(userConfig)</option>
-            }
-        </select>
+        <div class="settings-input-md">
+            <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="accessTokenLifetimeUnit"
+                      SelectedElementChanged="SetAccessTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
+                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm">
+                <ElementTemplate Context="unit">
+                    @(unit.ToString(userConfig))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
     </SettingsRow>
     <SettingsRow LabelKey="refreshtoken_lifetime" TooltipKey="refreshtoken_lifetime" LabelFor="refreshTokenLifetime">
         <input id="refreshTokenLifetime" type="number" min="@DynamicRefreshTokenLifetimeMinValue" class="form-control form-control-sm settings-input-sm" @bind="refreshTokenLifetimeValue" />
-        <select class="form-select form-select-sm settings-input-sm" value="@refreshTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicRefreshTokenLifetimeMinValue, ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit))">
-            @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
-            {
-                <option value="@unit">@unit.ToString(userConfig)</option>
-            }
-        </select>
+        <div class="settings-input-md">
+            <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="refreshTokenLifetimeUnit"
+                      SelectedElementChanged="SetRefreshTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
+                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm">
+                <ElementTemplate Context="unit">
+                    @(unit.ToString(userConfig))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
     </SettingsRow>
     @if (!IsTokenLifetimeValid())
     {
@@ -330,21 +336,44 @@ else
             kCertificateContentType, certificatePem);
     }
 
-    private void SetDynamicTokenLifetimeMinValue(ChangeEventArgs e, 
-        ref int variableMinVal, 
-        ref int tokenLifetimeVal, 
+    private static void SetDynamicTokenLifetimeMinValue(TokenLifetimeUnit unit,
+        ref int variableMinVal,
+        ref int tokenLifetimeVal,
         ref TokenLifetimeUnit tokenLifetimeUnit)
     {
-        if (Enum.TryParse<TokenLifetimeUnit>(e.Value?.ToString(), out TokenLifetimeUnit unit))
+        variableMinVal = GetTokenLifetimeMinValue(unit);
+
+        if (variableMinVal > tokenLifetimeVal)
         {
-            variableMinVal = GetTokenLifetimeMinValue(unit);
+            tokenLifetimeVal = variableMinVal;
+        }
 
-            if (variableMinVal > tokenLifetimeVal)
-            {
-                tokenLifetimeVal = variableMinVal;
-            }
+        tokenLifetimeUnit = unit;
+    }
 
-            tokenLifetimeUnit = unit;
+    /// <summary>
+    /// Updates the access-token lifetime unit and enforces its minimum value.
+    /// </summary>
+    /// <param name="unit">The selected lifetime unit.</param>
+    private void SetAccessTokenLifetimeUnit(TokenLifetimeUnit unit)
+    {
+        if (accessTokenLifetimeUnit != unit)
+        {
+            SetDynamicTokenLifetimeMinValue(unit, ref DynamicAccessTokenLifetimeMinValue,
+                ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit);
+        }
+    }
+
+    /// <summary>
+    /// Updates the refresh-token lifetime unit and enforces its minimum value.
+    /// </summary>
+    /// <param name="unit">The selected lifetime unit.</param>
+    private void SetRefreshTokenLifetimeUnit(TokenLifetimeUnit unit)
+    {
+        if (refreshTokenLifetimeUnit != unit)
+        {
+            SetDynamicTokenLifetimeMinValue(unit, ref DynamicRefreshTokenLifetimeMinValue,
+                ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit);
         }
     }
 

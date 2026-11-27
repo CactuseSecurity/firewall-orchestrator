@@ -123,6 +123,12 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Before the first apt call. The mirror that AWS-hosted runners use is often very slow, which
+      # stretches the apt install of the .NET SDK from seconds to more than half an hour (#5776).
+      # Only the mirror changes: the installer still installs the SDK through apt.
+      - name: Replace the EC2 apt mirror
+        run: sudo scripts/ci/replace_ec2_apt_mirror.sh
+
       # The installer environment of a real installation: a venv of the system's own python3
       # (3.10 on Ubuntu 22.04, 3.12 on 24.04, 3.14 on 26.04), which also decides the pinned
       # Ansible version, see requirements.txt. The importer venv uses the same interpreter.

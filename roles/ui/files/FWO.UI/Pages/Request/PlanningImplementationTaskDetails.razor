@@ -22,7 +22,7 @@
                                 edit: CanEditImplementationTask(implementationTask) ? () => OpenManagementEditor(implementationTask) : null)
                             @ReadOnlyValue(userConfig.GetText("device"), DeviceName(implementationTask),
                                 edit: CanEditImplementationTask(implementationTask) ? () => OpenDeviceEditor(implementationTask) : null)
-                            @if (HasFreeText(implementationTask))
+                            @if (ShowsFreeText(implementationTask))
                             {
                                 @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2",
                                     CanEditImplementationTask(implementationTask) && CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
@@ -46,7 +46,7 @@
                             }
                         </div>
                     }
-                    @if (!IsRuleImplementationTask(implementationTask) && HasFreeText(implementationTask))
+                    @if (!IsRuleImplementationTask(implementationTask) && ShowsFreeText(implementationTask))
                     {
                         <div class="form-group row">
                             @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2",
@@ -414,9 +414,10 @@
     /// <param name="implementationTask">The implementation task.</param>
     private static bool IsRuleTask(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.IsRuleTask(implementationTask);
 
-    /// <summary>Returns whether the free text is displayed: if it is filled or the task is a generic task.</summary>
+    /// <summary>Returns whether the free text field is shown: if the free text is displayed anyway or the user may add one.</summary>
     /// <param name="implementationTask">The implementation task.</param>
-    private static bool HasFreeText(WfImplTask implementationTask) => PlanningImplTaskDisplayLogic.HasFreeText(implementationTask);
+    private bool ShowsFreeText(WfImplTask implementationTask) =>
+        PlanningImplTaskDisplayLogic.ShowsFreeText(implementationTask, CanEditImplementationTask(implementationTask));
 
     /// <summary>Returns whether the planner may change the free text; management object tasks keep it.</summary>
     /// <param name="implementationTask">The implementation task.</param>
@@ -557,9 +558,10 @@
         AddTableRow(builder, "…", $"(+{elementCount - kMaxDisplayedElements})");
     }
 
-    /// <summary>Returns the time restriction of an implementation task.</summary>
+    /// <summary>Returns the time restriction of an implementation task, leaving out the dates hidden by the configured visibility.</summary>
     /// <param name="implementationTask">The implementation task.</param>
-    private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask);
+    private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask,
+        TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask);
 
     /// <summary>Renders a labeled value, with an edit button if an edit callback is given; a placeholder for an empty value.</summary>
     /// <param name="label">The label.</param>

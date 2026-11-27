@@ -2512,6 +2512,26 @@ namespace FWO.Test
             Assert.That(ticket, Is.Null);
         }
 
+        [TestCase(true, TestName = "FetchTicket_ReturnsNull_WhenTheTicketQueryFails")]
+        [TestCase(false, TestName = "FetchTicket_ReturnsNull_WhenTheQueryReturnsAnotherTicket")]
+        public async Task FetchTicket_ReturnsNull_WhenTheTicketCanNotBeRead(bool queryFails)
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                ThrowOnGetTicketById = queryFails,
+                // like the empty ticket GetTicket returns after a failed query
+                Ticket = new WfTicket()
+            };
+            UserConfig userConfig = new();
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            WfTicket? ticket = await dbAccess.FetchTicket(2, null, _ => true);
+
+            Assert.That(ticket, Is.Null);
+        }
+
         [Test]
         public async Task FetchTicket_ReturnsNull_WhenTicketFilterRejectsTicket()
         {

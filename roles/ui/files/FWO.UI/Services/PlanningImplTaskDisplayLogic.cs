@@ -72,6 +72,15 @@ namespace FWO.Ui.Services
         /// <param name="implementationTask">The implementation task.</param>
         public static bool CanEditFreeText(WfImplTask implementationTask) => !WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType);
 
+        /// <summary>
+        /// Returns whether the free text field of an implementation task is shown: if the free text is displayed anyway, or
+        /// if the user may add one. Used by the card view; the list view offers the same in its free text column.
+        /// </summary>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="canEditTask">Whether the user may change the implementation task.</param>
+        public static bool ShowsFreeText(WfImplTask implementationTask, bool canEditTask) => HasFreeText(implementationTask)
+            || (canEditTask && CanEditFreeText(implementationTask));
+
         /// <summary>Returns whether the planner may change the name: of a group, an object or a time object.</summary>
         /// <param name="implementationTask">The implementation task.</param>
         public static bool HasEditableName(WfImplTask implementationTask) => IsGroupTask(implementationTask)
@@ -244,18 +253,23 @@ namespace FWO.Ui.Services
             return rows;
         }
 
-        /// <summary>Returns the time restriction as "name (begin - end)", or an empty string if there is none.</summary>
+        /// <summary>
+        /// Returns the time restriction as "name (begin - end)", or an empty string if there is none. Like the validity of
+        /// request tasks, a begin or end date hidden by the configured visibility is left out, also of a name built from
+        /// the dates.
+        /// </summary>
         /// <param name="implementationTask">The implementation task.</param>
         /// <param name="requestTask">The request task of the implementation task.</param>
-        public string TimeRestriction(WfImplTask implementationTask, WfReqTask requestTask)
+        /// <param name="visibility">The configured field visibility of access tasks, defining whether begin and end are shown.</param>
+        public string TimeRestriction(WfImplTask implementationTask, WfReqTask requestTask, AccessTaskFieldVisibilityConfig visibility)
         {
             WfImplElement? timeElement = implementationTask.ImplElements
                 .FirstOrDefault(element => element.Field == ElemFieldType.time.ToString());
             string name = timeElement?.Name
                 ?? TimeObjectElementHelper.Find(requestTask.Elements)?.Name
                 ?? "";
-            DateTime? beginDate = timeElement?.StartTime ?? implementationTask.TargetBeginDate;
-            DateTime? endDate = timeElement?.EndTime ?? implementationTask.TargetEndDate;
+            DateTime? beginDate = visibility.ShowValidFrom ? timeElement?.StartTime ?? implementationTask.TargetBeginDate : null;
+            DateTime? endDate = visibility.ShowValidTo ? timeElement?.EndTime ?? implementationTask.TargetEndDate : null;
             string precision = FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision;
             string begin = TimeObjectDisplayHelper.FormatValue(beginDate, precision, false, "dd.MM.yyyy");
             string end = TimeObjectDisplayHelper.FormatValue(endDate, precision, true, "dd.MM.yyyy");

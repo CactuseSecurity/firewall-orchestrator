@@ -386,6 +386,29 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
         });
     }
 
+    [TestCase(false, true, TestName = "PlanningImplementationTaskDetails_OffersAddingFreeTextToChangeableRuleTasks")]
+    [TestCase(true, false, TestName = "PlanningImplementationTaskDetails_HidesEmptyFreeTextOfReadOnlyRuleTasks")]
+    public static async Task PlanningImplementationTaskDetails_EmptyFreeTextOfRuleTasks(bool readOnly, bool shown)
+    {
+        WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.access.ToString() };
+        WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
+            WorkflowPhases.planning,
+            requestTask.TaskType,
+            new WfTicket { Id = 7, Tasks = [requestTask] });
+        handler.ReadOnlyMode = readOnly;
+        WfImplTask implementationTask = new(requestTask, false) { Id = 21, TaskNumber = 1 };
+
+        await using BunitContext context = CreateContext();
+        IRenderedComponent<PlanningImplementationTaskDetails> cut = context.Render<PlanningImplementationTaskDetails>(parameters => parameters
+            .Add(parameter => parameter.ImplementationTasks, [implementationTask])
+            .Add(parameter => parameter.RequestTask, requestTask)
+            .Add(parameter => parameter.WfHandler, handler)
+            .Add(parameter => parameter.CreationMode, true));
+
+        // like the free text column of the list view
+        Assert.That(cut.Markup.Contains("free_text"), Is.EqualTo(shown));
+    }
+
     [Test]
     public static async Task PlanningImplementationTaskDetails_OpensManagementFreeTextAndDeviceEditors()
     {

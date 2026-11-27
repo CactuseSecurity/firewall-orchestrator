@@ -71,6 +71,11 @@ internal sealed class PlanningImplTaskDisplayLogicTest
             Assert.That(PlanningImplTaskDisplayLogic.HasFreeText(new WfImplTask { TaskType = WfTaskType.access.ToString() }), Is.False);
             Assert.That(PlanningImplTaskDisplayLogic.CanEditFreeText(new WfImplTask { TaskType = WfTaskType.access.ToString() }), Is.True);
             Assert.That(PlanningImplTaskDisplayLogic.CanEditFreeText(new WfImplTask { TaskType = WfTaskType.object_create.ToString() }), Is.False);
+            // an empty free text is offered for adding one where the planner may, as in the list view
+            Assert.That(PlanningImplTaskDisplayLogic.ShowsFreeText(new WfImplTask { TaskType = WfTaskType.access.ToString() }, true), Is.True);
+            Assert.That(PlanningImplTaskDisplayLogic.ShowsFreeText(new WfImplTask { TaskType = WfTaskType.access.ToString() }, false), Is.False);
+            Assert.That(PlanningImplTaskDisplayLogic.ShowsFreeText(new WfImplTask { TaskType = WfTaskType.object_create.ToString() }, true), Is.False);
+            Assert.That(PlanningImplTaskDisplayLogic.ShowsFreeText(new WfImplTask { TaskType = WfTaskType.object_create.ToString(), FreeText = "kept" }, false), Is.True);
             Assert.That(PlanningImplTaskDisplayLogic.IsTimeObjectTask(timeTask), Is.True);
             Assert.That(PlanningImplTaskDisplayLogic.HasEditableName(timeTask), Is.True);
             Assert.That(PlanningImplTaskDisplayLogic.HasEditableName(groupTask), Is.True);
@@ -304,8 +309,9 @@ internal sealed class PlanningImplTaskDisplayLogicTest
         WfImplTask endOnlyTask = new() { TargetEndDate = new DateTime(2027, 2, 1) };
         PlanningImplTaskDisplayLogic logic = CreateLogic();
 
-        string named = logic.TimeRestriction(namedTask, new WfReqTask());
-        string endOnly = logic.TimeRestriction(endOnlyTask, new WfReqTask());
+        AccessTaskFieldVisibilityConfig visible = new();
+        string named = logic.TimeRestriction(namedTask, new WfReqTask(), visible);
+        string endOnly = logic.TimeRestriction(endOnlyTask, new WfReqTask(), visible);
 
         Assert.Multiple(() =>
         {
@@ -313,7 +319,35 @@ internal sealed class PlanningImplTaskDisplayLogicTest
             Assert.That(named, Does.Contain(" - "));
             Assert.That(endOnly, Is.Not.Empty);
             Assert.That(endOnly, Does.Not.Contain(" - "));
-            Assert.That(logic.TimeRestriction(new WfImplTask(), new WfReqTask()), Is.Empty);
+            Assert.That(logic.TimeRestriction(new WfImplTask(), new WfReqTask(), visible), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void TimeRestriction_LeavesOutHiddenDates()
+    {
+        WfImplTask namedTask = new()
+        {
+            ImplElements = [new WfImplElement { Field = ElemFieldType.time.ToString(), Name = "maintenance", StartTime = new DateTime(2027, 1, 1), EndTime = new DateTime(2027, 12, 31) }]
+        };
+        WfImplTask unnamedTask = new() { TargetBeginDate = new DateTime(2027, 1, 1), TargetEndDate = new DateTime(2027, 12, 31) };
+        PlanningImplTaskDisplayLogic logic = CreateLogic();
+        AccessTaskFieldVisibilityConfig endOnly = new() { ShowValidFrom = false, ShowValidTo = true };
+        AccessTaskFieldVisibilityConfig beginOnly = new() { ShowValidFrom = true, ShowValidTo = false };
+        AccessTaskFieldVisibilityConfig noDates = new() { ShowValidFrom = false, ShowValidTo = false };
+
+        string namedEndOnly = logic.TimeRestriction(namedTask, new WfReqTask(), endOnly);
+        string namedBeginOnly = logic.TimeRestriction(namedTask, new WfReqTask(), beginOnly);
+        string unnamedEndOnly = logic.TimeRestriction(unnamedTask, new WfReqTask(), endOnly);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(namedEndOnly, Does.StartWith("maintenance (").And.Contain("2027").And.Not.Contain("01.01.2027").And.Not.Contain(" - "));
+            Assert.That(namedBeginOnly, Does.Contain("01.01.2027").And.Not.Contain("31.12.2027"));
+            Assert.That(logic.TimeRestriction(namedTask, new WfReqTask(), noDates), Is.EqualTo("maintenance"));
+            // the name built from the dates must not show the hidden begin either
+            Assert.That(unnamedEndOnly, Is.Not.Empty.And.Not.Contain("2027-01-01").And.Not.Contain("01.01.2027"));
+            Assert.That(logic.TimeRestriction(unnamedTask, new WfReqTask(), noDates), Is.Empty);
         });
     }
 }

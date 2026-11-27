@@ -260,36 +260,68 @@ internal sealed class TaskListHelperTest
         });
     }
 
-    [Test]
-    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails()
+    [TestCase(false, 2, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryFails")]
+    [TestCase(true, 3, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFailsQuietly")]
+    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails(bool quietly, long ticketId)
     {
         string taskType = WfTaskType.access.ToString();
-        // other ids than in the test below, as the action handler drops repeated middleware delegations for a few seconds
-        WfReqTask first = new() { Id = 17, TicketId = 2, TaskType = taskType, StateId = 0 };
-        WfReqTask second = new() { Id = 18, TicketId = 2, TaskType = taskType, StateId = 0 };
-        TicketReloadApiConn apiConnection = new() { Ticket = new WfTicket { Id = 2, Tasks = [first, second] } };
+        // other ids than in the other tests, as the action handler drops repeated middleware delegations for a few seconds
+        WfReqTask first = new() { Id = ticketId * 10 + 7, TicketId = ticketId, TaskType = taskType, StateId = 0 };
+        WfReqTask second = new() { Id = ticketId * 10 + 8, TicketId = ticketId, TaskType = taskType, StateId = 0 };
+        TicketReloadApiConn apiConnection = new() { Ticket = new WfTicket { Id = ticketId, Tasks = [first, second] } };
         using TestMiddlewareClient middlewareClient = new();
-        // the middleware moves the bundle along, but the ticket can not be reloaded afterwards
-        BundlePromotingMiddlewareHandler middlewareHandler = new(() => apiConnection.FailReload = true);
+        List<(string Message, bool Error)> messages = [];
+        WfHandler handler = CreateReloadingHandler(apiConnection, middlewareClient,
+            (_, _, message, error) => messages.Add((message, error)), new SkippedTasksTextUserConfig());
+        // the middleware moves the bundle along, but the ticket can not be reloaded afterwards: the query fails (reported
+        // by the handler), or the reload ends without an error, like for a ticket the user may no longer see
+        BundlePromotingMiddlewareHandler middlewareHandler = new(() =>
+        {
+            if (quietly)
+            {
+                SetDbAccess(handler, null);
+            }
+            else
+            {
+                apiConnection.FailReload = true;
+            }
+        });
         middlewareClient.UseHandler(middlewareHandler);
-        WfHandler handler = CreateReloadingHandler(apiConnection, middlewareClient);
-        handler.ActTicket = new WfTicket { Id = 2, Tasks = [first, second] };
-        WfStateAction autoPromote = new() { Id = 3, ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "" };
+        handler.ActTicket = new WfTicket { Id = ticketId, Tasks = [first, second] };
+        WfStateAction autoPromote = new() { Id = 3, Name = "promote", ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "" };
 
         await WorkflowTaskActions.PerformOnRequestTasks(handler, autoPromote, [first, second]);
 
-        // with its stale state, the second task would be rejected by the middleware
-        Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            // with its stale state, the second task would be rejected by the middleware
+            Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+            // the user learns that the bundle moved only partly
+            Assert.That(messages, Does.Contain(($"skipped: {second.Id}", true)));
+            // the failed reload is not repeated, which would only report the same error again
+            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(quietly ? 0 : 1));
+        });
     }
 
-    private static WfHandler CreateReloadingHandler(TicketReloadApiConn apiConnection, FWO.Middleware.Client.MiddlewareClient middlewareClient)
+    private static WfHandler CreateReloadingHandler(TicketReloadApiConn apiConnection, FWO.Middleware.Client.MiddlewareClient middlewareClient,
+        Action<Exception?, string, string, bool>? displayMessage = null, SimulatedUserConfig? userConfig = null)
     {
-        SimulatedUserConfig userConfig = new();
-        WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConnection, middlewareClient, WorkflowPhases.planning);
+        userConfig ??= new SimulatedUserConfig();
+        WfHandler handler = new(displayMessage ?? DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConnection, middlewareClient, WorkflowPhases.planning);
         handler.ActionHandler = new ActionHandler(apiConnection, handler);
-        typeof(WfHandler).GetField("dbAcc", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .SetValue(handler, new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
+        SetDbAccess(handler, new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
         return handler;
+    }
+
+    private static void SetDbAccess(WfHandler handler, WfDbAccess? dbAccess)
+    {
+        typeof(WfHandler).GetField("dbAcc", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .SetValue(handler, dbAccess);
+    }
+
+    private sealed class SkippedTasksTextUserConfig : SimulatedUserConfig
+    {
+        public override string GetText(string key) => key == "planning_bundle_action_stopped" ? "skipped: {0}" : base.GetText(key);
     }
 
     private sealed class BundlePromotingMiddlewareHandler(Action promoteBundle) : HttpMessageHandler
@@ -313,8 +345,14 @@ internal sealed class TaskListHelperTest
 
         public bool FailReload { get; set; }
 
+        public int TicketQueryCount { get; private set; }
+
         public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
+            if (query == FWO.Api.Client.Queries.RequestQueries.getTicketById)
+            {
+                TicketQueryCount++;
+            }
             if (FailReload)
             {
                 throw new HttpRequestException("reload failed");

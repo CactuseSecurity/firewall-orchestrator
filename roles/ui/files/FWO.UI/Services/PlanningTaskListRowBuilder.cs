@@ -85,7 +85,7 @@ namespace FWO.Ui.Services
             }
             else
             {
-                AddObjectColumns(columns, table, allTasks, implColumns.RuleColumns, visibility);
+                AddObjectColumns(columns, table, allTasks, implColumns, visibility);
             }
             AddIf(columns, allTasks && metadataVisibility.ShowReason, new(ApprovalTaskListRowBuilder.kReason, "reason"));
             // the free text of request tasks follows the approval task list view; that of implementation tasks is
@@ -174,13 +174,16 @@ namespace FWO.Ui.Services
 
         /// <summary>
         /// Returns the columns needed by the implementation tasks of a table (for a bundle: of all its tasks): the rule
-        /// columns of rule implementation tasks, and the free text if a task has one or the user may actually add one.
+        /// columns of rule implementation tasks, the free text if a task has one or the user may actually add one, and the
+        /// time restriction if a task other than a rule task has one, as shown in the card view.
         /// </summary>
         /// <param name="table">The table.</param>
         /// <param name="taskGroups">All request task groups of the ticket: single tasks or bundles displayed as one.</param>
         /// <param name="canEdit">Returns whether the user may change an implementation task and its request task.</param>
+        /// <param name="timeRestriction">Returns the displayed time restriction of an implementation task (see
+        /// <see cref="PlanningImplTaskDisplayLogic.TimeRestriction"/>), with hidden dates left out.</param>
         public static PlanningImplColumns ImplementationColumnsFor(TaskListTable table, IEnumerable<List<WfReqTask>> taskGroups,
-            Func<WfImplTask, WfReqTask, bool> canEdit)
+            Func<WfImplTask, WfReqTask, bool> canEdit, Func<WfImplTask, WfReqTask, string> timeRestriction)
         {
             List<(WfImplTask Task, WfReqTask RequestTask)> implementationTasks = [.. taskGroups
                 .Where(taskGroup => taskGroup.Count > 0 && ApprovalTaskListRowBuilder.TableOf(taskGroup[0]) == table)
@@ -188,7 +191,9 @@ namespace FWO.Ui.Services
                     requestTask.ImplementationTasks.Select(implementationTask => (implementationTask, requestTask))))];
             bool freeText = implementationTasks.Any(pair => !string.IsNullOrWhiteSpace(pair.Task.FreeText)
                 || (PlanningImplTaskDisplayLogic.CanEditFreeText(pair.Task) && canEdit(pair.Task, pair.RequestTask)));
-            return new(RuleColumns([.. implementationTasks.Select(pair => pair.Task)]), freeText);
+            bool otherTimeRestriction = implementationTasks.Any(pair => !PlanningImplTaskDisplayLogic.IsRuleTask(pair.Task)
+                && !string.IsNullOrWhiteSpace(timeRestriction(pair.Task, pair.RequestTask)));
+            return new(RuleColumns([.. implementationTasks.Select(pair => pair.Task)]), freeText, otherTimeRestriction);
         }
 
         /// <summary>Returns the rule columns needed by implementation tasks.</summary>
@@ -204,16 +209,18 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Adds the columns of the address, service and other tables: content only for objects and groups, the zone
         /// (request-task information only) for addresses with all tasks, and the rule columns needed by the
-        /// implementation tasks of the table, as in the access table.
+        /// implementation tasks of the table, as in the access table. The time restriction is shown for rule tasks if the
+        /// validity is configured visible, and always if another implementation task has one (e.g. a time object task).
         /// </summary>
         /// <param name="columns">The columns to add to.</param>
         /// <param name="table">The table.</param>
         /// <param name="allTasks">Whether request tasks are shown too.</param>
-        /// <param name="ruleColumns">The rule columns needed by the implementation tasks of the table.</param>
+        /// <param name="implColumns">The columns needed by the implementation tasks of the table.</param>
         /// <param name="visibility">The configured field visibility of access tasks, applied to time restriction, rule action and tracking.</param>
         private static void AddObjectColumns(List<TaskListColumn> columns, TaskListTable table, bool allTasks,
-            PlanningRuleColumns ruleColumns, AccessTaskFieldVisibilityConfig visibility)
+            PlanningImplColumns implColumns, AccessTaskFieldVisibilityConfig visibility)
         {
+            PlanningRuleColumns ruleColumns = implColumns.RuleColumns;
             bool ruleContent = ruleColumns == PlanningRuleColumns.All;
             columns.Add(new(ApprovalTaskListRowBuilder.kTaskType, "task_type"));
             columns.Add(new(ApprovalTaskListRowBuilder.kState, "state"));
@@ -224,7 +231,7 @@ namespace FWO.Ui.Services
             AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kSource, "source"));
             AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kDestination, "destination"));
             AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kService, "service"));
-            AddIf(columns, ruleContent && (visibility.ShowValidFrom || visibility.ShowValidTo),
+            AddIf(columns, (ruleContent && (visibility.ShowValidFrom || visibility.ShowValidTo)) || implColumns.TimeRestriction,
                 new(ApprovalTaskListRowBuilder.kTimeRestriction, "time_restriction"));
             columns.Add(new(ApprovalTaskListRowBuilder.kManagement, "management"));
             AddIf(columns, ruleColumns != PlanningRuleColumns.None, new(kDevice, "device"));
@@ -274,7 +281,7 @@ namespace FWO.Ui.Services
                     canEdit ? () => implActions.EditManagement(implementationTask, requestTask) : null),
                 [ApprovalTaskListRowBuilder.kFreeText] = Cell(implementationTask.FreeText,
                     canEdit && PlanningImplTaskDisplayLogic.CanEditFreeText(implementationTask) ? () => implActions.EditFreeText(implementationTask, requestTask) : null),
-                [ApprovalTaskListRowBuilder.kTimeRestriction] = ReadOnly(implLogic.TimeRestriction(implementationTask, requestTask))
+                [ApprovalTaskListRowBuilder.kTimeRestriction] = ReadOnly(implLogic.TimeRestriction(implementationTask, requestTask, context.Visibility))
             };
             AddRuleCells(cells, requestTask, implementationTask, canEdit);
             AddObjectCells(cells, requestTask, implementationTask, canEdit);

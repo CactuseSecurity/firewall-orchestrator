@@ -11,13 +11,13 @@ namespace FWO.Test
 {
     /// <summary>
     /// Tests the editor of the action "Create implementation tasks": the target state for request tasks of an external
-    /// ticket system defaults to "To Implement" and is stored with the action.
+    /// ticket system is not set by default, so the state matrix gives it, and a selected one is stored with the action.
     /// </summary>
     [TestFixture]
     internal class UiEditActionCreateImplTasksTest
     {
         private static readonly WfState kPlanned = new() { Id = 149, Name = "Planned" };
-        private static readonly WfState kToImplement = new() { Id = CreateImplTasksActionParams.kToImplementStateId, Name = "To Implement" };
+        private static readonly WfState kToImplement = new() { Id = 200, Name = "To Implement" };
         private static readonly List<WfState> kStates = [kPlanned, kToImplement];
 
         private static BunitContext CreateContext()
@@ -44,7 +44,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task NewAction_StoresTheDefaultToImplement()
+        public async Task NewAction_StoresNoTarget()
         {
             await using BunitContext context = CreateContext();
             WfStateAction action = new() { ActionType = nameof(StateActionTypes.CreateImplTasks) };
@@ -53,9 +53,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(CreateImplTasksActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId,
-                    Is.EqualTo(kToImplement.Id));
-                Assert.That(SelectedState(rendered.Instance), Is.SameAs(kToImplement));
+                Assert.That(CreateImplTasksActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId, Is.Null);
+                Assert.That(SelectedState(rendered.Instance), Is.Null);
             });
         }
 
@@ -88,6 +87,25 @@ namespace FWO.Test
 
             Assert.That(CreateImplTasksActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId,
                 Is.EqualTo(kPlanned.Id));
+        }
+
+        [Test]
+        public async Task ClearedTarget_IsRemovedFromTheAction()
+        {
+            await using BunitContext context = CreateContext();
+            WfStateAction action = new()
+            {
+                ActionType = nameof(StateActionTypes.CreateImplTasks),
+                ExternalParams = new CreateImplTasksActionParams { ExternalTicketSystemTargetStateId = kPlanned.Id }.ToExternalParams()
+            };
+            IRenderedComponent<EditActionCreateImplTasks> rendered = Render(context, action);
+            MethodInfo onChanged = typeof(EditActionCreateImplTasks).GetMethod("OnTargetStateChanged", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(nameof(EditActionCreateImplTasks), "OnTargetStateChanged");
+            object?[] arguments = [null];
+
+            await rendered.InvokeAsync(() => (Task)onChanged.Invoke(rendered.Instance, arguments)!);
+
+            Assert.That(CreateImplTasksActionParams.FromExternalParams(action.ExternalParams).ExternalTicketSystemTargetStateId, Is.Null);
         }
     }
 }

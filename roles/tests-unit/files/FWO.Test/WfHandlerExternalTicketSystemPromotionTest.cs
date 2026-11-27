@@ -74,7 +74,7 @@ namespace FWO.Test
             return handler;
         }
 
-        /// <summary>Matrix with approval, active planning and implementation as in the default numbering.</summary>
+        /// <summary>Matrix with approval, active planning and the implementation starting at its end, in the default numbering.</summary>
         private static void SetMatrix(WfHandler handler, string taskType)
         {
             FieldInfo field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -84,7 +84,7 @@ namespace FWO.Test
                 MinTicketCompleted = kCompletedStateId,
                 ApprovalLowestEndState = kApprovedStateId,
                 PlanningLowestEndState = kPlannedStateId,
-                PreImplementationEndState = kPlannedStateId,
+                MinImplTasksNeeded = kPlannedStateId,
                 ImplementationLowestEndState = kImplementedStateId
             };
         }
@@ -189,7 +189,35 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TargetBelowTheEndOfThePlanning_PromotesNothing()
+        public async Task WithoutTarget_PromotesToTheLowestInputStateOfTheImplementation()
+        {
+            List<(long Id, int StateId)> promotions = [];
+            WfHandler handler = CreateHandler(CreateApi(), promotions);
+
+            int promoted = await handler.PromoteRequestTasksOfExternalTicketSystem(
+                CreateTicket(CreateAccessTask(7, kExternalManagementId, kApprovedStateId)), null, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(promoted, Is.EqualTo(1));
+                Assert.That(promotions.Single(), Is.EqualTo((7L, kPlannedStateId)));
+            });
+        }
+
+        [Test]
+        public async Task WithoutTargetAndAlreadyAtTheLowestInputStateOfTheImplementation_PromotesNothing()
+        {
+            List<(long Id, int StateId)> promotions = [];
+            WfHandler handler = CreateHandler(CreateApi(), promotions);
+
+            int promoted = await handler.PromoteRequestTasksOfExternalTicketSystem(
+                CreateTicket(CreateAccessTask(7, kExternalManagementId, kPlannedStateId)), null, null);
+
+            Assert.That(promoted, Is.Zero);
+        }
+
+        [Test]
+        public async Task TargetBelowTheLowestInputStateOfTheImplementation_PromotesNothing()
         {
             List<(long Id, int StateId)> promotions = [];
             WfHandler handler = CreateHandler(CreateApi(), promotions);
@@ -227,7 +255,7 @@ namespace FWO.Test
             Assert.That(promotions.Select(promotion => promotion.Id), Is.EqualTo(kExternalTasksInOrder));
         }
 
-        [TestCase("", kToImplementStateId)]
+        [TestCase("", kPlannedStateId)]
         [TestCase("{\"external_ticket_system_target_state_id\":199}", kPlanVerifiedStateId)]
         public async Task Action_CreatesTasksAndPromotesToItsTargetState(string externalParams, int expectedStateId)
         {

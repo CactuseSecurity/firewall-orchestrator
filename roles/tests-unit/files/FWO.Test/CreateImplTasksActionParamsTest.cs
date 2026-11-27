@@ -4,8 +4,8 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the parameters of the action "Create implementation tasks": defaults, reading and writing, and the check of the
-    /// target state for request tasks of an external ticket system.
+    /// Tests the parameters of the action "Create implementation tasks": no target by default, reading and writing, and the
+    /// check of the target state for request tasks of an external ticket system.
     /// </summary>
     [TestFixture]
     internal class CreateImplTasksActionParamsTest
@@ -22,11 +22,17 @@ namespace FWO.Test
         [TestCase("   ")]
         [TestCase("{}")]
         [TestCase("{not json")]
-        public void FromExternalParams_WithoutValidTarget_DefaultsToToImplement(string externalParams)
+        public void FromExternalParams_WithoutValidTarget_SetsNoTarget(string externalParams)
         {
             CreateImplTasksActionParams parameters = CreateImplTasksActionParams.FromExternalParams(externalParams);
 
-            Assert.That(parameters.ExternalTicketSystemTargetStateId, Is.EqualTo(CreateImplTasksActionParams.kToImplementStateId));
+            Assert.That(parameters.ExternalTicketSystemTargetStateId, Is.Null);
+        }
+
+        [Test]
+        public void ToExternalParams_WithoutTarget_StoresNoTarget()
+        {
+            Assert.That(new CreateImplTasksActionParams().ToExternalParams(), Is.EqualTo("{}"));
         }
 
         [Test]
@@ -48,6 +54,12 @@ namespace FWO.Test
             CreateImplTasksActionParams parameters = new() { ExternalTicketSystemTargetStateId = targetStateId };
 
             Assert.That(parameters.HasValidTargetState(kExistingStateIds, kPlannedStateId), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void HasValidTargetState_WithoutTarget_IsValid()
+        {
+            Assert.That(new CreateImplTasksActionParams().HasValidTargetState(kExistingStateIds, kPlannedStateId), Is.True);
         }
     }
 }

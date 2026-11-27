@@ -41,6 +41,7 @@ namespace FWO.Services.Workflow
         public HashSet<int> AutomaticOnlyStates { get; set; } = [];
         public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
+        /// <summary>Lowest input state of the implementation phase.</summary>
         public int MinImplTasksNeeded;
         public int MinTicketCompleted;
         public int ApprovalLowestEndState;
@@ -56,13 +57,6 @@ namespace FWO.Services.Workflow
         /// a request task below this state are still being planned, so they are not written to a firewall yet.
         /// </summary>
         public int? PlanningLowestEndState;
-
-        /// <summary>
-        /// Lowest end state of the last active phase before the implementation, e.g. of the planning or the plan
-        /// verification; the end of the approval if neither is active. A ticket reaches it once every request task is
-        /// ready for the implementation.
-        /// </summary>
-        public int PreImplementationEndState;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
@@ -110,22 +104,6 @@ namespace FWO.Services.Workflow
             PlanningLowestEndState = planningActive && glbStateMatrix.GlobalMatrix.TryGetValue(WorkflowPhases.planning, out StateMatrix? planningMatrix)
                 ? planningMatrix.LowestEndState
                 : null;
-            PreImplementationEndState = GetPreImplementationEndState(glbStateMatrix.GlobalMatrix, ApprovalLowestEndState);
-        }
-
-        /// <summary>
-        /// The highest end state of the active phases between the approval and the implementation; the end state of
-        /// the approval if none of them is active.
-        /// </summary>
-        /// <param name="phaseMatrices">Matrices of all phases.</param>
-        /// <param name="approvalEndState">Lowest end state of the approval.</param>
-        public static int GetPreImplementationEndState(Dictionary<WorkflowPhases, StateMatrix> phaseMatrices, int approvalEndState)
-        {
-            return phaseMatrices
-                .Where(entry => entry.Key > WorkflowPhases.approval && entry.Key < WorkflowPhases.implementation && entry.Value.Active)
-                .Select(entry => entry.Value.LowestEndState)
-                .Append(approvalEndState)
-                .Max();
         }
 
         public bool getNextActivePhase(ref WorkflowPhases phase)
@@ -429,12 +407,12 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// The highest end state of the phases before the implementation over all task types, see
-        /// <see cref="StateMatrix.PreImplementationEndState"/>; 0 without matrices.
+        /// The highest lowest input state of the implementation over all task types, see
+        /// <see cref="StateMatrix.MinImplTasksNeeded"/>; 0 without matrices.
         /// </summary>
-        public int GetHighestPreImplementationEndState()
+        public int GetHighestImplementationInputState()
         {
-            return Matrices.Values.Select(matrix => matrix.PreImplementationEndState).DefaultIfEmpty(0).Max();
+            return Matrices.Values.Select(matrix => matrix.MinImplTasksNeeded).DefaultIfEmpty(0).Max();
         }
     }
 }

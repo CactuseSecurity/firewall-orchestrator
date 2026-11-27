@@ -242,14 +242,14 @@
     }
 
     /// <summary>
-    /// Checks that the target state for request tasks of an external ticket system exists and is not below the end
-    /// of the phases before the implementation in any task type, as such a task would hold its ticket there.
+    /// Checks that a target state set for request tasks of an external ticket system exists and is not below the
+    /// lowest input state of the implementation in any task type, as such a task would hold its ticket before.
     /// </summary>
     private async Task<bool> HasValidCreateImplTasksTarget()
     {
         StateMatrixDict stateMatrices = new();
         await stateMatrices.Init(WorkflowPhases.implementation, apiConnection);
-        int requiredStateId = stateMatrices.GetHighestPreImplementationEndState();
+        int requiredStateId = stateMatrices.GetHighestImplementationInputState();
         CreateImplTasksActionParams actionParams = CreateImplTasksActionParams.FromExternalParams(actAction.ExternalParams);
         if (actionParams.HasValidTargetState(States.Select(state => state.Id), requiredStateId))
         {

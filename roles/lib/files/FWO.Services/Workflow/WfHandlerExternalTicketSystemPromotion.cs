@@ -23,19 +23,20 @@ namespace FWO.Services.Workflow
         /// <param name="ticket">Ticket whose request tasks are promoted.</param>
         /// <param name="scopeTask">Request task in the request task scope: only this task, a bundled task together with
         /// its bundle once every member has reached the state of this task. Null in the ticket scope.</param>
-        /// <param name="targetStateId">State to promote to, see <see cref="CreateImplTasksActionParams"/>.</param>
+        /// <param name="configuredTargetStateId">State to promote to, see <see cref="CreateImplTasksActionParams"/>; null
+        /// for the lowest input state of the implementation of each request task.</param>
         /// <returns>The number of promoted request tasks.</returns>
-        public async Task<int> PromoteRequestTasksOfExternalTicketSystem(WfTicket ticket, WfReqTask? scopeTask, int targetStateId)
+        public async Task<int> PromoteRequestTasksOfExternalTicketSystem(WfTicket ticket, WfReqTask? scopeTask, int? configuredTargetStateId)
         {
-            List<WfReqTask> reqTasks = await SelectRequestTasksOfExternalTicketSystem(ticket, scopeTask, targetStateId);
+            List<WfReqTask> reqTasks = await SelectRequestTasksOfExternalTicketSystem(ticket, scopeTask, configuredTargetStateId);
             foreach (WfReqTask reqTask in reqTasks)
             {
-                await PromoteRequestTaskOfExternalTicketSystem(reqTask, targetStateId);
+                await PromoteRequestTaskOfExternalTicketSystem(reqTask, TargetStateOf(reqTask, configuredTargetStateId));
             }
             if (reqTasks.Count > 0)
             {
                 Log.WriteInfo(kCreateImplTasksLogTitle, $"Promoted {reqTasks.Count} request tasks of ticket {ticket.Id} handed to an " +
-                    $"external ticket system to state {targetStateId}.");
+                    "external ticket system to their target state.");
             }
             return reqTasks.Count;
         }
@@ -47,8 +48,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         /// <param name="ticket">Ticket whose request tasks are checked.</param>
         /// <param name="scopeTask">Request task in the request task scope; null in the ticket scope.</param>
-        /// <param name="targetStateId">State to promote to.</param>
-        internal async Task<List<WfReqTask>> SelectRequestTasksOfExternalTicketSystem(WfTicket ticket, WfReqTask? scopeTask, int targetStateId)
+        /// <param name="configuredTargetStateId">State to promote to; null for the lowest input state of the implementation.</param>
+        internal async Task<List<WfReqTask>> SelectRequestTasksOfExternalTicketSystem(WfTicket ticket, WfReqTask? scopeTask, int? configuredTargetStateId)
         {
             SetTicketEnv(ticket);
             List<WfReqTask> candidates = [.. ActTicket.Tasks];
@@ -59,7 +60,7 @@ namespace FWO.Services.Workflow
             List<WfReqTask> selected = [];
             foreach (WfReqTask reqTask in candidates.OrderBy(task => task.TaskNumber))
             {
-                if (IsReadyForExternalTicketSystemPromotion(reqTask, targetStateId) && await IsHandedToSelectedExternalTicketSystem(reqTask))
+                if (IsReadyForExternalTicketSystemPromotion(reqTask, configuredTargetStateId) && await IsHandedToSelectedExternalTicketSystem(reqTask))
                 {
                     selected.Add(reqTask);
                 }
@@ -69,25 +70,38 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Whether the state of a request task allows the promotion: approved, below the target state and not finished
-        /// in the implementation. A target below the end of the planning would not let the ticket leave the planning,
-        /// so the task is not promoted then and a warning is logged.
+        /// in the implementation. A target below the lowest input state of the implementation would not let the ticket
+        /// leave the phases before, so the task is not promoted then and a warning is logged.
         /// </summary>
-        private bool IsReadyForExternalTicketSystemPromotion(WfReqTask reqTask, int targetStateId)
+        private bool IsReadyForExternalTicketSystemPromotion(WfReqTask reqTask, int? configuredTargetStateId)
         {
-            if (!stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
-                || reqTask.StateId < matrix.ApprovalLowestEndState
+            if (!stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix))
+            {
+                return false;
+            }
+            int targetStateId = configuredTargetStateId ?? matrix.MinImplTasksNeeded;
+            if (reqTask.StateId < matrix.ApprovalLowestEndState
                 || reqTask.StateId >= targetStateId
                 || reqTask.StateId >= matrix.ImplementationLowestEndState)
             {
                 return false;
             }
-            if (targetStateId < matrix.PreImplementationEndState)
+            if (targetStateId < matrix.MinImplTasksNeeded)
             {
                 Log.WriteWarning(kCreateImplTasksLogTitle, $"Request task {reqTask.Id} is not promoted: the target state {targetStateId} is " +
-                    $"below the end state {matrix.PreImplementationEndState} of the phases before the implementation.");
+                    $"below the lowest input state {matrix.MinImplTasksNeeded} of the implementation.");
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// The state a selected request task is promoted to: the configured one, else the lowest input state of the
+        /// implementation in its state matrix.
+        /// </summary>
+        private int TargetStateOf(WfReqTask reqTask, int? configuredTargetStateId)
+        {
+            return configuredTargetStateId ?? stateMatrixDict.Matrices[reqTask.TaskType].MinImplTasksNeeded;
         }
 
         /// <summary>Promotes a request task to the target state and comments why.</summary>

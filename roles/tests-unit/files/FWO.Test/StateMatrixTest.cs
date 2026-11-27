@@ -559,47 +559,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetPreImplementationEndState_WithoutActivePhaseBeforeImplementation_IsTheEndOfTheApproval()
-        {
-            Dictionary<WorkflowPhases, StateMatrix> phases = new()
-            {
-                [WorkflowPhases.approval] = new StateMatrix { Active = true, LowestEndState = 99 },
-                [WorkflowPhases.planning] = new StateMatrix { Active = false, LowestEndState = 149 },
-                [WorkflowPhases.verification] = new StateMatrix { Active = false, LowestEndState = 199 },
-                [WorkflowPhases.implementation] = new StateMatrix { Active = true, LowestEndState = 249 }
-            };
-
-            Assert.That(StateMatrix.GetPreImplementationEndState(phases, 99), Is.EqualTo(99));
-        }
-
-        [TestCase(true, false, 149)]
-        [TestCase(true, true, 199)]
-        [TestCase(false, true, 199)]
-        public void GetPreImplementationEndState_IsTheEndOfTheLastActivePhaseBeforeImplementation(bool planningActive, bool verificationActive, int expected)
-        {
-            Dictionary<WorkflowPhases, StateMatrix> phases = new()
-            {
-                [WorkflowPhases.approval] = new StateMatrix { Active = true, LowestEndState = 99 },
-                [WorkflowPhases.planning] = new StateMatrix { Active = planningActive, LowestEndState = 149 },
-                [WorkflowPhases.verification] = new StateMatrix { Active = verificationActive, LowestEndState = 199 },
-                [WorkflowPhases.implementation] = new StateMatrix { Active = true, LowestEndState = 249 },
-                [WorkflowPhases.review] = new StateMatrix { Active = true, LowestEndState = 299 }
-            };
-
-            Assert.That(StateMatrix.GetPreImplementationEndState(phases, 99), Is.EqualTo(expected));
-        }
-
-        [Test]
-        public void GetHighestPreImplementationEndState_IsTheHighestOverAllTaskTypes()
+        public void GetHighestImplementationInputState_IsTheHighestOverAllTaskTypes()
         {
             StateMatrixDict matrices = new();
-            matrices.Matrices[WfTaskType.access.ToString()] = new StateMatrix { PreImplementationEndState = 149 };
-            matrices.Matrices[WfTaskType.group_create.ToString()] = new StateMatrix { PreImplementationEndState = 99 };
+            matrices.Matrices[WfTaskType.access.ToString()] = new StateMatrix { MinImplTasksNeeded = 149 };
+            matrices.Matrices[WfTaskType.group_create.ToString()] = new StateMatrix { MinImplTasksNeeded = 99 };
 
             Assert.Multiple(() =>
             {
-                Assert.That(matrices.GetHighestPreImplementationEndState(), Is.EqualTo(149));
-                Assert.That(new StateMatrixDict().GetHighestPreImplementationEndState(), Is.Zero);
+                Assert.That(matrices.GetHighestImplementationInputState(), Is.EqualTo(149));
+                Assert.That(new StateMatrixDict().GetHighestImplementationInputState(), Is.Zero);
             });
         }
     }

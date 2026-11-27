@@ -150,26 +150,20 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Answers the request to create the external requests of a ticket with a configurable outcome.
+        /// Answers every middleware call and records the requests to create the external requests of a ticket,
+        /// which the popup must not send: the provisioning only starts by the state action "Create external requests".
         /// </summary>
         private sealed class ExternalRequestHandler : HttpMessageHandler
         {
-            public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
-            public string Body { get; set; } = "true";
-            public bool Fail { get; set; }
             public List<string> ExternalRequestBodies { get; } = [];
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                if (Fail)
-                {
-                    throw new HttpRequestException("middleware not reachable");
-                }
                 if (request.RequestUri?.AbsolutePath.EndsWith("/ExternalRequest", StringComparison.Ordinal) ?? false)
                 {
                     ExternalRequestBodies.Add(request.Content == null ? "" : await request.Content.ReadAsStringAsync(cancellationToken));
                 }
-                return new HttpResponseMessage(StatusCode) { Content = new StringContent(Body, Encoding.UTF8, "application/json") };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("true", Encoding.UTF8, "application/json") };
             }
         }
 
@@ -517,14 +511,10 @@ namespace FWO.Test
             });
         }
 
-        [TestCase(HttpStatusCode.OK, "true", false)]
-        [TestCase(HttpStatusCode.OK, "false", true)]
-        [TestCase(HttpStatusCode.InternalServerError, "true", true)]
-        public async Task StartRequestsCreatesTheExternalRequests(HttpStatusCode statusCode, string body, bool expectError)
+        [Test]
+        public async Task StartRequestsLeavesTheProvisioningToTheWorkflowInIntegratedMode()
         {
             await using PopupTestContext test = CreatePopupContext();
-            test.Middleware.StatusCode = statusCode;
-            test.Middleware.Body = body;
             IRenderedComponent<RequestFwChangePopup> popup = RenderPopup(test, [CreateRequestableConnection(61)]);
             popup.WaitForAssertion(() => Assert.That(RequestButton(popup, test.UserConfig).HasAttribute("disabled"), Is.False));
             // the tasks are built in workflow notification mode; the request is then sent the integrated way
@@ -534,10 +524,10 @@ namespace FWO.Test
 
             popup.WaitForAssertion(() =>
             {
-                Assert.That(test.Middleware.ExternalRequestBodies, Has.Count.EqualTo(1));
-                Assert.That(test.ApiConn.FwRequestedConnectionIds, Is.EqualTo(new List<int> { 61 }));
-                Assert.That(test.Messages.Contains(new UiMessage(test.UserConfig.GetText("request_fw_change"), test.UserConfig.GetText("E9101"), true)), Is.EqualTo(expectError));
                 Assert.That(test.RefreshedTickets, Has.Count.EqualTo(1));
+                Assert.That(test.ApiConn.FwRequestedConnectionIds, Is.EqualTo(new List<int> { 61 }));
+                Assert.That(test.Middleware.ExternalRequestBodies, Is.Empty, "only the state action \"Create external requests\" starts the provisioning");
+                Assert.That(test.Messages, Has.None.Matches<UiMessage>(message => message.Error));
             });
         }
 
@@ -559,44 +549,6 @@ namespace FWO.Test
             {
                 Assert.That(test.ApiConn.AppZoneLinks, Is.EqualTo(new List<(int, long)> { (9, 77) }));
                 Assert.That(test.RefreshedTickets, Has.Count.EqualTo(1));
-            });
-        }
-
-        [Test]
-        public async Task StartRequestsReportsAMissingMiddlewareClient()
-        {
-            await using PopupTestContext test = CreatePopupContext();
-            IRenderedComponent<RequestFwChangePopup> popup = RenderPopup(test, [CreateRequestableConnection(61)]);
-            popup.WaitForAssertion(() => Assert.That(RequestButton(popup, test.UserConfig).HasAttribute("disabled"), Is.False));
-            test.UserConfig.ModIntegrationMode = ModIntegrationMode.FullyIntegrated;
-            // the ticket is created without the middleware, only the external requests need it
-            typeof(RequestFwChangePopup).GetProperty("middlewareClient", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .SetValue(popup.Instance, null);
-
-            await popup.InvokeAsync(() => RequestButton(popup, test.UserConfig).Click());
-
-            popup.WaitForAssertion(() =>
-            {
-                Assert.That(test.Messages, Has.Some.Matches<UiMessage>(message => message.Title == test.UserConfig.GetText("request_fw_change") && message.Error));
-                Assert.That(test.RefreshedTickets, Has.Count.EqualTo(1), "the ticket exists even without external requests");
-            });
-        }
-
-        [Test]
-        public async Task StartRequestsReportsAnUnreachableMiddleware()
-        {
-            await using PopupTestContext test = CreatePopupContext();
-            test.Middleware.Fail = true;
-            IRenderedComponent<RequestFwChangePopup> popup = RenderPopup(test, [CreateRequestableConnection(61)]);
-            popup.WaitForAssertion(() => Assert.That(RequestButton(popup, test.UserConfig).HasAttribute("disabled"), Is.False));
-            test.UserConfig.ModIntegrationMode = ModIntegrationMode.FullyIntegrated;
-
-            await popup.InvokeAsync(() => RequestButton(popup, test.UserConfig).Click());
-
-            popup.WaitForAssertion(() =>
-            {
-                Assert.That(test.Messages, Does.Contain(new UiMessage(test.UserConfig.GetText("request_fw_change"), test.UserConfig.GetText("E9101"), true)));
-                Assert.That(test.RefreshedTickets, Has.Count.EqualTo(1), "the ticket exists even without external requests");
             });
         }
 

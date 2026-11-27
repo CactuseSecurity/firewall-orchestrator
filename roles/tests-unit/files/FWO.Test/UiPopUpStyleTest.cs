@@ -105,8 +105,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(headerDeclarations, Does.Contain("flex: 0 0 auto"));
-                Assert.That(headerDeclarations, Does.Contain("margin: 0 -2em"),
-                    "The header has to span the side padding of the content box, so the whole top strip can be grabbed.");
+                Assert.That(headerDeclarations, Does.Contain("padding: 2em 2em 0 2em"),
+                    "The title has to stay aligned with the side padding of the body.");
                 Assert.That(headerDeclarations, Does.Not.Contain("position: sticky"),
                     "A sticky header inside the scroll container would cover the sticky table headers.");
             });
@@ -161,6 +161,67 @@ namespace FWO.Test
                     "Without min-height: 0 the body keeps its automatic minimum size and never scrolls.");
                 Assert.That(bodyDeclarations, Does.Contain($"padding-top: var({kModalPaddingVariable})"),
                     "The top padding of the popup scroll container has to be taken from its custom property.");
+            });
+        }
+
+        /// <summary>
+        /// A Bootstrap .row has negative side margins. Inside the scrolling body they have to fall into
+        /// the side padding of the body, otherwise they overflow it and every popup containing a row
+        /// shows a horizontal scrollbar. The content box around the body must therefore not hold that
+        /// padding itself, and the header spans the whole width without negative margins.
+        /// </summary>
+        [Test]
+        public void PopUpCss_KeepsTheSidePaddingInsideTheScrollContainer()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Match contentRule = ModalContentRuleRegex().Match(popUpCss);
+            Match scrollContainerRule = ModalBodyRuleRegex().Match(popUpCss);
+            Match headerRule = PopupHeaderRuleRegex().Match(popUpCss);
+            Assert.Multiple(() =>
+            {
+                Assert.That(contentRule.Success, Is.True, "The rule of the popup content box is missing.");
+                Assert.That(scrollContainerRule.Success, Is.True, "The rule of the popup scroll container is missing.");
+                Assert.That(headerRule.Success, Is.True, "The rule of the popup header is missing.");
+            });
+
+            string contentDeclarations = NormalizeWhitespace(contentRule.Groups["body"].Value);
+            string bodyDeclarations = NormalizeWhitespace(scrollContainerRule.Groups["body"].Value);
+            string headerDeclarations = NormalizeWhitespace(headerRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(contentDeclarations, Does.Contain("padding: 0;"),
+                    "Side padding on the content box lies outside the scroll container and cannot take the margins of a row.");
+                Assert.That(bodyDeclarations, Does.Contain("padding-left: 2em"));
+                Assert.That(bodyDeclarations, Does.Contain("padding-right: 2em"));
+                Assert.That(NegativeMarginRegex().IsMatch(headerDeclarations), Is.False,
+                    "Without padding on the content box a negative margin would push the header out of the popup.");
+            });
+        }
+
+        /// <summary>
+        /// Extra small popups (e.g. InProgress) cannot be resized and keep their minimum height. The generic
+        /// min-height: 0 of the dialog content is needed for resizing, so the minimum height of the extra small
+        /// content needs a rule of the same specificity that comes after it.
+        /// </summary>
+        [Test]
+        public void PopUpCss_KeepsTheMinimumHeightOfExtraSmallPopups()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Match contentRule = PopupDialogContentRuleRegex().Match(popUpCss);
+            Match extraSmallRule = PopupDialogExtraSmallContentRuleRegex().Match(popUpCss);
+            Assert.Multiple(() =>
+            {
+                Assert.That(contentRule.Success, Is.True, "The rule of the popup dialog content is missing.");
+                Assert.That(extraSmallRule.Success, Is.True, "The minimum height rule of the extra small popups is missing.");
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(NormalizeWhitespace(extraSmallRule.Groups["body"].Value), Does.Contain("min-height: 15dvh"));
+                Assert.That(extraSmallRule.Index, Is.GreaterThan(contentRule.Index),
+                    "The rule has to come after the generic min-height: 0 of the dialog content, otherwise it is overridden.");
             });
         }
 
@@ -304,6 +365,12 @@ namespace FWO.Test
 
         [GeneratedRegex(@"\.popup-dialog\s*>\s*\.modal-content\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex PopupDialogContentRuleRegex();
+
+        [GeneratedRegex(@"\.popup-dialog\s*>\s*\.custom-modal-content-xs\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupDialogExtraSmallContentRuleRegex();
+
+        [GeneratedRegex(@"margin[a-z-]*\s*:[^;]*-\d", RegexOptions.None, knMilliseconds)]
+        private static partial Regex NegativeMarginRegex();
 
         [GeneratedRegex(@"\.popup-resizable\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex PopupResizableRuleRegex();

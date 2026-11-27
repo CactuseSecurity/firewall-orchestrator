@@ -25,6 +25,9 @@
   - switching from a change report back to a rule report with report time "now" no longer keeps the time range of the change report
 - UI fix: the right sidebar of the variance and connection reports shows the IP of network objects without a name instead of an empty row (#4972)
   - the header above the modelled objects of the variance report shows the owner name instead of being empty
+- UI fix: popups no longer show a horizontal scrollbar when their content contains a Bootstrap row, and the "In Progress" popup no longer scrolls vertically (regression of 9.9.5)
+  - the side padding of a popup belongs to its scrolling body again, where the negative margins of a row fit in; the body scrollbar is at the right edge of the popup again
+  - extra small popups keep their minimum height again
 
 
 ## 9.9.5 - 23.11.2026

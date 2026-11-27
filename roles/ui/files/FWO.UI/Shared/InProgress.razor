@@ -4,7 +4,8 @@
     <Body>
         @if (Display)
         {
-            <div class="row mt-3">
+            @* The bottom margin leaves room for the corners of the rotating spinner, which would otherwise make the popup body scroll. *@
+            <div class="row my-3">
                 <div class="spinner-border mx-auto align-self-center" role="status"></div>
             </div>
         }

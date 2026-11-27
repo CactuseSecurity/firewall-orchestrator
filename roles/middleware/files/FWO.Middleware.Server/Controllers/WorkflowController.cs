@@ -507,6 +507,8 @@ namespace FWO.Middleware.Server.Controllers
         private static async Task<bool> ExecuteResolvedAction(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
             WfStatefulObject statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn)
         {
+            // state changes triggered by these actions, e.g. automatic promotions, belong to the caller's state change
+            using IDisposable stateChangeCommentScope = wfHandler.BeginStateChangeComment(parameters.NotificationPlaceholders?.StateChangeComment);
             if (parameters.ActionId > 0)
             {
                 return await wfHandler.ActionHandler!.PerformActionById(parameters.ActionId, statefulObject, scope, owner, actionTicketId, userGrpDn,

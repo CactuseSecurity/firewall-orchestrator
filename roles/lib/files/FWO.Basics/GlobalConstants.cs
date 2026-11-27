@@ -229,6 +229,7 @@ namespace FWO.Basics
         public const string SERVICENAME = "@@SERVICENAME@@";
         public const string SERVICES = "@@SERVICES@@";
         public const string SOURCES = "@@SOURCES@@";
+        public const string STATECHANGE_COMMENT = "@@STATECHANGE_COMMENT@@";
         public const string STATUS = "@@STATUS@@";
         public const string TASKCOMMENT = "@@TASKCOMMENT@@";
         public const string TASKS = "@@TASKS@@";

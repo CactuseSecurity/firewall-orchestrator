@@ -17,6 +17,12 @@
 - CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
 - dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
 - dependencies: update NuGet packages (AngleSharp to 1.11.0)
+- notifications: new placeholder `@@STATECHANGE_COMMENT@@` for workflow emails (subject and body) with the comment or reason entered together with the triggering state change
+  - filled with the reason for rejecting an interface (reject popup in modelling, rejecting removed or orphaned requested interfaces), the comment of an approval and the comment of a ticket promotion
+  - also available for actions executed in the middleware and for automatic promotions triggered by the state change
+  - also available in bundled request task emails (requested connections with bundling of the same task type): a captured email keeps its placeholder values until the bundle is sent, except free text content of the caller, so the email still lists the requested connections; emails with different values are sent separately instead of being merged
+  - `@@REASON@@` remains the reason of the request; `@@CONTENT@@` is unchanged
+  - an interface rejection reason is no longer appended to the end of the email body when the body already shows it via `@@STATECHANGE_COMMENT@@`
 - REST API: `owners/get` accepts the optional `exactMatch` flag (#5833); when `true`, plain text in the `name` and `appIdExternal` filters must match the whole value (case-insensitive) instead of being matched as contains; a blank text filter combined with `exactMatch` is rejected with 400
 - UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
   - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new queries `getNetworkObjectDetailsByIds`, `getNetworkServiceDetailsByIds`, `getUserDetailsByIds`), including objects of a super manager; the links target this tab

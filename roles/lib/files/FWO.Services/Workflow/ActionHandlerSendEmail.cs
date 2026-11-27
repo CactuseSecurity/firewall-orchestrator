@@ -38,13 +38,15 @@ namespace FWO.Services.Workflow
             try
             {
                 emailActionParams = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                if (CaptureBundledEmail(action, emailActionParams, statefulObject, scope, owner, userGrpDn))
+                // resolved before a possible capture: a bundled email is sent later, outside of the current state change
+                NotificationPlaceholderData? actionPlaceholderData = WithStateChangeComment(placeholderData);
+                if (CaptureBundledEmail(action, emailActionParams, statefulObject, scope, owner, userGrpDn, actionPlaceholderData))
                 {
                     Log.WriteDebug("SendEmail", "Captured workflow action email for bundled delivery.");
                     return true;
                 }
 
-                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, placeholderData);
+                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, actionPlaceholderData);
             }
             catch (Exception exc)
             {
@@ -110,7 +112,7 @@ namespace FWO.Services.Workflow
         }
 
         private bool CaptureBundledEmail(WfStateAction action, EmailActionParams emailActionParams, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
+            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn, NotificationPlaceholderData? placeholderData)
         {
             if (EmailBundleCollector == null || EmailBundleCollector.IsFlushing
                 || emailActionParams.AttachedContent != EmailAttachedContent.RequestedConnections
@@ -121,7 +123,7 @@ namespace FWO.Services.Workflow
                 return false;
             }
 
-            if (!EmailBundleCollector.TryAdd(action, reqTask, owner, userGrpDn))
+            if (!EmailBundleCollector.TryAdd(action, reqTask, owner, userGrpDn, placeholderData))
             {
                 Log.WriteWarning("SendEmail", $"Workflow email bundle for ticket {reqTask.TicketId} is full. " +
                     $"Sending the email of request task {reqTask.TaskNumber} immediately instead of bundling it.");
@@ -248,6 +250,25 @@ namespace FWO.Services.Workflow
                 Log.WriteWarning("SendEmail", $"Could not load full ticket {ticket.Id} for workflow email content. Falling back to current ticket data. {exc.Message}");
                 return ticket;
             }
+        }
+
+        /// <summary>
+        /// Adds the comment of the state change currently processed by the workflow handler to the placeholder values,
+        /// unless the caller already provided one. The caller's object is not changed.
+        /// </summary>
+        /// <param name="placeholderData">Caller-provided values for notification placeholders; null if there are none.</param>
+        /// <returns>The values including the state change comment; the given values if there is nothing to add.</returns>
+        public NotificationPlaceholderData? WithStateChangeComment(NotificationPlaceholderData? placeholderData)
+        {
+            string stateChangeComment = wfHandler.StateChangeComment;
+            if (string.IsNullOrWhiteSpace(stateChangeComment) || !string.IsNullOrWhiteSpace(placeholderData?.StateChangeComment))
+            {
+                return placeholderData;
+            }
+
+            NotificationPlaceholderData extendedData = placeholderData?.Copy() ?? new();
+            extendedData.StateChangeComment = stateChangeComment;
+            return extendedData;
         }
 
         private WfStatefulObject WorkflowPlaceholderObject(WfStatefulObject statefulObject)

@@ -467,10 +467,10 @@ INSERT INTO txt VALUES ('added',                'German', 	'hinzugef&uuml;gt');
 INSERT INTO txt VALUES ('added',                'English', 	'added');
 INSERT INTO txt VALUES ('deleted',		        'German', 	'gel&ouml;scht');
 INSERT INTO txt VALUES ('deleted',		        'English', 	'deleted');
-INSERT INTO txt VALUES ('surplus',              'German', 	'zuviel');
-INSERT INTO txt VALUES ('surplus',              'English', 	'surplus');
-INSERT INTO txt VALUES ('missing',		        'German', 	'fehlend');
-INSERT INTO txt VALUES ('missing',		        'English', 	'missing');
+INSERT INTO txt VALUES ('surplus_in_fw_rule',   'German', 	'zu viel in Firewall-Regel');
+INSERT INTO txt VALUES ('surplus_in_fw_rule',   'English', 	'surplus in firewall rule');
+INSERT INTO txt VALUES ('missing_in_fw_rule',   'German', 	'fehlend in Firewall-Regel');
+INSERT INTO txt VALUES ('missing_in_fw_rule',   'English', 	'missing in firewall rule');
 INSERT INTO txt VALUES ('modified',		        'German', 	'ge&auml;ndert');
 INSERT INTO txt VALUES ('modified',		        'English', 	'modified');
 INSERT INTO txt VALUES ('id',		            'German', 	'Id');
@@ -5760,11 +5760,15 @@ INSERT INTO txt VALUES ('H1163', 'German',  'Modell: Soll-Ist - Darstellung alle
     Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln in Form des App-Regel-Reports aufgelistet werden.
     Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, leere Dienstgruppen oder nicht nutzbare Schnittstellen) werden nicht analysiert, sondern mit Grund unter "Nicht analysierte Verbindungen" aufgef&uuml;hrt.
     Der Report, der Verbindungsstatus auf der Modellierungsseite und die Beantragung analysieren immer dieselben Verbindungen auf dieselbe Weise.
+    Bei abweichenden Regeln werden in Quelle, Dienst und Ziel die &uuml;bereinstimmenden Objekte ohne Hervorhebung angezeigt,
+    in der Firewall-Regel fehlende Objekte rot unter &quot;fehlend in Firewall-Regel&quot; und in der Firewall-Regel zus&auml;tzlich vorhandene Objekte orange unter &quot;zu viel in Firewall-Regel&quot;.
 ');
 INSERT INTO txt VALUES ('H1163', 'English', 'Model: Variances - display all differences between modelled connections and the objects and rules found on the firewalls.
     Optionally, not yet modelled rules can also be listed in the form of the App Rules report.
     Connections with modelling issues (e.g. empty app roles, deleted objects, empty service groups or unusable interfaces) are not analysed but listed with their reason under "Connections not analysed".
     The report, the connection state on the modelling page and the request always analyse the same connections in the same way.
+    For differing rules, source, service and destination show matching objects without highlighting,
+    objects missing in the firewall rule in red under &quot;missing in firewall rule&quot; and objects additionally present in the firewall rule in orange under &quot;surplus in firewall rule&quot;.
 ');
 INSERT INTO txt VALUES ('H1164', 'German',  'Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden.');
 INSERT INTO txt VALUES ('H1164', 'English', 'Cert: Rule Overview - display all rules with upcoming recertifications. The default report interval can be configured in settings.');

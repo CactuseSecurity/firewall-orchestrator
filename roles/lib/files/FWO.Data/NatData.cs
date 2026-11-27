@@ -31,5 +31,28 @@ namespace FWO.Data
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
         public NetworkLocation[] TranslatedTos { get; set; } = [];
+
+        /// <summary>
+        /// Creates an empty translation.
+        /// </summary>
+        public NatData()
+        { }
+
+        /// <summary>
+        /// Creates a copy of a translation. The objects and services themselves are shared with the original.
+        /// </summary>
+        /// <param name="natData">Translation to copy.</param>
+        public NatData(NatData natData)
+        {
+            TranslatedServiceNegated = natData.TranslatedServiceNegated;
+            TranslatedService = natData.TranslatedService;
+            TranslatedServices = natData.TranslatedServices;
+            TranslatedSourceNegated = natData.TranslatedSourceNegated;
+            TranslatedSource = natData.TranslatedSource;
+            TranslatedFroms = natData.TranslatedFroms;
+            TranslatedDestinationNegated = natData.TranslatedDestinationNegated;
+            TranslatedDestination = natData.TranslatedDestination;
+            TranslatedTos = natData.TranslatedTos;
+        }
     }
 }

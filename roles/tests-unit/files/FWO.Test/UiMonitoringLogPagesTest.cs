@@ -6,6 +6,8 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Client;
 using FWO.Ui.Pages.Monitoring;
+using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -83,6 +85,7 @@ namespace FWO.Test
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<DomEventService>();
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -131,11 +134,31 @@ namespace FWO.Test
                 Assert.That(apiConn.NotificationLogOffset, Is.Zero);
                 Assert.That(GetPrivateField<List<NotificationLogEntry>>(setup.Component, "notificationLogEntries"), Has.Count.EqualTo(1));
                 Assert.That(GetPrivateField<bool>(setup.Component, "InitComplete"), Is.True);
+                Assert.That(setup.Rendered.Find("label[for='dropdown-input-notification-log-type']"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("#dropdown-input-notification-log-type"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("label[for='dropdown-input-notification-log-status']"), Is.Not.Null);
+                Assert.That(setup.Rendered.Find("#dropdown-input-notification-log-status"), Is.Not.Null);
             });
-            Assert.That(setup.Rendered.FindAll("#notification-log-type option").Select(option => option.GetAttribute("value")),
-                Does.Contain("InterfaceRequest"));
-            Assert.That(setup.Rendered.FindAll("#notification-log-type option").Select(option => option.GetAttribute("value")),
-                Does.Not.Contain("None"));
+            Dropdown<string> typeDropdown = setup.Rendered.FindComponents<Dropdown<string>>()
+                .Single(dropdown => dropdown.Instance.Id == "notification-log-type").Instance;
+            Dropdown<string> statusDropdown = setup.Rendered.FindComponents<Dropdown<string>>()
+                .Single(dropdown => dropdown.Instance.Id == "notification-log-status").Instance;
+            Assert.Multiple(() =>
+            {
+                Assert.That(typeDropdown.Elements, Does.Contain("InterfaceRequest"));
+                Assert.That(typeDropdown.Elements, Does.Not.Contain("None"));
+            });
+            setup.Rendered.Find("#dropdown-input-notification-log-type").Focus();
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Interface notification"));
+            setup.Rendered.Find("#dropdown-input-notification-log-status").Focus();
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Failed notification"));
+            foreach (IRenderedComponent<Dropdown<string>> dropdown in setup.Rendered.FindComponents<Dropdown<string>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         [Test]
@@ -223,8 +246,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateField<int?>(setup.Component, "notificationIdFilter"), Is.Null);
-                Assert.That(GetPrivateField<string>(setup.Component, "notificationTypeFilter"), Is.Empty);
-                Assert.That(GetPrivateField<string>(setup.Component, "statusFilter"), Is.Empty);
+                Assert.That(GetPrivateField<string?>(setup.Component, "notificationTypeFilter"), Is.Null);
+                Assert.That(GetPrivateField<string?>(setup.Component, "statusFilter"), Is.Null);
                 Assert.That(GetPrivateField<string>(setup.Component, "errorFilter"), Is.Empty);
                 Assert.That(GetPrivateProperty<int>(setup.Component, "CurrentPage"), Is.Zero);
                 Assert.That(apiConn.NotificationLogQueryCount, Is.EqualTo(3));
@@ -503,7 +526,7 @@ namespace FWO.Test
     {
         public void Dispose()
         {
-            Context.Dispose();
+            Context.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
     }
 }

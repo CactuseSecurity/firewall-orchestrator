@@ -48,6 +48,9 @@ public class OwnersController(ApiConnection apiConnection, GlobalConfig globalCo
     /// {"name":"Finance*","appIdExternal":"APP-?"}
     /// </code>
     /// <code>
+    /// {"appIdExternal":"APP-4711","exactMatch":true}
+    /// </code>
+    /// <code>
     /// {"showDetails":true}
     /// </code>
     /// Example response:
@@ -66,13 +69,16 @@ public class OwnersController(ApiConnection apiConnection, GlobalConfig globalCo
     /// <c>false</c> to also include them. Owners without any lifecycle state are always returned.
     /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
     /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains
-    /// search, and literal <c>%</c>, <c>_</c>, and <c>\</c> characters are matched verbatim.
+    /// search, and literal <c>%</c>, <c>_</c>, and <c>\</c> characters are matched verbatim. Set <c>exactMatch</c> to
+    /// <c>true</c> to match plain text against the whole value instead (still case-insensitive); <c>*</c> and <c>?</c>
+    /// keep their wildcard meaning. Without <c>exactMatch</c> a blank text filter is ignored; with it a blank text
+    /// filter is rejected.
     /// Owners are ordered by name and id, so <c>limit</c> and <c>offset</c> page the result deterministically.
     /// Without a limit a page of at most the configured <c>maxRestResponseObjectLimit</c> owners (default 10000) is
     /// returned, and the <c>X-Has-More</c> response header tells whether further owners follow.
     /// Unknown request properties are rejected with <c>400 Bad Request</c>, as are non-positive ids, text
-    /// filters that exceed 256 characters or contain control characters, and a <c>limit</c> or <c>offset</c>
-    /// out of range.
+    /// filters that exceed 256 characters or contain control characters, blank text filters combined with
+    /// <c>exactMatch</c>, and a <c>limit</c> or <c>offset</c> out of range.
     /// </remarks>
     [HttpPost("get")]
     [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
@@ -133,13 +139,17 @@ public class OwnersController(ApiConnection apiConnection, GlobalConfig globalCo
         {
             return "ownerLifecycleStateId must be a positive integer.";
         }
-        return ValidateFilterText(request.Name, "name") ?? ValidateFilterText(request.AppIdExternal, "appIdExternal");
+        bool matchPlainTextExactly = request.ExactMatch == true;
+        return ValidateFilterText(request.Name, "name", matchPlainTextExactly)
+            ?? ValidateFilterText(request.AppIdExternal, "appIdExternal", matchPlainTextExactly);
     }
 
     /// <summary>
-    /// Ensures a text filter stays within the allowed length and contains no control characters.
+    /// Ensures a text filter stays within the allowed length and contains no control characters. With
+    /// <paramref name="matchPlainTextExactly"/> a supplied filter must not be blank, because a blank filter adds no
+    /// predicate and an exact lookup would otherwise return every visible owner.
     /// </summary>
-    private static string? ValidateFilterText(string? value, string fieldName)
+    private static string? ValidateFilterText(string? value, string fieldName, bool matchPlainTextExactly)
     {
         if (value is null)
         {
@@ -152,6 +162,10 @@ public class OwnersController(ApiConnection apiConnection, GlobalConfig globalCo
         if (value.Any(char.IsControl))
         {
             return $"{fieldName} must not contain control characters.";
+        }
+        if (matchPlainTextExactly && string.IsNullOrWhiteSpace(value))
+        {
+            return $"{fieldName} must not be blank when exactMatch is true.";
         }
         return null;
     }
@@ -240,8 +254,9 @@ public class OwnersController(ApiConnection apiConnection, GlobalConfig globalCo
         GraphQlFilterBuilder.AddEqualsPredicate(predicates, "id", request.OwnerId);
         GraphQlFilterBuilder.AddEqualsPredicate(predicates, "owner_lifecycle_state_id", request.OwnerLifeCycleStateId);
         GraphQlFilterBuilder.AddEqualsPredicate(predicates, "active", request.Active);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", request.Name);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "app_id_external", request.AppIdExternal);
+        bool matchPlainTextExactly = request.ExactMatch == true;
+        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", request.Name, matchPlainTextExactly);
+        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "app_id_external", request.AppIdExternal, matchPlainTextExactly);
         GraphQlFilterBuilder.AddOwnerActiveStatePredicate(predicates, request.ShowOnlyActiveState);
         return predicates;
     }

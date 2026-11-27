@@ -119,7 +119,8 @@ namespace FWO.Services
 
             try
             {
-                bool sent = await SendEmail(tos, subject, body, ccs, bccs, notification.Layout == NotificationLayout.HtmlInBody);
+                EmailSendOptions sendOptions = new(notification.Layout == NotificationLayout.HtmlInBody, null, notification.EmailPriority);
+                bool sent = await SendEmail(tos, subject, body, ccs, bccs, sendOptions);
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
                     sent ? "" : "SMTP delivery failed or no To recipients resolved.");
                 return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
@@ -159,8 +160,8 @@ namespace FWO.Services
             }
             try
             {
-                WorkflowEmailDeliveryResult deliveryResult = await SendEmailWithResult(tos, subject, body, ccs, bccs,
-                    notification.Layout == NotificationLayout.HtmlInBody, attachment);
+                EmailSendOptions sendOptions = new(notification.Layout == NotificationLayout.HtmlInBody, attachment, notification.EmailPriority);
+                WorkflowEmailDeliveryResult deliveryResult = await SendEmailWithResult(tos, subject, body, ccs, bccs, sendOptions);
                 bool sent = deliveryResult == WorkflowEmailDeliveryResult.Delivered;
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
                     sent ? "" : "SMTP delivery failed or no To recipients resolved.");
@@ -182,10 +183,22 @@ namespace FWO.Services
                 string content = notification.Layout == NotificationLayout.HtmlInBody
                     ? HtmlOutputEncoder.EncodeText(placeholderData.Content)
                     : placeholderData.Content;
-                return NotificationEmailLayoutHelper.BuildBody(notification, content);
+                return NotificationEmailLayoutHelper.BuildBody(notification, content,
+                    appendWithoutPlaceholder: !IsShownAsStateChangeComment(notification, placeholderData));
             }
 
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
+        }
+
+        /// <summary>
+        /// True if the body already shows the caller content via the state change comment placeholder, e.g. the reason for
+        /// rejecting an interface. The content must then not be appended to the body a second time.
+        /// </summary>
+        private static bool IsShownAsStateChangeComment(FwoNotification notification, NotificationPlaceholderData placeholderData)
+        {
+            string notificationBody = notification.EmailBody ?? "";
+            return notificationBody.Contains(Placeholder.STATECHANGE_COMMENT)
+                && string.Equals(placeholderData.Content.Trim(), placeholderData.StateChangeComment?.Trim(), StringComparison.Ordinal);
         }
 
         private async Task<int> LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,
@@ -242,19 +255,26 @@ namespace FWO.Services
         }
 
         protected virtual async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
-            bool mailFormatHtml = true, FormFile? attachment = null)
+            EmailSendOptions? options = null)
         {
-            return await SendEmailWithResult(tos, subject, body, ccs, bccs, mailFormatHtml, attachment) == WorkflowEmailDeliveryResult.Delivered;
+            return await SendEmailWithResult(tos, subject, body, ccs, bccs, options) == WorkflowEmailDeliveryResult.Delivered;
         }
 
         /// <summary>
         /// Sends one email and reports the outcome in the detail a workflow action needs: a failed send has
         /// to be surfaced, while an email with no resolvable recipient is a property of the configuration.
         /// </summary>
+        /// <param name="tos">To recipients.</param>
+        /// <param name="subject">Subject of the email.</param>
+        /// <param name="body">Body of the email.</param>
+        /// <param name="ccs">Optional Cc recipients.</param>
+        /// <param name="bccs">Optional Bcc recipients.</param>
+        /// <param name="options">Format, attachment and priority; html without attachment at normal priority if omitted.</param>
         /// <returns>Whether the email was delivered, had no recipients, or failed to send</returns>
         protected virtual async Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
-            bool mailFormatHtml = true, FormFile? attachment = null)
+            EmailSendOptions? options = null)
         {
+            EmailSendOptions sendOptions = options ?? new();
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress)
             {
@@ -269,13 +289,13 @@ namespace FWO.Services
             }
             ccs = ccs?.Where(c => c != "").ToList();
             bccs = bccs?.Where(bcc => bcc != "").ToList();
-            MailData mailData = new(tos, subject) { Body = body, Cc = ccs ?? [], Bcc = bccs ?? [] };
-            if (attachment != null)
+            MailData mailData = new(tos, subject) { Body = body, Cc = ccs ?? [], Bcc = bccs ?? [], Priority = sendOptions.Priority };
+            if (sendOptions.Attachment != null)
             {
-                mailData.Attachments = new FormFileCollection() { attachment };
+                mailData.Attachments = new FormFileCollection() { sendOptions.Attachment };
             }
             Log.WriteInfo("SendEmail", $"Sending workflow email to {tos.Count} recipient(s), cc {mailData.Cc.Count}, bcc {mailData.Bcc.Count}. Subject: '{subject}'.");
-            bool sent = await MailKitMailer.SendAsync(mailData, emailConnection, mailFormatHtml, new CancellationToken());
+            bool sent = await MailKitMailer.SendAsync(mailData, emailConnection, sendOptions.MailFormatHtml, new CancellationToken());
             if (!sent)
             {
                 Log.WriteWarning("SendEmail", $"MailKit returned false while sending workflow email. To recipients: {tos.Count}, subject: '{subject}'.");

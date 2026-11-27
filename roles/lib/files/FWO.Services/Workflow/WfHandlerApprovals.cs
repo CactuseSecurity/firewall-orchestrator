@@ -85,6 +85,7 @@ namespace FWO.Services.Workflow
 
         public async Task ApproveTask(WfStatefulObject approval)
         {
+            using IDisposable stateChangeCommentScope = BeginStateChangeComment(approval.OptComment());
             try
             {
                 ActApproval.StateId = approval.StateId;

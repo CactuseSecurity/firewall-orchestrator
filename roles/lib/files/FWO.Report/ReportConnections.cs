@@ -330,7 +330,7 @@ namespace FWO.Report
 
         private static string ConstructOutput(ModellingObject inputObj, string type, int chapterNumber, long objId, string style)
         {
-            string linkAddress = GetLinkAddress(OutputLocation.export, $"a{inputObj.AppId}", type, chapterNumber, objId, ReportType.Connections);
+            string linkAddress = GetLinkAddress(OutputLocation.export, $"a{inputObj.AppId}", type, chapterNumber, objId);
             return ConstructLink("", inputObj.Display(), style, linkAddress);
         }
 

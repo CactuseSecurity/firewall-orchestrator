@@ -41,7 +41,7 @@
                             <Template>
                                 <div style="@(context.Highlighted ? GlobalConst.kStyleHighlightedRed : "")">
                                     <span class="@ReportBase.GetIconClass(ObjCategory.nobj, context.Type.Name)">&nbsp;</span>
-                                    <b id="@(GetID(ObjCategory.nobj, context.Id))">@(context.Name)</b>
+                                    <b id="@(GetID(ObjCategory.nobj, context.Id))">@(DisplayBase.DisplayNameOrIp(context))</b>
                                 </div>
                             </Template>
                         </Column>
@@ -393,6 +393,7 @@
     {
         if (FetchObjects != null && !IsDetailed(objCategory))
         {
+            bool linkTargetPending = AnchorNavToRSB?.HasPendingScrollTarget ?? false;
             switch (Content)
             {
                 case ManagementReport mgt:
@@ -410,14 +411,31 @@
                         {
                             AnchorNavToRSB?.ScrollToFragment();
                             return InvokeAsync(StateHasChanged);
-                        }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
+                        }, rule.Id, rule.NatRule);
                     break;
             }
+            // a scroll to the linked object started while objects were still being added is cancelled by the next
+            // render, so it is repeated once all fetched objects are rendered (see OnAfterRenderAsync)
+            scrollToLinkTargetAfterRender = linkTargetPending;
         }
 
         await InvokeAsync(StateHasChanged);
         return;
     }
+
+    /// <summary>
+    /// Scrolls to the object a report link points to, once the objects fetched for this group are rendered.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (scrollToLinkTargetAfterRender && AnchorNavToRSB != null)
+        {
+            scrollToLinkTargetAfterRender = false;
+            await AnchorNavToRSB.ScrollToLastTarget();
+        }
+    }
+
+    private bool scrollToLinkTargetAfterRender;
 
     private object? lastContentRef;
 }

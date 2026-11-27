@@ -25,12 +25,12 @@ namespace FWO.Test
     {
         private const string kNoneAlgorithmName = "None";
         private const string kNetworkZoneTreeAlgorithmName = "Network Zone Tree";
-        private static readonly List<string> kAlgorithmIdsInOrder =
+        private static readonly List<long> kAlgorithmIdsInOrder =
         [
-            GlobalConst.kPathAnalysisAlgorithmNone.ToString(),
-            GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString(),
-            GlobalConst.kPathAnalysisAlgorithmForEachDevice.ToString(),
-            GlobalConst.kPathAnalysisAlgorithmFirstDevice.ToString()
+            GlobalConst.kPathAnalysisAlgorithmNone,
+            GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree,
+            GlobalConst.kPathAnalysisAlgorithmForEachDevice,
+            GlobalConst.kPathAnalysisAlgorithmFirstDevice
         ];
         private static readonly List<string> kAlgorithmTextKeysInOrder =
         [
@@ -67,6 +67,25 @@ namespace FWO.Test
             }
 
             throw new MissingFieldException(type.FullName, memberName);
+        }
+
+        /// <summary>
+        /// The tooltip of a setting sits on its settings row or, for a single check box, on its form-check wrapper.
+        /// </summary>
+        private static string? GetTooltip(AngleSharp.Dom.IElement label)
+        {
+            return label.Closest("[title]")?.GetAttribute("title");
+        }
+
+        /// <summary>
+        /// Finds the action button in the same settings row as the given label.
+        /// </summary>
+        private static AngleSharp.Dom.IElement FindRowButton(AngleSharp.Dom.IElement label)
+        {
+            AngleSharp.Dom.IElement row = label.Closest(".settings-row")
+                ?? throw new InvalidOperationException("The label is not part of a settings row.");
+            return row.QuerySelector("button")
+                ?? throw new InvalidOperationException("The settings row has no button.");
         }
 
         private static AngleSharp.Dom.IElement FindElementByText(List<AngleSharp.Dom.IElement> elements, string text)
@@ -255,14 +274,20 @@ namespace FWO.Test
 
             wrapper.WaitForAssertion(() =>
             {
-                List<AngleSharp.Dom.IElement> options = [.. wrapper.FindAll("#pathAnalysisAlgorithm option")];
-                Assert.That(options.Select(option => option.GetAttribute("value")), Is.EqualTo(kAlgorithmIdsInOrder));
+                IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+                List<long> algorithmIds = [.. algorithmDropdown.Instance.Elements];
+                Assert.That(algorithmIds, Is.EqualTo(kAlgorithmIdsInOrder));
                 // the simulated user config returns the text key: the name is localized, not taken from the database
-                Assert.That(options.Select(option => option.TextContent), Is.EqualTo(kAlgorithmTextKeysInOrder));
-                Assert.That(wrapper.Find("#pathAnalysisAlgorithm").GetAttribute("value"),
-                    Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
+                Assert.That(algorithmIds.Select(algorithmDropdown.Instance.ElementToString), Is.EqualTo(kAlgorithmTextKeysInOrder));
+                Assert.That(wrapper.Find("#dropdown-input-pathAnalysisAlgorithm").GetAttribute("value"),
+                    Is.EqualTo(kAlgorithmTextKeysInOrder[1]));
+                Assert.That(wrapper.Find("label[for='dropdown-input-pathAnalysisAlgorithm']"), Is.Not.Null);
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
             });
+            IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+            algorithmDropdown.Find("input").Focus();
+            Assert.That(wrapper.FindAll("button.dropdown-item"), Is.Not.Empty);
+            Assert.That(algorithmDropdown.Instance.ElementToString(99), Is.Empty);
         }
 
         [Test]
@@ -345,9 +370,9 @@ namespace FWO.Test
 
             wrapper.WaitForAssertion(() =>
             {
-                AngleSharp.Dom.IElement option = wrapper.Find($"#pathAnalysisAlgorithm option[value='{kUnknownAlgorithmId}']");
-                Assert.That(option.TextContent, Is.EqualTo(kUnknownAlgorithmName));
-                Assert.That(option.Children, Is.Empty, "the stored name is rendered as text");
+                IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+                Assert.That(algorithmDropdown.Instance.Elements, Does.Contain(kUnknownAlgorithmId));
+                Assert.That(algorithmDropdown.Instance.ElementToString(kUnknownAlgorithmId), Is.EqualTo(kUnknownAlgorithmName));
             });
         }
 
@@ -642,10 +667,10 @@ namespace FWO.Test
                 string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
                 List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
                 AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
-                Assert.That(sortLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9034")));
+                Assert.That(GetTooltip(sortLabel), Is.EqualTo(userConfig.PureLine("C9034")));
                 string bundledTasksLabelText = userConfig.GetText("reqDisplayBundledTasksAsOne");
                 AngleSharp.Dom.IElement bundledTasksLabel = FindElementByText(sortLabels, bundledTasksLabelText);
-                Assert.That(bundledTasksLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("H5579c")));
+                Assert.That(GetTooltip(bundledTasksLabel), Is.EqualTo(userConfig.PureLine("H5579c")));
                 IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settings.FindComponent<CreateRequestTaskSortConfigPopup>();
                 Assert.That(popup.Instance.Display, Is.False);
             });
@@ -654,7 +679,7 @@ namespace FWO.Test
             string expectedLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
             List<AngleSharp.Dom.IElement> labels = [.. settingsComponent.FindAll("label")];
             AngleSharp.Dom.IElement label = FindElementByText(labels, expectedLabelText);
-            label.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+            FindRowButton(label).Click();
 
             wrapper.WaitForAssertion(() =>
             {
@@ -697,7 +722,7 @@ namespace FWO.Test
                 string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
                 List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
                 AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
-                sortLabel.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+                FindRowButton(sortLabel).Click();
             });
 
             IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = wrapper.FindComponent<CreateRequestTaskSortConfigPopup>();

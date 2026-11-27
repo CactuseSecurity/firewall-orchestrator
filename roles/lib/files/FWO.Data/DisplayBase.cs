@@ -89,6 +89,16 @@ namespace FWO.Data
             return DisplayIp(elem.IP ?? "", elem.IpEnd ?? "");
         }
 
+        /// <summary>
+        /// Displays the name of a network object, or its ip if it has no name (e.g. app servers stored without a name).
+        /// </summary>
+        /// <param name="elem">The network object to display.</param>
+        /// <returns>The plain text name or ip. Html output has to encode it.</returns>
+        public static string DisplayNameOrIp(NetworkObject elem)
+        {
+            return string.IsNullOrWhiteSpace(elem.Name) ? DisplayIp(elem.IP ?? "", elem.IpEnd ?? "") : elem.Name;
+        }
+
         public static string DisplayIp(string ip1, string ip2, bool inBrackets = false)
         {
             try

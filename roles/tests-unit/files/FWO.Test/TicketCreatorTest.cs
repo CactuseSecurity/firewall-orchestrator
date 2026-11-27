@@ -7,7 +7,10 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Workflow;
+using FWO.Test.Mocks;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
@@ -19,7 +22,11 @@ namespace FWO.Test
     {
         private static readonly string[] kExpectedRuleUids = ["rule-1", "rule-2"];
 
-        private sealed class TicketCreatorTestApiConn : SimulatedApiConnection
+        /// <summary>
+        /// Answers the queries of a ticket creation. Internal and inheritable, so tests of components that create tickets
+        /// can add the answers to their own queries.
+        /// </summary>
+        internal class TicketCreatorTestApiConn : SimulatedApiConnection
         {
             private long nextId = 100;
             private WfTicket lastCreatedTicket = new();
@@ -516,6 +523,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteNewInterfaceImplTasks_OffersTheCommentAsStateChangeCommentToStateActions()
+        {
+            WfImplTask implTask = CreateImplementationTask(21, 11);
+            TicketCreatorTestApiConn apiConn = new()
+            {
+                TicketById = new WfTicket { Id = 42, StateId = 210, Tasks = [CreateNewInterfaceTask(11, implTask)] },
+                ExtStates = [new WfExtState { Name = ExtStates.Rejected.ToString(), StateId = 249 }]
+            };
+            using TestMiddlewareClient middlewareClient = new();
+            BodyRecordingHandler middlewareHandler = new();
+            middlewareClient.UseHandler(middlewareHandler);
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn, middlewareClient);
+
+            int promotedCount = await ticketCreator.PromoteNewInterfaceImplTasks(42, ExtStates.Rejected, [11], "interface is obsolete");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(promotedCount, Is.EqualTo(1));
+                Assert.That(middlewareHandler.Bodies, Is.Not.Empty);
+                Assert.That(middlewareHandler.Bodies, Has.All.Contains("\"statechange_comment\":\"interface is obsolete\""));
+            });
+        }
+
+        [Test]
         public async Task CreateUnusedRuleDeleteTicket_CreatesRuleDeleteTasksAndTicketComment()
         {
             TicketCreatorTestApiConn apiConn = new();
@@ -576,7 +607,21 @@ namespace FWO.Test
             };
         }
 
-        private static TicketCreator CreateTicketCreator(TicketCreatorTestApiConn apiConn)
+        private sealed class BodyRecordingHandler : HttpMessageHandler
+        {
+            public List<string> Bodies { get; } = [];
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                Bodies.Add(request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : "");
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"success\":true,\"messages\":[],\"errorMessage\":\"\"}", System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+        }
+
+        private static TicketCreator CreateTicketCreator(TicketCreatorTestApiConn apiConn, MiddlewareClient? middlewareClient = null)
         {
             UserConfig userConfig = new(new SimulatedGlobalConfig(), apiConn, new UiUser { DbId = 3, Name = "Requester", Language = "English" }, false)
             {
@@ -589,7 +634,7 @@ namespace FWO.Test
                 RecDeleteRuleReqTaskReason = "Delete task reason",
                 RecDeleteRuleTicketPriority = 5
             };
-            return new TicketCreator(apiConn, userConfig, new ClaimsPrincipal(), null!,
+            return new TicketCreator(apiConn, userConfig, new ClaimsPrincipal(), middlewareClient!,
                 WorkflowPhases.request, null, DefaultInit.DoNothing);
         }
 

@@ -48,7 +48,6 @@ namespace FWO.Ui.Services
                 {
                     await actionHandler.PerformAction(action, task, scope, owner, ticketId);
                 }
-                return true;
             });
         }
 
@@ -56,26 +55,21 @@ namespace FWO.Ui.Services
         /// Runs actions if an action handler exists and reloads the ticket afterwards, also if an action fails.
         /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
-        /// <param name="performActions">Performs the actions with the action handler; returns false if the ticket must not be
-        /// reloaded again, as a reload between the actions has just failed and would only fail (and be reported) again.</param>
-        private static async Task RunAndReload(WfHandler wfHandler, Func<ActionHandler, Task<bool>> performActions)
+        /// <param name="performActions">Performs the actions with the action handler.</param>
+        private static async Task RunAndReload(WfHandler wfHandler, Func<ActionHandler, Task> performActions)
         {
             if (wfHandler.ActionHandler == null)
             {
                 return;
             }
-            bool reload = true;
             try
             {
-                reload = await performActions(wfHandler.ActionHandler);
+                await performActions(wfHandler.ActionHandler);
             }
             finally
             {
-                if (reload)
-                {
-                    // reports its own errors, so the error of the action is not hidden
-                    await wfHandler.ReloadActTicket();
-                }
+                // reports its own errors, so the error of the action is not hidden
+                await wfHandler.ReloadActTicket();
             }
         }
 
@@ -124,8 +118,9 @@ namespace FWO.Ui.Services
         /// previous tasks is skipped instead of being promoted a second time. A state changing action delegated to the
         /// middleware changes only the stored states, so the ticket is reloaded before each further task to see them. If that
         /// reload fails (query error, or the ticket is no longer visible to the user), the remaining tasks are skipped, as
-        /// their states are unknown and sending them would be rejected, and the user is told which tasks were skipped; the
-        /// failed reload is not repeated afterwards.
+        /// their states are unknown and sending them would be rejected, and the user is told which tasks were skipped. The
+        /// final reload is still tried: after a passing query error it brings the ticket up to date, so no stale state is
+        /// offered for another action; if the query keeps failing, its error is reported once more.
         /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
         /// <param name="action">The action to perform.</param>
@@ -142,25 +137,24 @@ namespace FWO.Ui.Services
                     if (index > 0 && reloadBetweenTasks && !await wfHandler.ReloadActTicket())
                     {
                         ReportSkippedTasks(wfHandler, action, taskGroup.Skip(index));
-                        return false;
+                        break;
                     }
                     if (CurrentStateId(wfHandler, task) == initialStateIds[index])
                     {
                         await actionHandler.PerformAction(action, task, WfObjectScopes.RequestTask, task.Owners.FirstOrDefault()?.Owner, task.TicketId);
                     }
                 }
-                return true;
             });
         }
 
         /// <summary>
-        /// Tells the user that an action was not performed on the remaining tasks of a bundle. A failed reload is only
-        /// reported by the handler if its query fails, not if the ticket is filtered out, so this is the only hint that the
-        /// bundle moved only partly.
+        /// Tells the user that an action was not sent separately for the remaining tasks of a bundle; they may have moved
+        /// with the bundle anyway. A failed reload is only reported by the handler if its query fails, not if the ticket is
+        /// filtered out, so this is the only hint that the bundle may have moved only partly.
         /// </summary>
         /// <param name="wfHandler">The workflow handler displaying the message.</param>
         /// <param name="action">The action, whose name is the message title.</param>
-        /// <param name="skippedTasks">The tasks the action was not performed on.</param>
+        /// <param name="skippedTasks">The tasks the action was not sent for.</param>
         private static void ReportSkippedTasks(WfHandler wfHandler, WfStateAction action, IEnumerable<WfReqTask> skippedTasks)
         {
             string taskIds = string.Join(", ", skippedTasks.Select(task => task.Id));

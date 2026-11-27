@@ -77,10 +77,12 @@
     /// <summary>Returns the visible columns of a table for the current mode and the configured field visibility.</summary>
     private List<TaskListColumn> VisibleColumns(TaskListTable table, List<List<WfReqTask>> taskGroups)
     {
-        return PlanningTaskListRowBuilder.VisibleColumns(table, mode, Context.Visibility,
+        PlanningImplTaskDisplayLogic implLogic = ImplLogic;
+        AccessTaskFieldVisibilityConfig visibility = Context.Visibility;
+        return PlanningTaskListRowBuilder.VisibleColumns(table, mode, visibility,
             ApprovalTaskListRowBuilder.ObjectVisibilityFor(table, taskGroups, Context.ObjectVisibility),
             PlanningTaskListRowBuilder.ImplementationColumnsFor(table, taskGroups, CanEditImplementationTask,
-                (implementationTask, requestTask) => ImplLogic.TimeRestriction(implementationTask, requestTask, Context.Visibility)));
+                (implementationTask, requestTask) => implLogic.TimeRestriction(implementationTask, requestTask, visibility)));
     }
 
     /// <summary>Creates the row builder; editable cells of implementation tasks open the editors of this view.</summary>

@@ -298,8 +298,8 @@ internal sealed class TaskListHelperTest
             Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
             // the user learns that the bundle moved only partly
             Assert.That(messages, Does.Contain(($"skipped: {second.Id}", true)));
-            // the failed reload is not repeated, which would only report the same error again
-            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(quietly ? 0 : 1));
+            // the final reload is still tried, so a passing query error does not leave a stale ticket
+            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(quietly ? 0 : 2));
         });
     }
 

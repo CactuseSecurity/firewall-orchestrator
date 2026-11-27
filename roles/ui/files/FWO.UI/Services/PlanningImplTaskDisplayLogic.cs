@@ -26,6 +26,7 @@ namespace FWO.Ui.Services
         private readonly List<RuleAction> ruleActions;
         private readonly List<Tracking> trackings;
         private readonly List<IpProtocol> ipProtocols;
+        private string? timeObjectPrecision;
 
         /// <summary>Initializes the display logic.</summary>
         /// <param name="wfHandler">The workflow handler holding the ticket, managements and devices.</param>
@@ -255,8 +256,8 @@ namespace FWO.Ui.Services
 
         /// <summary>
         /// Returns the time restriction as "name (begin - end)", or an empty string if there is none. Like the validity of
-        /// request tasks, a begin or end date hidden by the configured visibility is left out, also of a name built from
-        /// the dates.
+        /// request tasks, a begin or end date hidden by the configured visibility is left out, and without a name only the
+        /// validity is shown in parentheses.
         /// </summary>
         /// <param name="implementationTask">The implementation task.</param>
         /// <param name="requestTask">The request task of the implementation task.</param>
@@ -270,19 +271,16 @@ namespace FWO.Ui.Services
                 ?? "";
             DateTime? beginDate = visibility.ShowValidFrom ? timeElement?.StartTime ?? implementationTask.TargetBeginDate : null;
             DateTime? endDate = visibility.ShowValidTo ? timeElement?.EndTime ?? implementationTask.TargetEndDate : null;
-            string precision = FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision;
-            string begin = TimeObjectDisplayHelper.FormatValue(beginDate, precision, false, "dd.MM.yyyy");
-            string end = TimeObjectDisplayHelper.FormatValue(endDate, precision, true, "dd.MM.yyyy");
-            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(begin) && string.IsNullOrWhiteSpace(end))
-            {
-                return "";
-            }
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                name = TimeObjectNamingHelper.BuildDateBasedName(beginDate, endDate, precision);
-            }
+            // parsed once, as the time restriction is displayed for every implementation task
+            timeObjectPrecision ??= FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision;
+            string begin = TimeObjectDisplayHelper.FormatValue(beginDate, timeObjectPrecision, false, "dd.MM.yyyy");
+            string end = TimeObjectDisplayHelper.FormatValue(endDate, timeObjectPrecision, true, "dd.MM.yyyy");
             string validity = Validity(begin, end);
-            return string.IsNullOrWhiteSpace(validity) ? name : $"{name} ({validity})";
+            if (string.IsNullOrWhiteSpace(validity))
+            {
+                return name;
+            }
+            return string.IsNullOrWhiteSpace(name) ? $"({validity})" : $"{name} ({validity})";
         }
 
         /// <summary>Returns the management the devices are restricted to: of the task, of its device or of the request task.</summary>

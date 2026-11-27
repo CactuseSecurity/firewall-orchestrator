@@ -28,8 +28,8 @@ namespace FWO.Ui.Services
     /// <summary>The columns a table of the planning task list view needs for its implementation tasks.</summary>
     /// <param name="RuleColumns">The rule columns, used by the tables other than the access table.</param>
     /// <param name="FreeText">Whether an implementation task of the table has a free text or may get one.</param>
-    /// <param name="TimeRestriction">Whether an implementation task other than a rule task, e.g. of a time object task, has a
-    /// time restriction; that of rule tasks follows the configured validity visibility like in the access table.</param>
+    /// <param name="TimeRestriction">Whether an implementation task of the table shows a time restriction: its name or a
+    /// date configured visible.</param>
     public sealed record PlanningImplColumns(PlanningRuleColumns RuleColumns, bool FreeText, bool TimeRestriction)
     {
         /// <summary>The columns of a table without implementation tasks.</summary>

@@ -3834,8 +3834,8 @@ INSERT INTO txt VALUES ('planning_edit_mode_list_view', 'German', 'Listenansicht
 INSERT INTO txt VALUES ('planning_edit_mode_list_view', 'English', 'List view');
 INSERT INTO txt VALUES ('planning_list_level', 'German', 'Ebene');
 INSERT INTO txt VALUES ('planning_list_level', 'English', 'Level');
-INSERT INTO txt VALUES ('planning_bundle_action_stopped', 'German', 'Die Aktion wurde f&uuml;r die geb&uuml;ndelten Auftr&auml;ge {0} nicht ausgef&uuml;hrt: Nach dem vorherigen Auftrag konnte das Ticket nicht neu geladen werden (z.B. weil es nicht mehr sichtbar ist), daher ist ihr aktueller Status unbekannt. Bitte das Ticket pr&uuml;fen.');
-INSERT INTO txt VALUES ('planning_bundle_action_stopped', 'English', 'The action was not performed on the bundled tasks {0}: the ticket could not be reloaded after the previous task (e.g. because it is no longer visible), so their current state is unknown. Please check the ticket.');
+INSERT INTO txt VALUES ('planning_bundle_action_stopped', 'German', 'Die Aktion wurde f&uuml;r die geb&uuml;ndelten Auftr&auml;ge {0} nicht einzeln ausgef&uuml;hrt: Nach dem vorherigen Auftrag konnte das Ticket nicht neu geladen werden (z.B. weil es nicht mehr sichtbar ist), daher ist ihr aktueller Status unbekannt. Sie k&ouml;nnen bereits mit dem B&uuml;ndel weitergeschaltet worden sein. Bitte das Ticket pr&uuml;fen.');
+INSERT INTO txt VALUES ('planning_bundle_action_stopped', 'English', 'The action was not sent separately for the bundled tasks {0}: the ticket could not be reloaded after the previous task (e.g. because it is no longer visible), so their current state is unknown. They may already have moved with the bundle. Please check the ticket.');
 INSERT INTO txt VALUES ('planning_list_show_impl_tasks', 'German', 'Nur Implementierungs-Auftr&auml;ge');
 INSERT INTO txt VALUES ('planning_list_show_impl_tasks', 'English', 'Only implementation tasks');
 INSERT INTO txt VALUES ('planning_list_show_all_tasks', 'German', 'Alle Auftr&auml;ge');

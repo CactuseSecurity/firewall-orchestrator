@@ -171,8 +171,13 @@ internal sealed class PlanningTaskListRowBuilderTest
             kEditable, TimeRestriction);
         PlanningImplColumns genericOnly = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Other, Singles(generic),
             kEditable, TimeRestriction);
-        PlanningImplColumns ruleTaskWithValidity = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Other, Singles(ruleModify),
-            kEditable, (_, _) => "t-2027");
+        // with hidden dates, the time restriction of a rule task is the name of its time element
+        PlanningImplColumns ruleTaskWithTimeName = PlanningTaskListRowBuilder.ImplementationColumnsFor(TaskListTable.Other, Singles(ruleModify),
+            kEditable, (_, _) => "maintenance");
+        List<string> accessWithTimeName = Keys(PlanningTaskListRowBuilder.VisibleColumns(TaskListTable.Access, PlanningTaskListMode.ImplementationTasks,
+            noValidity, null, new PlanningImplColumns(PlanningRuleColumns.None, false, true)));
+        List<string> accessWithoutTimeRestriction = Keys(PlanningTaskListRowBuilder.VisibleColumns(TaskListTable.Access, PlanningTaskListMode.ImplementationTasks,
+            noValidity, null, PlanningImplColumns.None));
         PlanningTaskListRow timeObjectRow = CreateBuilder([timeObject], false, noValidity)
             .Build(Singles(timeObject), TaskListTable.Other, PlanningTaskListMode.ImplementationTasks).Single();
 
@@ -187,9 +192,11 @@ internal sealed class PlanningTaskListRowBuilderTest
             // the hidden validity dates are left out, as in the request-task rows
             Assert.That(timeObjectRow.Cell(ApprovalTaskListRowBuilder.kTimeRestriction).Text, Is.EqualTo("t-2027"));
             Assert.That(HasTimeRestriction(genericOnly), Is.False);
-            // the validity of rule tasks follows the configured visibility, as in the access table
-            Assert.That(ruleTaskWithValidity.TimeRestriction, Is.False);
-            Assert.That(HasTimeRestriction(ruleTaskWithValidity), Is.False);
+            // the name of the time element of rule tasks is shown as in the card view, also in the access table
+            Assert.That(ruleTaskWithTimeName.TimeRestriction, Is.True);
+            Assert.That(HasTimeRestriction(ruleTaskWithTimeName), Is.True);
+            Assert.That(accessWithTimeName, Does.Contain(ApprovalTaskListRowBuilder.kTimeRestriction));
+            Assert.That(accessWithoutTimeRestriction, Does.Not.Contain(ApprovalTaskListRowBuilder.kTimeRestriction));
         });
     }
 

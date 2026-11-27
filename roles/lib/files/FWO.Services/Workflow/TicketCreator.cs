@@ -101,15 +101,8 @@ namespace FWO.Services.Workflow
         /// <returns>True if the stored ticket could be read.</returns>
         private async Task<bool> TryReloadSavedTicket(long ticketId)
         {
-            WfTicket inMemoryTicket = wfHandler.ActTicket;
-            WfTicket? storedTicket = await wfHandler.ResolveTicket(ticketId);
-            if (storedTicket?.Id == ticketId)
-            {
-                return true;
-            }
-            // a failed read yields an empty ticket, which ResolveTicket has made the current one
-            wfHandler.SetTicketEnv(inMemoryTicket);
-            return false;
+            // a failed read yields null and leaves the in-memory copy the current ticket
+            return await wfHandler.ResolveTicket(ticketId) != null;
         }
 
         public async Task<bool> PromoteTicket(long ticketId, string extReqState)

@@ -11,6 +11,7 @@
 {
     @foreach (WfImplTask implementationTask in ImplementationTasks.OrderBy(task => task.Id))
     {
+        string timeRestriction = TimeRestriction(implementationTask);
         <div>
             <Collapse @key="implementationTask.Id" StartToggled="@(!IsInitiallyExpanded)" Style="secondary" HeaderClass="bg-secondary-subtle text-dark" Class="mb-1"
                       UseHtmlTitle="true" TitleWithHtml="@ImplementationTaskHeader(implementationTask)">
@@ -59,9 +60,9 @@
                         @ReadOnlyValue(userConfig.GetText("rule_action"), RuleActionName(implementationTask))
                         @ReadOnlyValue(userConfig.GetText("track"), TrackingName(implementationTask))
                     }
-                    @if (!string.IsNullOrWhiteSpace(TimeRestriction(implementationTask)))
+                    @if (!string.IsNullOrWhiteSpace(timeRestriction))
                     {
-                        @ReadOnlyValue(userConfig.GetText("time_restriction"), TimeRestriction(implementationTask), cssClass: "col-xl-6 col-lg-6 mb-2")
+                        @ReadOnlyValue(userConfig.GetText("time_restriction"), timeRestriction, cssClass: "col-xl-6 col-lg-6 mb-2")
                     }
                     </div>
                     @if (implementationTask.TaskType == WfTaskType.access.ToString()
@@ -142,6 +143,7 @@
     private List<IpProtocol> ipProtocols = [];
     private const int kMaxDisplayedElements = PlanningImplTaskDisplayLogic.kMaxDisplayedElements;
     private PlanningImplTaskDisplayLogic ImplLogic => new(WfHandler, userConfig, ruleActions, trackings, ipProtocols);
+    private AccessTaskFieldVisibilityConfig accessVisibility = new();
 
     /// <summary>Editor of management, device, free text and name; in creation mode the changes stay in the new task.</summary>
     private PlanningImplTaskEditor Editor => editor ??= new(new PlanningImplTaskEditorCallbacks
@@ -153,6 +155,12 @@
         Refresh = () => InvokeAsync(StateHasChanged)
     });
     private bool IsInitiallyExpanded => CreationMode || RequestTask.TaskType == WfTaskType.access.ToString();
+
+    /// <summary>Parses the configured field visibility once, as it is applied to the time restriction of every implementation task.</summary>
+    protected override void OnParametersSet()
+    {
+        accessVisibility = TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
+    }
 
     /// <summary>Loads the rule actions, trackings and protocols displayed for the implementation tasks.</summary>
     protected override async Task OnInitializedAsync()
@@ -560,8 +568,7 @@
 
     /// <summary>Returns the time restriction of an implementation task, leaving out the dates hidden by the configured visibility.</summary>
     /// <param name="implementationTask">The implementation task.</param>
-    private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask,
-        TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask);
+    private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask, accessVisibility);
 
     /// <summary>Renders a labeled value, with an edit button if an edit callback is given; a placeholder for an empty value.</summary>
     /// <param name="label">The label.</param>

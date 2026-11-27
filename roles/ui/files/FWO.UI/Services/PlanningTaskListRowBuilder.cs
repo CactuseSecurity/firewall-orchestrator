@@ -81,7 +81,7 @@ namespace FWO.Ui.Services
             ObjectTaskFieldVisibilityConfig metadataVisibility = MetadataVisibility(table, visibility, objectVisibility);
             if (table == TaskListTable.Access)
             {
-                AddAccessColumns(columns, allTasks, visibility);
+                AddAccessColumns(columns, allTasks, implColumns.TimeRestriction, visibility);
             }
             else
             {
@@ -155,15 +155,19 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="columns">The columns to add to.</param>
         /// <param name="allTasks">Whether request tasks are shown too.</param>
+        /// <param name="implTimeRestriction">Whether an implementation task shows a time restriction, e.g. the name of its time
+        /// element with hidden dates.</param>
         /// <param name="visibility">The configured field visibility of access tasks.</param>
-        private static void AddAccessColumns(List<TaskListColumn> columns, bool allTasks, AccessTaskFieldVisibilityConfig visibility)
+        private static void AddAccessColumns(List<TaskListColumn> columns, bool allTasks, bool implTimeRestriction,
+            AccessTaskFieldVisibilityConfig visibility)
         {
             AddIf(columns, allTasks, new(ApprovalTaskListRowBuilder.kSourceZone, "source_zone"));
             AddIf(columns, allTasks, new(ApprovalTaskListRowBuilder.kDestinationZone, "destination_zone"));
             columns.Add(new(ApprovalTaskListRowBuilder.kSource, "source"));
             columns.Add(new(ApprovalTaskListRowBuilder.kDestination, "destination"));
             columns.Add(new(ApprovalTaskListRowBuilder.kService, "service"));
-            AddIf(columns, visibility.ShowValidFrom || visibility.ShowValidTo, new(ApprovalTaskListRowBuilder.kTimeRestriction, "time_restriction"));
+            AddIf(columns, visibility.ShowValidFrom || visibility.ShowValidTo || implTimeRestriction,
+                new(ApprovalTaskListRowBuilder.kTimeRestriction, "time_restriction"));
             AddIf(columns, allTasks && visibility.ShowOwner, new(ApprovalTaskListRowBuilder.kOwner, "owner"));
             columns.Add(new(ApprovalTaskListRowBuilder.kManagement, "management"));
             columns.Add(new(kDevice, "device"));
@@ -175,7 +179,7 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Returns the columns needed by the implementation tasks of a table (for a bundle: of all its tasks): the rule
         /// columns of rule implementation tasks, the free text if a task has one or the user may actually add one, and the
-        /// time restriction if a task other than a rule task has one, as shown in the card view.
+        /// time restriction if a task shows one, as in the card view.
         /// </summary>
         /// <param name="table">The table.</param>
         /// <param name="taskGroups">All request task groups of the ticket: single tasks or bundles displayed as one.</param>
@@ -191,9 +195,8 @@ namespace FWO.Ui.Services
                     requestTask.ImplementationTasks.Select(implementationTask => (implementationTask, requestTask))))];
             bool freeText = implementationTasks.Any(pair => !string.IsNullOrWhiteSpace(pair.Task.FreeText)
                 || (PlanningImplTaskDisplayLogic.CanEditFreeText(pair.Task) && canEdit(pair.Task, pair.RequestTask)));
-            bool otherTimeRestriction = implementationTasks.Any(pair => !PlanningImplTaskDisplayLogic.IsRuleTask(pair.Task)
-                && !string.IsNullOrWhiteSpace(timeRestriction(pair.Task, pair.RequestTask)));
-            return new(RuleColumns([.. implementationTasks.Select(pair => pair.Task)]), freeText, otherTimeRestriction);
+            bool showsTimeRestriction = implementationTasks.Any(pair => !string.IsNullOrWhiteSpace(timeRestriction(pair.Task, pair.RequestTask)));
+            return new(RuleColumns([.. implementationTasks.Select(pair => pair.Task)]), freeText, showsTimeRestriction);
         }
 
         /// <summary>Returns the rule columns needed by implementation tasks.</summary>
@@ -210,7 +213,7 @@ namespace FWO.Ui.Services
         /// Adds the columns of the address, service and other tables: content only for objects and groups, the zone
         /// (request-task information only) for addresses with all tasks, and the rule columns needed by the
         /// implementation tasks of the table, as in the access table. The time restriction is shown for rule tasks if the
-        /// validity is configured visible, and always if another implementation task has one (e.g. a time object task).
+        /// validity is configured visible, and always if an implementation task shows one (e.g. a time object task).
         /// </summary>
         /// <param name="columns">The columns to add to.</param>
         /// <param name="table">The table.</param>

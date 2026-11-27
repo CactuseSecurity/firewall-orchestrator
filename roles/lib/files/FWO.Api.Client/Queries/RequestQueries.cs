@@ -88,6 +88,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string linkStateMatrixTransitionGroup;
         public static readonly string unlinkStateMatrixTransitionGroup;
         public static readonly string replaceStateMatrixTransitionGroupTransitions;
+        public static readonly string getWorkflowConfigurationPage;
         public static readonly string getWorkflowConfigurationPhaseMappings;
         public static readonly string createWorkflowConfiguration;
         public static readonly string addWorkflowConfigurationPhase;
@@ -198,6 +199,7 @@ namespace FWO.Api.Client.Queries
                 linkStateMatrixTransitionGroup = GetQueryText("request/linkStateMatrixTransitionGroup.graphql");
                 unlinkStateMatrixTransitionGroup = GetQueryText("request/unlinkStateMatrixTransitionGroup.graphql");
                 replaceStateMatrixTransitionGroupTransitions = GetQueryText("request/replaceStateMatrixTransitionGroupTransitions.graphql");
+                getWorkflowConfigurationPage = GetQueryText("request/getWorkflowConfigurationPage.graphql");
                 getWorkflowConfigurationPhaseMappings = GetQueryText("request/getWorkflowConfigurationPhaseMappings.graphql");
                 createWorkflowConfiguration = GetQueryText("request/createWorkflowConfiguration.graphql");
                 addWorkflowConfigurationPhase = GetQueryText("request/addWorkflowConfigurationPhase.graphql");

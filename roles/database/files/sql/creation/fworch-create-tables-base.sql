@@ -441,6 +441,18 @@ Create table "device_specific_config_value"
 	primary key ("node_id","config_key")
 );
 
+-- named versions of the device specific settings, each a portable export package (applied through the import)
+Create table "device_specific_config_snapshot"
+(
+	"id" BIGSERIAL PRIMARY KEY,
+	"name" Varchar NOT NULL,
+	"description" Varchar,
+	"fwo_version" Varchar NOT NULL Default '',
+	"created" Timestamp with time zone NOT NULL Default now(),
+	"content" Jsonb NOT NULL,
+	CONSTRAINT device_specific_config_snapshot_name_key UNIQUE ("name")
+);
+
 create table time_object
 (
     time_obj_id BIGSERIAL PRIMARY KEY,

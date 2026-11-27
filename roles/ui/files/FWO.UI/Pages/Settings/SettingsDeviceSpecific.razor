@@ -1,5 +1,6 @@
 @using FWO.Ui.Pages.Settings
 @using FWO.Data.DeviceSpecificSettings
+@using FWO.Services.DeviceSpecificSettings
 
 @page "/settings/devicespecificsettings"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -14,7 +15,27 @@
     <HelpLink Page="settings/devicespecificsettings" />
 </div>
 @(userConfig.GetText("dss_settings_intro"))
+<ExecutionModeAuthorizeView Roles="@Roles.Admin">
+    <Authorized>
+        <div class="btn-group mt-2">
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(root == null || exporting)" @onclick="Export"
+                    data-toggle="tooltip" title="@(userConfig.PureLine("H5170a"))">
+                @(DisplayService.DisplayButton(userConfig, "export", Icons.Export))
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(root == null || form?.HasChanges == true)" @onclick="OpenImport"
+                    data-toggle="tooltip" title="@(userConfig.PureLine("H5170b"))">
+                @(DisplayService.DisplayButton(userConfig, "import", Icons.Import))
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(root == null || form?.HasChanges == true)" @onclick="() => showSnapshots = true"
+                    data-toggle="tooltip" title="@(userConfig.PureLine("H5170e"))">
+                @(DisplayService.DisplayButton(userConfig, "dss_snapshots", Icons.ShowHistory))
+            </button>
+        </div>
+    </Authorized>
+</ExecutionModeAuthorizeView>
 <hr />
+<DeviceSpecificSettingsImport @bind-Display="showImport" Package="importPackage" PackageName="@importPackageName" Imported="ReloadAfterImport" />
+<DeviceSpecificSettingsSnapshots @bind-Display="showSnapshots" ApplySnapshot="OpenSnapshotImport" />
 
 @if (root == null)
 {
@@ -110,6 +131,11 @@ else
     private ImplementationModeSettingsCheckResult? implementationModeCheck;
     private List<Management> managements = [];
     private List<Credential> credentials = [];
+    private bool exporting;
+    private bool showImport;
+    private bool showSnapshots;
+    private DeviceSpecificSettingsPackage? importPackage;
+    private string importPackageName = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -347,6 +373,74 @@ else
         {
             form = null;
             form = await service.LoadFormAsync(node);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("dss_settings"), userConfig.GetText("E5301"), true);
+        }
+    }
+
+    /// <summary>Downloads the stored settings as a package file; levels and values that could not be exported are reported.</summary>
+    private async Task Export()
+    {
+        exporting = true;
+        try
+        {
+            DeviceSpecificSettingsTransferService transferService = new(apiConnection, new DeviceSpecificSettingsManager(apiConnection), globalConfig.ProductVersion);
+            DeviceSpecificSettingsExportResult export = await transferService.ExportAsync();
+            byte[] content = System.Text.Encoding.UTF8.GetBytes(DeviceSpecificSettingsPackageJson.Serialize(export.Package));
+            await JsRuntime.InvokeVoidAsync("DownloadFile", DeviceSpecificSettingsExporter.FileName(export.Package.ExportedAt ?? DateTimeOffset.UtcNow),
+                "application/json", content);
+            if (export.Warnings.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("export"), $"{userConfig.GetText("dss_export_warnings")} {string.Join(" ", export.Warnings)}", true);
+            }
+        }
+        catch (Exception exception) when (DeviceSpecificSettingsSnapshots.IsExportLimitExceeded(exception))
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("export"), DeviceSpecificSettingsSnapshots.ExportLimitMessage(userConfig), true);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("export"), "", true);
+        }
+        finally
+        {
+            exporting = false;
+        }
+    }
+
+    /// <summary>Opens the import for a file chosen by the user.</summary>
+    private void OpenImport()
+    {
+        importPackage = null;
+        importPackageName = "";
+        showImport = true;
+    }
+
+    /// <summary>Opens the import preview for the package of a snapshot.</summary>
+    private void OpenSnapshotImport((DeviceSpecificSettingsPackage Package, string Name) snapshot)
+    {
+        importPackage = snapshot.Package;
+        importPackageName = snapshot.Name;
+        showImport = true;
+    }
+
+    /// <summary>Reloads the tree, the selected level and the hints after an import changed the stored settings.</summary>
+    private async Task ReloadAfterImport()
+    {
+        if (service == null)
+        {
+            return;
+        }
+        try
+        {
+            DeviceSpecificNode? selected = form?.Node;
+            root = await service.LoadHierarchyAsync(managements);
+            form = null;
+            DeviceSpecificNode reselected = selected == null ? root : DeviceSpecificSettingsData.FindNode(root, selected.Scope) ?? root;
+            await SelectNode(reselected);
+            await RefreshAutoPlanCheck();
         }
         catch (Exception exception)
         {

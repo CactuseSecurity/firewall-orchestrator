@@ -1,5 +1,17 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.6 - 21.11.2026
+- device specific settings: export, import and snapshots (#5797)
+  - admins export the stored settings as JSON file (format `fwo-device-specific-settings`, version 1) with one entry per level, addressed by natural keys (device type name and version, management name, management and gateway name) instead of database ids; `scCredential` is exported as credential name, secrets are never exported; levels of deleted objects are left out and reported
+  - the import validates the whole file before anything is written (known keys, allowed levels, values like the settings page, unknown levels and credentials reported, never created), shows the added, changed and removed overrides per level and writes them in one transaction; mode merge (only the values of the file) or replace (the file is the complete state of the levels it names); at most 1 MiB and 10000 levels
+  - snapshots: named versions of the settings in the new table `device_specific_config_snapshot`, stored from the current settings and applied through the import preview, downloadable as file
+  - exports and snapshots are held to the import limits (1 MiB as file, 10000 levels), so every export and snapshot can be imported again; larger settings answer 409
+  - middleware REST API (admin): `GET /api/DeviceSpecificSettings` (export), `POST /api/DeviceSpecificSettings/Import` (`options.mode`, `options.dryRun`), `POST /api/DeviceSpecificSettings/Snapshots/List`, `GET /api/DeviceSpecificSettings/Snapshots/{id}`, `POST /api/DeviceSpecificSettings/Snapshots`; all with the expensive rate-limit policy
+- workflow configurations: middleware REST API for the export and import of the workflow settings page, same package format (`fwo-workflow-configuration`, version 2)
+  - admin and auditor: `POST /api/WorkflowConfiguration/List` (paged, filter on id, name, description, active flag), `POST /api/WorkflowConfiguration/Export` (`configurationId`, `options.includeVisibilityGroups`, `options.phases`)
+  - admin: `POST /api/WorkflowConfiguration/Import` creates a new inactive configuration (`options.name`, default: name in the package) or merges into an existing one (`options.targetConfigurationId`); it writes with the caller's own admin rights, which are rebuilt from the directories, so the `middleware-server` role gets no write permissions on the workflow tables
+  - all with the expensive rate-limit policy; packages with more than 10000 entries are not exported
+## 9.9.5 - 21.11.2026
 ## 9.9.6 - 25.11.2026
 
 - CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md

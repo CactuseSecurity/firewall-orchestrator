@@ -103,6 +103,20 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
 
     public int DeleteCallCount => Calls.Count(call => call.Query == DeviceSpecificSettingsQueries.deleteOverrides);
 
+    public int BulkPatchCallCount => Calls.Count(call => call.Query == DeviceSpecificSettingsQueries.applyBulkPatch);
+
+    /// <summary>Device types returned by getDeviceTypeDetails.</summary>
+    public List<DeviceType> DeviceTypes { get; } = [];
+
+    /// <summary>Credentials returned by getCredentialsWithoutSecrets.</summary>
+    public List<Credential> Credentials { get; } = [];
+
+    /// <summary>Stored device specific settings snapshots.</summary>
+    public List<DeviceSpecificSettingsSnapshotData> Snapshots { get; } = [];
+
+    /// <summary>Removal filter of the last bulk patch.</summary>
+    public object? LastBulkRemovals { get; private set; }
+
     public IReadOnlyList<string> LastPatchUpsertKeys { get; private set; } = [];
 
     public IReadOnlyList<string> LastPatchRemoveKeys { get; private set; } = [];
@@ -177,12 +191,20 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
         }
 
         RefreshParentLinks();
-        object result = query switch
+        object? result = query switch
         {
             _ when query == DeviceSpecificSettingsQueries.getNodeWithAncestors => GetNodeWithAncestors(variables),
             _ when query == DeviceSpecificSettingsQueries.getNodeById => GetNodeById(variables),
             _ when query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys => GetNodesByNaturalKeys(variables),
             _ when query == DeviceSpecificSettingsQueries.getAllNodes => Nodes.ToList(),
+            _ when query == DeviceSpecificSettingsQueries.getAllNodesWithValues => Nodes.ToList(),
+            _ when query == DeviceSpecificSettingsQueries.applyBulkPatch => ApplyBulkPatch(variables),
+            _ when query == DeviceSpecificSettingsQueries.getSnapshots => GetSnapshots(variables),
+            _ when query == DeviceSpecificSettingsQueries.getSnapshotById => GetSnapshotById(variables),
+            _ when query == DeviceSpecificSettingsQueries.addSnapshot => AddSnapshot(variables),
+            _ when query == DeviceSpecificSettingsQueries.deleteSnapshot => DeleteSnapshot(variables),
+            _ when query == DeviceQueries.getDeviceTypeDetails => DeviceTypes,
+            _ when query == DeviceQueries.getCredentialsWithoutSecrets => Credentials,
             _ when query == DeviceQueries.getManagementDetailsWithoutSecrets => Managements,
             _ when query == DeviceQueries.getManagementHierarchy => Managements,
             _ when query == DeviceQueries.getManagementById => ManagementsById(variables),
@@ -202,8 +224,98 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ => throw new InvalidOperationException("Unexpected device specific settings query.")
         };
 
-        return (T)result;
+        return (T)result!;
     }
+
+    /// <summary>Applies upserts and removals of several nodes; the removal filter is either an empty node id list or an _or list.</summary>
+    private ReturnId ApplyBulkPatch(object? variables)
+    {
+        object vars = RequiredVariables(variables);
+        object removals = RequiredProperty<object>(vars, "removals");
+        LastBulkRemovals = removals;
+        int removed = 0;
+        if (((IDictionary<string, object>)removals).TryGetValue("_or", out object? conditions))
+        {
+            foreach (object condition in (IEnumerable)conditions)
+            {
+                long nodeId = (long)RequiredProperty<Dictionary<string, object>>(condition, "node_id")["_eq"];
+                List<string> keys = (List<string>)RequiredProperty<Dictionary<string, object>>(condition, "config_key")["_in"];
+                removed += RemoveValues(nodeId, keys);
+            }
+        }
+
+        int upserted = 0;
+        foreach (object upsert in RequiredProperty<IEnumerable>(vars, "upserts"))
+        {
+            long nodeId = RequiredProperty<long>(upsert, "node_id");
+            string configKey = RequiredProperty<string>(upsert, "config_key");
+            JToken configValue = RequiredProperty<JToken>(upsert, "config_value");
+            DeviceSpecificConfigNodeData node = Nodes.Single(item => item.Id == nodeId);
+            node.Values.RemoveAll(item => item.ConfigKey == configKey);
+            node.Values.Add(new DeviceSpecificConfigValueData { NodeId = nodeId, ConfigKey = configKey, ConfigValue = configValue.DeepClone() });
+            upserted++;
+        }
+        return new ReturnId { AffectedRows = removed + upserted };
+    }
+
+    private List<DeviceSpecificSettingsSnapshotSummary> GetSnapshots(object? variables)
+    {
+        object vars = RequiredVariables(variables);
+        Dictionary<string, object> where = RequiredProperty<Dictionary<string, object>>(vars, "where");
+        int limit = RequiredProperty<int>(vars, "limit");
+        int offset = RequiredProperty<int>(vars, "offset");
+        IEnumerable<DeviceSpecificSettingsSnapshotData> matches = Snapshots;
+        if (where.TryGetValue("id", out object? idCondition))
+        {
+            long id = (long)((Dictionary<string, object>)idCondition)["_eq"];
+            matches = matches.Where(snapshot => snapshot.Id == id);
+        }
+        return [.. matches.OrderByDescending(snapshot => snapshot.Created).ThenByDescending(snapshot => snapshot.Id)
+            .Skip(offset).Take(limit).Select(Summary)];
+    }
+
+    private DeviceSpecificSettingsSnapshotData? GetSnapshotById(object? variables)
+    {
+        long id = RequiredProperty<long>(RequiredVariables(variables), "id");
+        return Snapshots.SingleOrDefault(snapshot => snapshot.Id == id);
+    }
+
+    private DeviceSpecificSettingsSnapshotSummary AddSnapshot(object? variables)
+    {
+        object vars = RequiredVariables(variables);
+        string name = RequiredProperty<string>(vars, "name");
+        if (Snapshots.Any(snapshot => snapshot.Name == name))
+        {
+            throw new InvalidOperationException("Uniqueness violation. duplicate key value violates unique constraint \"device_specific_config_snapshot_name_key\"");
+        }
+        DeviceSpecificSettingsSnapshotData snapshot = new()
+        {
+            Id = Snapshots.Count == 0 ? 1 : Snapshots.Max(item => item.Id) + 1,
+            Name = name,
+            Description = vars.GetType().GetProperty("description")?.GetValue(vars) as string,
+            FwoVersion = RequiredProperty<string>(vars, "fwoVersion"),
+            Created = DateTimeOffset.UtcNow.AddSeconds(Snapshots.Count),
+            Content = RequiredProperty<JToken>(vars, "content").DeepClone()
+        };
+        Snapshots.Add(snapshot);
+        return Summary(snapshot);
+    }
+
+    private ReturnId DeleteSnapshot(object? variables)
+    {
+        long id = RequiredProperty<long>(RequiredVariables(variables), "id");
+        Snapshots.RemoveAll(snapshot => snapshot.Id == id);
+        return new ReturnId();
+    }
+
+    private static DeviceSpecificSettingsSnapshotSummary Summary(DeviceSpecificSettingsSnapshotData snapshot) => new()
+    {
+        Id = snapshot.Id,
+        Name = snapshot.Name,
+        Description = snapshot.Description,
+        FwoVersion = snapshot.FwoVersion,
+        Created = snapshot.Created
+    };
 
     private List<DeviceSpecificConfigNodeData> GetNodeWithAncestors(object? variables)
     {

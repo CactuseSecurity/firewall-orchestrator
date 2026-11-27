@@ -1,0 +1,13 @@
+query getWorkflowConfigurationPage($where: request_workflow_configuration_bool_exp!, $limit: Int!, $offset: Int!) {
+  workflow_configurations: request_workflow_configuration(
+    where: $where
+    order_by: [{name: asc}, {id: asc}]
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    name
+    description
+    is_active
+  }
+}

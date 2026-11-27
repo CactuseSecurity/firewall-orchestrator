@@ -1,0 +1,257 @@
+@using FWO.Data.DeviceSpecificSettings
+@using FWO.Services.DeviceSpecificSettings
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject GlobalConfig globalConfig
+
+<PopUp Title="@(userConfig.GetText("dss_import_settings"))" Show="@Display" Size=PopupSize.XLarge OnClose="ClosePopup" HelpPage="settings/devicespecificsettings">
+    <Body>
+        @if (Display)
+        {
+            @if (Package == null)
+            {
+                <div class="form-group row mb-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm" for="dss-import-file">@(userConfig.GetText("select_file")):</label>
+                    <div class="col-sm-9">
+                        <InputFile id="dss-import-file" accept=".json,application/json" OnChange="LoadFile" disabled="@working" />
+                    </div>
+                </div>
+            }
+            @if (package != null)
+            {
+                <div class="form-group row mb-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dss_import_source")):</label>
+                    <div class="col-sm-9 col-form-label col-form-label-sm">@sourceName (@(userConfig.GetText("dss_fwo_version")) @package.FwoVersion, @package.Nodes.Count @(userConfig.GetText("dss_levels")))</div>
+                </div>
+                <div class="form-group row mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5170c"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("dss_import_mode")):</label>
+                    <div class="col-sm-9">
+                        <Dropdown ElementType="DeviceSpecificSettingsImportMode" ElementToString="@(mode => userConfig.GetText(ModeTextKey(mode)))"
+                                  SelectedElement="mode" SelectedElementChanged="ChangeMode" Elements="Modes">
+                            <ElementTemplate Context="importMode">
+                                @(userConfig.GetText(ModeTextKey(importMode)))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary mb-3" disabled="@working" @onclick="Check">
+                    @(DisplayService.DisplayButton(userConfig, "check", Icons.Search))
+                </button>
+            }
+            @if (working)
+            {
+                <Loading />
+            }
+            else if (plan != null)
+            {
+                @RenderPlan(plan)
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanApply)" @onclick="Apply">
+                        @(DisplayService.DisplayButton(userConfig, "apply_changes", Icons.Import))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "apply_changes", Icons.Import))</button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" disabled="@working" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    /// <summary>Package to import, e.g. of a snapshot; null lets the user upload a file.</summary>
+    [Parameter]
+    public DeviceSpecificSettingsPackage? Package { get; set; }
+
+    /// <summary>Name of the given package shown in the dialog, e.g. the snapshot name.</summary>
+    [Parameter]
+    public string PackageName { get; set; } = "";
+
+    /// <summary>Called after the changes were written.</summary>
+    [Parameter]
+    public EventCallback Imported { get; set; }
+
+    private static readonly List<DeviceSpecificSettingsImportMode> Modes = [DeviceSpecificSettingsImportMode.Merge, DeviceSpecificSettingsImportMode.Replace];
+
+    private DeviceSpecificSettingsPackage? package;
+    private string sourceName = "";
+    private DeviceSpecificSettingsImportMode mode = DeviceSpecificSettingsImportMode.Merge;
+    private DeviceSpecificSettingsImportPlan? plan;
+    private List<DeviceSpecificSettingsPreviewRow> previewRows = [];
+    private bool working;
+    private bool wasDisplayed;
+
+    private bool CanApply => !working && plan is { HasErrors: false, HasChanges: true } && plan.Mode == mode;
+
+    /// <summary>Starts from scratch every time the dialog is opened.</summary>
+    protected override void OnParametersSet()
+    {
+        if (Display && !wasDisplayed)
+        {
+            package = Package;
+            sourceName = PackageName;
+            mode = DeviceSpecificSettingsImportMode.Merge;
+            ResetPlan();
+            working = false;
+        }
+        wasDisplayed = Display;
+    }
+
+    /// <summary>The preview: errors, a note that nothing changes, or the changes per level.</summary>
+    private RenderFragment RenderPlan(DeviceSpecificSettingsImportPlan importPlan) =>
+        @<div>
+            @if (importPlan.HasErrors)
+            {
+                <div class="alert alert-danger small">
+                    @(userConfig.GetText("dss_import_errors"))
+                    <ul class="mb-0">
+                        @foreach (DeviceSpecificSettingsImportIssue issue in importPlan.Errors)
+                        {
+                            <li><span class="font-monospace">@issue.Path</span>: @issue.Message</li>
+                        }
+                    </ul>
+                </div>
+            }
+            else if (!importPlan.HasChanges)
+            {
+                <div class="alert alert-info small">@(userConfig.GetText("dss_import_no_changes"))</div>
+            }
+            else
+            {
+                <div class="small mb-2">@(userConfig.GetText("dss_import_preview")) @ChangeSummary(importPlan)</div>
+                <Table class="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+                       TableItem="DeviceSpecificSettingsPreviewRow" Items="previewRows" PageSize="0">
+                    <Column TableItem="DeviceSpecificSettingsPreviewRow" Title="@(userConfig.GetText("dss_level"))" Field="@(row => row.Level)" Sortable="true" Filterable="true" />
+                    <Column TableItem="DeviceSpecificSettingsPreviewRow" Title="@(userConfig.GetText("dss_setting"))" Field="@(row => row.Key)" Sortable="true" Filterable="true" />
+                    <Column TableItem="DeviceSpecificSettingsPreviewRow" Title="@(userConfig.GetText("change"))" Field="@(row => row.Change)" Sortable="true" Filterable="true">
+                        <Template>@(userConfig.GetText(ChangeTextKey(context.Kind)))</Template>
+                    </Column>
+                    <Column TableItem="DeviceSpecificSettingsPreviewRow" Title="@(userConfig.GetText("dss_old_value"))" Field="@(row => row.OldValue)" Sortable="false" Filterable="true">
+                        <Template><span class="font-monospace small text-break">@context.OldValue</span></Template>
+                    </Column>
+                    <Column TableItem="DeviceSpecificSettingsPreviewRow" Title="@(userConfig.GetText("dss_new_value"))" Field="@(row => row.NewValue)" Sortable="false" Filterable="true">
+                        <Template><span class="font-monospace small text-break">@context.NewValue</span></Template>
+                    </Column>
+                </Table>
+            }
+        </div>;
+
+    /// <summary>Reads and parses the selected file; the size is limited to the package maximum.</summary>
+    private async Task LoadFile(InputFileChangeEventArgs args)
+    {
+        ResetPlan();
+        package = null;
+        try
+        {
+            await using Stream stream = args.File.OpenReadStream(DeviceSpecificSettingsPackage.kMaxPackageBytes);
+            using StreamReader reader = new(stream);
+            package = DeviceSpecificSettingsPackageJson.Deserialize(await reader.ReadToEndAsync());
+            sourceName = args.File.Name;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("dss_import_settings"), userConfig.GetText("E5303"), true);
+        }
+    }
+
+    private void ChangeMode(DeviceSpecificSettingsImportMode newMode)
+    {
+        mode = newMode;
+        ResetPlan();
+    }
+
+    /// <summary>Validates the package against the current settings and shows the changes without writing them.</summary>
+    private async Task Check()
+    {
+        await RunImport(dryRun: true);
+    }
+
+    /// <summary>Writes the checked changes; they are validated again against the settings as they are now.</summary>
+    private async Task Apply()
+    {
+        if (!CanApply)
+        {
+            return;
+        }
+        DeviceSpecificSettingsImportPlan? applied = await RunImport(dryRun: false);
+        if (applied is { HasErrors: false })
+        {
+            DisplayMessageInUi(null, userConfig.GetText("dss_import_settings"), $"{userConfig.GetText("dss_import_done")} {ChangeSummary(applied)}", false);
+            await Imported.InvokeAsync();
+            await Close();
+        }
+    }
+
+    private async Task<DeviceSpecificSettingsImportPlan?> RunImport(bool dryRun)
+    {
+        if (package == null)
+        {
+            return null;
+        }
+        working = true;
+        try
+        {
+            DeviceSpecificSettingsTransferService service = new(apiConnection, new DeviceSpecificSettingsManager(apiConnection), globalConfig.ProductVersion);
+            plan = await service.ImportAsync(package, mode, dryRun);
+            previewRows = DeviceSpecificSettingsPreviewRow.FromPlan(plan);
+            return plan;
+        }
+        catch (Exception exception)
+        {
+            ResetPlan();
+            DisplayMessageInUi(exception, userConfig.GetText("dss_import_settings"), "", true);
+            return null;
+        }
+        finally
+        {
+            working = false;
+        }
+    }
+
+    private string ChangeSummary(DeviceSpecificSettingsImportPlan importPlan) =>
+        $"{importPlan.Nodes.Sum(node => node.Changes.Count)} {userConfig.GetText("dss_changes")}, "
+        + $"{importPlan.Nodes.Count(node => node.Changes.Count > 0)} {userConfig.GetText("dss_levels")}";
+
+    private void ResetPlan()
+    {
+        plan = null;
+        previewRows = [];
+    }
+
+    private static string ModeTextKey(DeviceSpecificSettingsImportMode importMode) =>
+        importMode == DeviceSpecificSettingsImportMode.Replace ? "dss_import_mode_replace" : "dss_import_mode_merge";
+
+    private static string ChangeTextKey(DeviceSpecificSettingChangeKind kind) => kind switch
+    {
+        DeviceSpecificSettingChangeKind.Added => "dss_change_added",
+        DeviceSpecificSettingChangeKind.Removed => "dss_change_removed",
+        _ => "dss_change_changed"
+    };
+
+    private async Task Close()
+    {
+        Display = false;
+        wasDisplayed = false;
+        await DisplayChanged.InvokeAsync(false);
+    }
+
+    private void ClosePopup() => _ = Close();
+}

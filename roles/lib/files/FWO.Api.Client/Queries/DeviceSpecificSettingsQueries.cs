@@ -12,6 +12,12 @@ namespace FWO.Api.Client.Queries
         public static readonly string upsertNode;
         public static readonly string applyPatch;
         public static readonly string deleteOverrides;
+        public static readonly string getAllNodesWithValues;
+        public static readonly string applyBulkPatch;
+        public static readonly string getSnapshots;
+        public static readonly string getSnapshotById;
+        public static readonly string addSnapshot;
+        public static readonly string deleteSnapshot;
 
         static DeviceSpecificSettingsQueries()
         {
@@ -25,6 +31,12 @@ namespace FWO.Api.Client.Queries
                 upsertNode = GetQueryText("deviceSpecificSettings/upsertNode.graphql");
                 applyPatch = GetQueryText("deviceSpecificSettings/applyPatch.graphql");
                 deleteOverrides = GetQueryText("deviceSpecificSettings/deleteOverrides.graphql");
+                getAllNodesWithValues = GetQueryText("deviceSpecificSettings/getAllNodesWithValues.graphql");
+                applyBulkPatch = GetQueryText("deviceSpecificSettings/applyBulkPatch.graphql");
+                getSnapshots = GetQueryText("deviceSpecificSettings/getSnapshots.graphql");
+                getSnapshotById = GetQueryText("deviceSpecificSettings/getSnapshotById.graphql");
+                addSnapshot = GetQueryText("deviceSpecificSettings/addSnapshot.graphql");
+                deleteSnapshot = GetQueryText("deviceSpecificSettings/deleteSnapshot.graphql");
             }
             catch (Exception exception)
             {

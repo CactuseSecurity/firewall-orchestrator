@@ -7576,6 +7576,59 @@
             },
             {
               "table": {
+                "name": "device_specific_config_snapshot",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "content",
+                      "description",
+                      "fwo_version",
+                      "name"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "content",
+                      "created",
+                      "description",
+                      "fwo_version",
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "content",
+                      "created",
+                      "description",
+                      "fwo_version",
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "config",
                 "schema": "public"
               },

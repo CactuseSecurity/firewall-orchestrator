@@ -268,9 +268,7 @@ def make_host(ip_in: str) -> str | None:
     # If it's a valid address, append the appropriate CIDR notation
     if isinstance(ip_obj, ipaddress.IPv4Address):
         return f"{ip_in}/32"
-    if isinstance(
-        ip_obj, ipaddress.IPv6Address
-    ):  # TODO: check if just else is sufficient # type: ignore  # noqa: PGH003
+    if isinstance(ip_obj, ipaddress.IPv6Address):  # TODO: check if just else is sufficient # type: ignore  # noqa: PGH003
         return f"{ip_in}/128"
     return None
 

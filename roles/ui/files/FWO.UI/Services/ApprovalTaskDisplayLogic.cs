@@ -292,12 +292,13 @@ namespace FWO.Ui.Services
         private string GetTimeObjectName(WfReqTask task, AccessTaskFieldVisibilityConfig visibility)
         {
             string name = TimeObjectReferenceResolver.TimeObjectName(wfHandler.ActTicket.Tasks, task);
-            return string.IsNullOrWhiteSpace(name)
-                ? TimeObjectNamingHelper.BuildDateBasedName(
-                    visibility.ShowValidFrom ? task.TargetBeginDate : null,
-                    visibility.ShowValidTo ? task.TargetEndDate : null,
-                    FlowIntegration.TimeObjectPrecision)
-                : name;
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+            DateTime? begin = visibility.ShowValidFrom ? task.TargetBeginDate : null;
+            DateTime? end = visibility.ShowValidTo ? task.TargetEndDate : null;
+            return TimeObjectNamingHelper.BuildDateBasedName(begin, end, FlowIntegration.TimeObjectPrecision);
         }
 
         private static string BuildValidity(string begin, string end)

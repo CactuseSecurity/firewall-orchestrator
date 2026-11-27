@@ -267,8 +267,8 @@
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                             <Authorized>
-                                @* a reviewer opening the implementation phase read-only must not promote the task *@
-                                <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                                @* a reviewer opening the implementation phase read-only must not promote the task, nor anyone an outdated one *@
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanPromoteImplTask())" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
@@ -738,9 +738,19 @@
         targetDatesValid = datesValid;
     }
 
+    /// <summary>
+    /// Returns whether the implementation task may be promoted: not by a read-only user and not if the ticket is outdated
+    /// after a failed reload, as the promotion would start from the old state.
+    /// </summary>
+    private bool CanPromoteImplTask()
+    {
+        return !WfHandler.ReadOnlyMode && !WfHandler.ActTicketOutdated;
+    }
+
+    /// <summary>Opens the promotion of the implementation task, if it may be promoted.</summary>
     private void InitPromoteImplTask()
     {
-        if (WfHandler.ReadOnlyMode)
+        if (!CanPromoteImplTask())
         {
             return;
         }

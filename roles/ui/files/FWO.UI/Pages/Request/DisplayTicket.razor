@@ -203,7 +203,7 @@
             {
                 <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSaveActTicket())" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
@@ -614,9 +614,13 @@
     /// <summary>
     /// Checks whether the user may save the ticket opened for editing.
     /// </summary>
+    /// <summary>
+    /// Returns whether the ticket may be saved and promoted: not by a read-only user, not if the user may not change it and
+    /// not if it is outdated after a failed reload, as it would be saved with its old states.
+    /// </summary>
     private bool CanSaveActTicket()
     {
-        return !WfHandler.ReadOnlyMode && WfHandler.CanChangeActTicket();
+        return !WfHandler.ReadOnlyMode && !WfHandler.ActTicketOutdated && WfHandler.CanChangeActTicket();
     }
 
     private async Task InitSaveTicket()

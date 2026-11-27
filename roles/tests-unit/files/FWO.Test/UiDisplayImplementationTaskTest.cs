@@ -270,6 +270,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void InitPromoteImplTask_IgnoresOutdatedTicket()
+        {
+            DisplayImplementationTask component = new();
+            WfHandler handler = new() { ActImplTask = new WfImplTask(), ActTicket = new WfTicket { Id = 10 }, ImplementImplTaskMode = true };
+            // like after a failed reload of the ticket
+            SetMember(handler, "outdatedTicket", handler.ActTicket);
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
+            SetMember(component, "userConfig", CreateUserConfig());
+
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, kNoArgs);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicketOutdated, Is.True);
+                Assert.That(handler.DisplayPromoteImplTaskMode, Is.False);
+            });
+        }
+
+        [Test]
         public async Task ReadOnlyPhaseView_OffersOnlyReadOnlyActionsAndBlocksWrites()
         {
             DisplayImplementationTask component = new();

@@ -557,5 +557,19 @@ namespace FWO.Test
 
             Assert.That(derived, Is.EqualTo(99));
         }
+
+        [Test]
+        public void GetHighestImplementationInputState_IsTheHighestOverAllTaskTypes()
+        {
+            StateMatrixDict matrices = new();
+            matrices.Matrices[WfTaskType.access.ToString()] = new StateMatrix { MinImplTasksNeeded = 149 };
+            matrices.Matrices[WfTaskType.group_create.ToString()] = new StateMatrix { MinImplTasksNeeded = 99 };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(matrices.GetHighestImplementationInputState(), Is.EqualTo(149));
+                Assert.That(new StateMatrixDict().GetHighestImplementationInputState(), Is.Zero);
+            });
+        }
     }
 }

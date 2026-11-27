@@ -1,0 +1,54 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="col-sm-6">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5540"))">
+        <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_target_state")):</label>
+        <div class="col-sm-6">
+            <Dropdown ElementType="WfState"
+                      ElementToString="@(s => s == null ? userConfig.GetText("impl_lowest_input_state") : DisplayService.DisplayStateWithId(userConfig, s))"
+                      SelectedElement="selectedTargetState"
+                      SelectedElementChanged="OnTargetStateChanged"
+                      Elements="States"
+                      Nullable="true"
+                      NoneSelectedText="@(userConfig.GetText("impl_lowest_input_state"))">
+                <ElementTemplate Context="state">
+                    @DisplayService.DisplayStateWithId(userConfig, state)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<WfState> States { get; set; } = [];
+
+    private CreateImplTasksActionParams actParams = new();
+    private WfState? selectedTargetState;
+
+    protected override void OnParametersSet()
+    {
+        actParams = CreateImplTasksActionParams.FromExternalParams(ActAction.ExternalParams);
+        selectedTargetState = States.FirstOrDefault(state => state.Id == actParams.ExternalTicketSystemTargetStateId);
+        UpdateExternalParams();
+    }
+
+    private Task OnTargetStateChanged(WfState? state)
+    {
+        selectedTargetState = state;
+        actParams.ExternalTicketSystemTargetStateId = state?.Id;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Stores the parameters with the action; no target state selected stores none.</summary>
+    private void UpdateExternalParams()
+    {
+        ActAction.ExternalParams = actParams.ToExternalParams();
+    }
+}

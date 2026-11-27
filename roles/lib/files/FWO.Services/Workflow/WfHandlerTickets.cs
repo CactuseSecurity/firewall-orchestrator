@@ -383,6 +383,36 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Decides whether one of the request tasks of a ticket, or one of their implementation tasks or approvals,
+        /// stands in a state the given visibility groups grant access to. This is the rule the ticket list applies to a
+        /// ticket with request tasks, evaluated without narrowing the ticket.
+        /// </summary>
+        /// <param name="ticket">Fully loaded ticket.</param>
+        /// <param name="userVisibilityGroupIds">Workflow visibility groups of the user to check.</param>
+        /// <returns>True when at least one request task of the ticket is visible to the user.</returns>
+        public bool IsAnyTaskOfTicketVisible(WfTicket ticket, IReadOnlyCollection<int> userVisibilityGroupIds)
+        {
+            HashSet<int> exclusiveVisibilityGroupIds = GetWorkflowExclusiveVisibilityGroupIds();
+            return ticket.Tasks.Any(reqTask => IsTaskVisible(reqTask, userVisibilityGroupIds, exclusiveVisibilityGroupIds));
+        }
+
+        private bool IsTaskVisible(WfReqTask reqTask, IReadOnlyCollection<int> userVisibilityGroupIds, HashSet<int> exclusiveVisibilityGroupIds)
+        {
+            if (!stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? reqTaskMatrix))
+            {
+                return false;
+            }
+
+            bool reqTaskVisible = reqTaskMatrix.CanAccessState(reqTask.StateId, userVisibilityGroupIds, exclusiveVisibilityGroupIds);
+            bool implTaskVisible = reqTask.ImplementationTasks.Any(implTask =>
+                stateMatrixDict.Matrices.TryGetValue(implTask.TaskType, out StateMatrix? implTaskMatrix)
+                && implTaskMatrix.CanAccessState(implTask.StateId, userVisibilityGroupIds, exclusiveVisibilityGroupIds));
+            bool approvalVisible = reqTask.Approvals.Any(approval =>
+                reqTaskMatrix.CanAccessState(approval.StateId, userVisibilityGroupIds, exclusiveVisibilityGroupIds));
+            return reqTaskVisible || implTaskVisible || approvalVisible;
+        }
+
+        /// <summary>
         /// Gets the apps tickets are filtered by in owner based mode: the apps the handler was initialized with, so that
         /// deep links and reloads apply the same scope as the ticket list. Only callers that do not scope the handler to
         /// the apps of the user (modelling, monitoring, middleware) resolve tickets against all apps.

@@ -41,6 +41,7 @@ namespace FWO.Services.Workflow
         public HashSet<int> AutomaticOnlyStates { get; set; } = [];
         public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
+        /// <summary>Lowest input state of the implementation phase.</summary>
         public int MinImplTasksNeeded;
         public int MinTicketCompleted;
         public int ApprovalLowestEndState;
@@ -403,6 +404,15 @@ namespace FWO.Services.Workflow
                 await stateMatrix.Init(phase, apiConnection, preloadedStates, taskType);
             }
             Matrices = matrices;
+        }
+
+        /// <summary>
+        /// The highest lowest input state of the implementation over all task types, see
+        /// <see cref="StateMatrix.MinImplTasksNeeded"/>; 0 without matrices.
+        /// </summary>
+        public int GetHighestImplementationInputState()
+        {
+            return Matrices.Values.Select(matrix => matrix.MinImplTasksNeeded).DefaultIfEmpty(0).Max();
         }
     }
 }

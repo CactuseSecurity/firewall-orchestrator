@@ -127,6 +127,68 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// A request changing to "in progress" in the external ticket system is handed to the workflow once, so its
+        /// request tasks show the progress.
+        /// </summary>
+        [Test]
+        public async Task RefreshState_ChangedToInProgress_TakesTheStateOverIntoTheTicket()
+        {
+            ExtRequestSenderTestApiConn localApiConnection = new() { OpenRequests = [PolledRequest(ExtStates.ExtReqRequested)] };
+            ExternalRequestSender sender = new(localApiConnection, globalConfig, InProgressPollClient());
+
+            List<string> failedRequests = await sender.Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failedRequests, Is.Empty);
+                Assert.That(localApiConnection.UpdateExtRequestProcess.Single(), Does.Contain(ExtStates.ExtReqInProgress.ToString()));
+                Assert.That(localApiConnection.TriedToGetLdapsForHandleStateChange, Is.EqualTo(1));
+            });
+        }
+
+        /// <summary>
+        /// A request staying "in progress" does not load and write its ticket in every polling cycle.
+        /// </summary>
+        [Test]
+        public async Task RefreshState_StaysInProgress_DoesNotTouchTheTicket()
+        {
+            ExtRequestSenderTestApiConn localApiConnection = new() { OpenRequests = [PolledRequest(ExtStates.ExtReqInProgress)] };
+            ExternalRequestSender sender = new(localApiConnection, globalConfig, InProgressPollClient());
+
+            List<string> failedRequests = await sender.Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failedRequests, Is.Empty);
+                Assert.That(localApiConnection.UpdateExtRequestProcess.Single(), Does.Contain(ExtStates.ExtReqInProgress.ToString()));
+                Assert.That(localApiConnection.TriedToGetLdapsForHandleStateChange, Is.Zero);
+            });
+        }
+
+        private static ExternalRequest PolledRequest(ExtStates state)
+        {
+            return new()
+            {
+                Id = 7,
+                TicketId = 7,
+                ExtTicketSystem = System.Text.Json.JsonSerializer.Serialize(ticketSystem),
+                ExtRequestState = state.ToString(),
+                ExtTicketId = "4711"
+            };
+        }
+
+        private static SimulatedSCClient InProgressPollClient()
+        {
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            simulatedSCClient.EnqueueResponse("tickets/4711", new(new())
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = "{\"ticket\": {\"id\": 4711, \"status\": \"In Progress\" } }"
+            });
+            return simulatedSCClient;
+        }
+
+        /// <summary>
         /// A request of an unsupported ticket system (e.g. of the former Check Point ticket path, created before the
         /// upgrade) is discarded with the reason instead of failing in every cycle and blocking its ticket.
         /// </summary>

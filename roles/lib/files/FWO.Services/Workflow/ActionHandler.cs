@@ -645,9 +645,11 @@ namespace FWO.Services.Workflow
         /// Creates the implementation tasks still missing, using the same logic as the automatic creation: in the
         /// ticket scope for every open request task of the ticket, in the request task scope only for that task, a
         /// bundled task together with its bundle once every member has reached the state. Bundles from a preceding
-        /// bundle tasks action are taken into account.
+        /// bundle tasks action are taken into account. Afterwards the request tasks in scope that are handed to an
+        /// external ticket system are promoted to the target state of the action, see
+        /// <see cref="CreateImplTasksActionParams"/>, as that system plans them itself.
         /// </summary>
-        /// <param name="action">The executed action.</param>
+        /// <param name="action">The executed action ("Create implementation tasks").</param>
         /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
         /// <param name="scope">Scope of the stateful object.</param>
         public async Task CreateImplTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope)
@@ -661,6 +663,8 @@ namespace FWO.Services.Workflow
             WfReqTask? scopeTask = scope == WfObjectScopes.RequestTask ? statefulObject as WfReqTask : null;
             int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket, scopeTask, IsOfferedAsButton(action));
             Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
+            CreateImplTasksActionParams actionParams = CreateImplTasksActionParams.FromExternalParams(action.ExternalParams);
+            await wfHandler.PromoteRequestTasksOfExternalTicketSystem(wfHandler.ActTicket, scopeTask, actionParams.ExternalTicketSystemTargetStateId);
         }
 
         public async Task BundleTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)

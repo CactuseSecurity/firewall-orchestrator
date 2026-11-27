@@ -45,6 +45,12 @@ namespace FWO.Test
         private static readonly string[] kApproverRole = [Roles.Approver];
         private static readonly string[] kRequesterRole = [Roles.Requester];
         private static readonly string[] kAdminRole = [Roles.Admin];
+        private static readonly string[] kPlannerRole = [Roles.Planner];
+        private const int kPlannerVisibilityGroupId = 7;
+        private const int kApprovedStateId = 99;
+        private const int kPlannedStateId = 149;
+        private const int kImplementingStateId = 210;
+        private const string kPlannerVisibilityClaim = "{7}";
         private const int kCallerUserId = 93;
         private static readonly string[] kExpectedResolvedUserDns = ["uid=user,ou=users,dc=test"];
 
@@ -1878,6 +1884,151 @@ namespace FWO.Test
                 PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-user-id", "7")), handler, WfObjectScopes.Ticket, ticket);
 
             Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsTicketWithVisibleTaskWhoseOwnStateIsHidden()
+        {
+            WfHandler handler = CreateHandlerWithExclusivePlannerGroup();
+            WfTicket ticket = new() { Id = 62, StateId = kPlannedStateId };
+            ticket.Tasks.Add(new WfReqTask { Id = 252, TaskType = WfTaskType.group_modify.ToString(), StateId = kPlannedStateId });
+            ticket.Tasks.Add(new WfReqTask { Id = 253, TaskType = WfTaskType.access.ToString(), StateId = kPlannedStateId });
+
+            bool allowed = await InvokeCallerCanAccessVisibility(PlannerWithVisibilityGroup(), handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesTicketWhoseTasksAreAllHidden()
+        {
+            WfHandler handler = CreateHandlerWithExclusivePlannerGroup();
+            handler.MasterStateMatrix.StateVisibilityGroupIds[kPlannedStateId] = [kPlannerVisibilityGroupId];
+            WfTicket ticket = new() { Id = 62, StateId = kPlannedStateId };
+            ticket.Tasks.Add(new WfReqTask { Id = 252, TaskType = WfTaskType.group_modify.ToString(), StateId = kPlannedStateId });
+
+            bool allowed = await InvokeCallerCanAccessVisibility(PlannerWithVisibilityGroup(), handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.False);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsTicketThroughVisibleImplementationTask()
+        {
+            WfHandler handler = CreateHandlerWithExclusivePlannerGroup();
+            WfTicket ticket = new() { Id = 62, StateId = kApprovedStateId };
+            WfReqTask accessTask = new() { Id = 253, TaskType = WfTaskType.access.ToString(), StateId = kApprovedStateId };
+            accessTask.ImplementationTasks.Add(new WfImplTask { Id = 301, TaskType = WfTaskType.access.ToString(), StateId = kImplementingStateId });
+            ticket.Tasks.Add(accessTask);
+
+            bool allowed = await InvokeCallerCanAccessVisibility(PlannerWithVisibilityGroup(), handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsTicketThroughTaskAssignedToCaller()
+        {
+            WfHandler handler = CreateHandlerWithExclusivePlannerGroup();
+            WfTicket ticket = new() { Id = 62, StateId = kApprovedStateId };
+            ticket.Tasks.Add(new WfReqTask
+            {
+                Id = 252,
+                TaskType = WfTaskType.group_modify.ToString(),
+                StateId = kApprovedStateId,
+                CurrentHandler = new UiUser { DbId = kCallerUserId, Dn = "uid=planner,dc=fworch,dc=internal" }
+            });
+            ClaimsPrincipal caller = PrincipalWithRolesAndClaims(kPlannerRole,
+                new Claim("x-hasura-workflow-visibility-groups", kPlannerVisibilityClaim), new Claim("x-hasura-user-id", kCallerUserId.ToString()));
+
+            bool allowed = await InvokeCallerCanAccessVisibility(caller, handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsTicketThroughApprovalAssignedToCallersGroup()
+        {
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = CreateTicketWithHiddenTaskApprovedByGroup($"cn=approvers,{kVisibilityGroupPath}");
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("approvers", userDn)];
+
+            bool allowed = await InvokeCallerCanAccessVisibility(ApproverWithVisibilityGroup(userDn), CreateHandlerWithExclusivePlannerGroup(),
+                WfObjectScopes.Ticket, ticket, ldaps, StoredCaller(userDn));
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesTicketThroughApprovalAssignedToForeignGroup()
+        {
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = CreateTicketWithHiddenTaskApprovedByGroup($"cn=approvers,{kVisibilityGroupPath}");
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("some-other-group", userDn)];
+
+            bool allowed = await InvokeCallerCanAccessVisibility(ApproverWithVisibilityGroup(userDn), CreateHandlerWithExclusivePlannerGroup(),
+                WfObjectScopes.Ticket, ticket, ldaps, StoredCaller(userDn));
+
+            Assert.That(allowed, Is.False);
+        }
+
+        private static WfTicket CreateTicketWithHiddenTaskApprovedByGroup(string approverGroupDn)
+        {
+            WfTicket ticket = new() { Id = 62, StateId = kApprovedStateId };
+            WfReqTask hiddenTask = new() { Id = 252, TaskType = WfTaskType.group_modify.ToString(), StateId = kApprovedStateId };
+            hiddenTask.Approvals.Add(new WfApproval { Id = 401, StateId = kApprovedStateId, ApproverGroup = approverGroupDn });
+            ticket.Tasks.Add(hiddenTask);
+            return ticket;
+        }
+
+        private static ClaimsPrincipal ApproverWithVisibilityGroup(string userDn)
+        {
+            return PrincipalWithRolesAndClaims(kApproverRole,
+                new Claim("x-hasura-workflow-visibility-groups", kPlannerVisibilityClaim),
+                new Claim("x-hasura-uuid", userDn),
+                new Claim("x-hasura-user-id", $"{kVisibilityCallerId}"));
+        }
+
+        [Test]
+        public void WorkflowController_CreateWorkflowHandler_LoadsTheWholeTicketForTheActions()
+        {
+            WorkflowController controller = CreateWorkflowController(PlannerWithVisibilityGroup());
+            using SimulatedApiConnection apiConnection = new();
+            using SimulatedUserConfig userConfig = new() { ReqVisibilityBased = true };
+
+            WfHandler handler = InvokePrivate<WfHandler>(controller, "CreateWorkflowHandler", apiConnection, userConfig, WorkflowPhases.planning, new WorkflowActionResult());
+
+            Assert.That(handler.SystemContext, Is.True);
+        }
+
+        /// <summary>
+        /// Builds the visibility setup of a planner restricted to planning: the planner group is exclusive and
+        /// tags the planning and implementation states of access tasks, the master matrix and the group tasks
+        /// carry no visibility group.
+        /// </summary>
+        private static WfHandler CreateHandlerWithExclusivePlannerGroup()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqVisibilityBased = true },
+                MasterStateMatrix = new StateMatrix()
+            };
+            StateMatrix accessMatrix = new()
+            {
+                ExclusiveVisibilityGroupIds = [kPlannerVisibilityGroupId]
+            };
+            accessMatrix.StateVisibilityGroupIds[kPlannedStateId] = [kPlannerVisibilityGroupId];
+            accessMatrix.StateVisibilityGroupIds[kImplementingStateId] = [kPlannerVisibilityGroupId];
+            StateMatrixDict matrices = new();
+            matrices.Matrices[WfTaskType.access.ToString()] = accessMatrix;
+            matrices.Matrices[WfTaskType.group_modify.ToString()] = new StateMatrix();
+            UiRequestWorkflowTest.SetMember(handler, "stateMatrixDict", matrices);
+            return handler;
+        }
+
+        private static ClaimsPrincipal PlannerWithVisibilityGroup()
+        {
+            return PrincipalWithRolesAndClaims(kPlannerRole, new Claim("x-hasura-workflow-visibility-groups", kPlannerVisibilityClaim));
         }
 
         [Test]

@@ -1,11 +1,9 @@
 @using System.Net
 @using FWO.Compliance
-@using FWO.Data.Middleware
 @using FWO.Data.Workflow
 @using FWO.ExternalSystems.Tufin.SecureChange
 @using FWO.Middleware.Client
 @using FWO.Services.Workflow
-@using RestSharp
 
 @implements IDisposable
 
@@ -452,13 +450,10 @@
                     Requester = intTicket.Requester?.Name
                 });
                 await SubscribeTaskChanges();
+                // the provisioning is only started by the state action "Create external requests" of the workflow
                 if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
                 {
                     await CreateNotificationRequests(intTicket);
-                }
-                else
-                {
-                    await CreateExtRequests(intTicket);
                 }
                 await RefreshParent(intTicket);
                 DisplayMessageInUi(null, userConfig.GetText("U9020"), userConfig.GetText("U0016"), false);
@@ -500,40 +495,6 @@
         try
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addTicketId, new { ownerId = SelectedApp.Id, ticketId = ticketId });
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("request_fw_change"), "", true);
-        }
-    }
-
-    private async Task CreateExtRequests(WfTicket intTicket)
-    {
-        try
-        {
-            RestResponse<bool> middlewareServerResponse = await middlewareClient.AddExternalRequest(new ExternalRequestAddParameters() { TicketId = intTicket.Id });
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9101"), true);
-                Log.WriteError("CreateExtRequest", $"Could not create External Request for Ticket {intTicket.Id.ToString()}.");
-            }
-            else
-            {
-                Log.WriteDebug("CreateExtRequest", $"External Request for Ticket {intTicket.Id.ToString()} created.");
-            }
-
-            await ModellingHandlerBase.LogChange(new LogChangeRequest
-            {
-                ChangeType = ModellingTypes.ChangeType.InitRequests,
-                ObjectType = ModellingTypes.ModObjectType.CommunicationProfile,
-                ObjectId = 0,
-                Text = "Initialized Rollout Requests",
-                ApiConnection = apiConnection,
-                UserConfig = userConfig,
-                ApplicationId = intTicket.Tasks.FirstOrDefault()?.Owners.FirstOrDefault()?.Owner.Id,
-                DisplayMessageInUi = DefaultInit.DoNothing,
-                Requester = intTicket.Requester?.Name
-            });
         }
         catch (Exception exception)
         {

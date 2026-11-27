@@ -18,6 +18,11 @@ namespace FWO.Test
     internal class ExtTicketHandlerTest
     {
         private const int kDoneStateId = 631;
+        private const int kRequestedStateId = 3;
+        private const int kInProgressStateId = 4;
+        private const int kToImplementStateId = 200;
+        private const int kRejectedStateId = 610;
+        private const int kAboveRejectedStateId = 700;
         private static readonly List<long> kFinishedBeforeBundle = [1, 2, 3, 4, 5, 7];
         private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         internal readonly static ExternalTicketSystem ticketSystem = new()
@@ -550,6 +555,131 @@ namespace FWO.Test
             Assert.That(localApiConnection.History[15], Does.Contain("Task7"));
             Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("taskNumber = 6"));
             Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("\"BundledTasks\":[6,7]"));
+        }
+
+        [Test]
+        public async Task HandleStateChangeRequestedRaisesALowerRequestTaskState()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+
+            await handler.HandleStateChange(RequestOfFirstTask(ExtStates.ExtReqRequested));
+
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.EqualTo(kRequestedStateId));
+        }
+
+        [Test]
+        public async Task HandleStateChangeRequestedKeepsAHigherRequestTaskState()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+            ExtTicketHandlerTestApiConn.SetReqTaskState(FirstTaskId(), kToImplementStateId);
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+
+            await handler.HandleStateChange(RequestOfFirstTask(ExtStates.ExtReqRequested));
+
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.EqualTo(kToImplementStateId));
+        }
+
+        [Test]
+        public async Task HandleStateChangeDoneRaisesAPromotedRequestTaskState()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+            ExtTicketHandlerTestApiConn.SetReqTaskState(FirstTaskId(), kToImplementStateId);
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+
+            await handler.HandleStateChange(RequestOfFirstTask(ExtStates.ExtReqDone));
+
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.EqualTo(kDoneStateId));
+        }
+
+        [Test]
+        public async Task HandleStateChangeRejectedLowersTheRequestTaskStateAndRejectsTheFollowingTasks()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new() { ExtReqRejectedStateId = kRejectedStateId };
+            ExtTicketHandlerTestApiConn.SetReqTaskState(FirstTaskId(), kAboveRejectedStateId);
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+
+            await handler.HandleStateChange(RequestOfFirstTask(ExtStates.ExtReqRejected));
+
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.EqualTo(kRejectedStateId));
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(2)?.StateId, Is.EqualTo(kRejectedStateId));
+        }
+
+        [Test]
+        public async Task HandleProgressRaisesTheRequestTaskStateWithoutFinishingTheRequest()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new() { ExtReqInProgressStateId = kInProgressStateId };
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+            ExternalRequest externalRequest = RequestOfFirstTask(ExtStates.ExtReqInProgress);
+            externalRequest.ExtTicketId = "4711";
+
+            await handler.HandleProgress(externalRequest);
+
+            WfReqTask? firstTask = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1);
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstTask?.StateId, Is.EqualTo(kInProgressStateId));
+                Assert.That(firstTask?.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId), Is.EqualTo("4711"));
+                Assert.That(localApiConnection.FinishedRequests, Is.Empty, "the request is still processed externally");
+                Assert.That(localApiConnection.AddExtRequestVars, Is.Null, "the provisioning does not continue");
+            });
+        }
+
+        [Test]
+        public async Task HandleProgressKeepsAHigherRequestTaskState()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new() { ExtReqInProgressStateId = kInProgressStateId };
+            ExtTicketHandlerTestApiConn.SetReqTaskState(FirstTaskId(), kToImplementStateId);
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+
+            await handler.HandleProgress(RequestOfFirstTask(ExtStates.ExtReqInProgress));
+
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.EqualTo(kToImplementStateId));
+        }
+
+        [Test]
+        public async Task HandleProgressWithoutStateMappingKeepsTheRequestTaskState()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+
+            await handler.HandleProgress(RequestOfFirstTask(ExtStates.ExtReqInProgress));
+
+            Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.Zero);
+        }
+
+        [Test]
+        public async Task HandleProgressIgnoresRequestsOfImplementationTasks()
+        {
+            ExtTicketHandlerTestApiConn localApiConnection = new() { ExtReqInProgressStateId = kInProgressStateId };
+            using ExternalRequestHandler handler = new(new SimulatedUserConfig(), localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+            ExternalRequest externalRequest = RequestOfFirstTask(ExtStates.ExtReqInProgress);
+            externalRequest.ImplTaskId = 1;
+
+            await handler.HandleProgress(externalRequest);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(localApiConnection.TicketQueryCount, Is.Zero);
+                Assert.That(ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.StateId, Is.Zero);
+            });
+        }
+
+        private static long FirstTaskId()
+        {
+            return ExtTicketHandlerTestApiConn.GetReqTaskByNumber(1)?.Id ?? throw new InvalidOperationException("Request task 1 is missing.");
+        }
+
+        private static ExternalRequest RequestOfFirstTask(ExtStates state)
+        {
+            return new()
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = state.ToString(),
+                ExtQueryVariables = ""
+            };
         }
 
         [Test]

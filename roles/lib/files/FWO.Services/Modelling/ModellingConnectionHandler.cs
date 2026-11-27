@@ -17,6 +17,11 @@ namespace FWO.Services.Modelling
     public partial class ModellingConnectionHandler : ModellingHandlerBase
     {
         public List<FwoOwner> AllApps { get; set; } = [];
+
+        /// <summary>
+        /// Apps a new interface can be requested from: active apps with at least one non-deleted IP address, network or range.
+        /// </summary>
+        public List<FwoOwner> RequestableApps { get; set; } = [];
         public List<ModellingConnection> Connections { get; set; }
         public ModellingConnection ActConn { get; set; }
 
@@ -110,6 +115,7 @@ namespace FWO.Services.Modelling
                     await RefreshObjects();
                     InterfaceName = await ExtractUsedInterface(ActConn);
                     AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
+                    RequestableApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getActiveOwnersWithIps);
                     AppRoleHandler = new(apiConnection, userConfig, new(), [], new(), [], [], false, DisplayMessageInUi);
                     DummyAppRole = await AppRoleHandler.GetDummyAppRole();
                     await RefreshInterfaceData();

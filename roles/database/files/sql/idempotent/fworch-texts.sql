@@ -10071,7 +10071,8 @@ INSERT INTO txt VALUES ('H9043', 'English', 'Service Groups: Simple services can
 ');
 INSERT INTO txt VALUES ('H9051', 'German',  'Beantragung neuer Schnittstellen: Wenn externe Schnittstellen von anderen Applikationen ben&ouml;tigt werden, k&ouml;nnen diese &uuml;ber die entsprechende Schaltfl&auml;che in der Bibliothek beantragt werden.
     <ul>
-        <li>Es erscheint ein Dialog, in dem die externe Applikation ausgew&auml;hlt und eine Begr&uuml;ndung eingetragen werden m&uuml;ssen, sowie das H&auml;kchen, ob die Schnittstelle als Quelle oder Ziel genutzt werden soll.</li>
+        <li>Es erscheint ein Dialog, in dem die externe Applikation ausgew&auml;hlt und eine Begr&uuml;ndung eingetragen werden m&uuml;ssen, sowie das H&auml;kchen, ob die Schnittstelle als Quelle oder Ziel genutzt werden soll.
+            Zur Auswahl stehen nur aktive Applikationen, die mindestens eine IP-Adresse, ein Netz oder einen Bereich besitzen.</li>
         <li>Beim Abschicken der Anforderung wird
             <ul>
                 <li>bei der externen Applikation automatisch eine Dummy-Schnittstelle angelegt, die dann in der eigenen Schnittstellen-Auswahl erscheint und direkt zur Erstellung eigener Verbindungen genutzt werden kann.
@@ -10085,7 +10086,8 @@ INSERT INTO txt VALUES ('H9051', 'German',  'Beantragung neuer Schnittstellen: W
 ');
 INSERT INTO txt VALUES ('H9051', 'English', 'Request new interface: If external interfaces from other applications are needed, they can be requested via a button in the library.
     <ul>
-        <li>A dialogue is displayed to select the external Application. A reason field has to be filled as well as the checkbox, if the interface should be used as source or destination.</li>
+        <li>A dialogue is displayed to select the external Application. A reason field has to be filled as well as the checkbox, if the interface should be used as source or destination.
+            Only active applications owning at least one IP address, network or range can be selected.</li>
         <li>If the request is submitted
             <ul>
                 <li>a dummy interface is created automatically at the target application, which then appears in the own interface selection in the library and can be used for the definition of the own connection.

@@ -1,0 +1,5 @@
+query getActiveOwnersWithIps {
+  owner_list: owner (where: { id: { _gt: 0 }, active: { _eq: true }, owner_networks: { is_deleted: { _eq: false } } } order_by: { name: asc }){
+    ...ownerDetails
+  }
+}

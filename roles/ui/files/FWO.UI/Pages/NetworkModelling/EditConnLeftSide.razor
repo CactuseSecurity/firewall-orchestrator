@@ -224,7 +224,7 @@
         Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects" HiddenObjectIds="ConnHandler.ComSvcHiddenAreaIds" OnClose="OnSearchNwObjectClose" />
     <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
         Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
-    <RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
+    <RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.RequestableApps"RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
     <EditConnPopup @bind-Display="ConnHandler.DisplaySelectedInterfaceMode" ConnHandler="ConnHandler.IntConnHandler"/>
 }
 

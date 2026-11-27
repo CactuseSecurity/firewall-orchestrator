@@ -467,6 +467,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditConn_LoadsRequestableAppsSeparatelyFromAllApps()
+        {
+            ModellingConnection connection = new() { Id = 1, Name = "Conn1" };
+            FwoOwner appWithIps = new() { Id = 2, Name = "WithIps" };
+            FwoOwner appWithoutIps = new() { Id = 3, Name = "WithoutIps" };
+            ModellingAppHandlerTestApiConn apiConn = new()
+            {
+                OwnersWithConn = [appWithIps, appWithoutIps],
+                ActiveOwnersWithIps = [appWithIps]
+            };
+            List<ModellingConnection> connections = [connection];
+            ModellingAppHandler handler = CreateHandler(connections, isOwner: true, apiConnection: apiConn);
+
+            await handler.EditConn(connection);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ConnHandler, Is.Not.Null);
+                Assert.That(handler.ConnHandler!.AllApps, Is.EqualTo(apiConn.OwnersWithConn));
+                Assert.That(handler.ConnHandler.RequestableApps, Is.EqualTo(apiConn.ActiveOwnersWithIps));
+            });
+        }
+
+        [Test]
         public async Task ShowUsingConnections_HandlesInterfaceAndNonInterfaceConnections()
         {
             ModellingConnection interfaceConn = new() { Id = 11, Name = "Iface", IsInterface = true };
@@ -578,6 +602,7 @@ namespace FWO.Test
             public List<ModellingService> GlobalServices { get; set; } = [];
             public List<ModellingService> ServicesForApp { get; set; } = [];
             public List<FwoOwner> OwnersWithConn { get; set; } = [];
+            public List<FwoOwner> ActiveOwnersWithIps { get; set; } = [];
             public List<ModellingAppRole> DummyAppRoles { get; set; } = [new() { Id = 99, Name = "dummy" }];
             public List<FwoOwner> PermittedOwners { get; set; } = [];
             public List<ModellingConnection> InterfaceUsers { get; set; } = [];
@@ -625,6 +650,10 @@ namespace FWO.Test
                 if (query == OwnerQueries.getOwnersWithConn)
                 {
                     return Task.FromResult((QueryResponseType)(object)OwnersWithConn);
+                }
+                if (query == OwnerQueries.getActiveOwnersWithIps)
+                {
+                    return Task.FromResult((QueryResponseType)(object)ActiveOwnersWithIps);
                 }
                 if (query == ModellingQueries.getDummyAppRole)
                 {

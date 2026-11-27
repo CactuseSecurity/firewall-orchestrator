@@ -70,6 +70,46 @@ imports these as `external_roslyn` issues. IDE0028, IDE0037 and IDE0059 are such
 Only add a rule there once all its findings are fixed, otherwise the build breaks. The build does not check Razor
 markup and `@code` blocks, so SonarCloud still reports those findings there.
 
+### Sonar rules in the build
+
+[`roles/Directory.Build.props`](../../../roles/Directory.Build.props) also adds Sonar's own C# analyzer (NuGet package
+`SonarAnalyzer.CSharp`) to every Debug build. [`roles/SonarAnalyzer.globalconfig`](../../../roles/SonarAnalyzer.globalconfig)
+lists every rule of the SonarCloud quality profile "cactus c#" that the package contains, each at one of two levels:
+
+| Level | Meaning |
+| --- | --- |
+| `warning` | The code base is free of findings. With `TreatWarningsAsErrors`, a new finding fails the build. |
+| `suggestion` | The code base still has findings. The IDE shows them and SonarCloud reports them, but the build does not fail. |
+
+With version 10.36 of the package, 266 rules started at `warning` and 193 at `suggestion`. Unlike the .NET analyzers
+above, the Sonar analyzer also checks Razor markup and `@code` blocks. In test projects it reports only the rules that
+SonarCloud applies to test code.
+
+- **Raise a rule** once all its findings are fixed by changing its level to `warning`. `dotnet build` does not print
+  suggestions. To list the findings of a rule, set it to `warning` and build with
+  `dotnet build roles/FWO.sln -c Debug -p:TreatWarningsAsErrors=false`.
+- **Keep the file in step with the profile.** Add a rule that is activated in "cactus c#". A rule that is deactivated
+  there may be set to `none`, but never set a rule of the profile to `none` or `silent`. The SonarCloud workflows also
+  build in Debug, so this file applies to their analysis as well, and a rule switched off here could disappear from
+  SonarCloud.
+- **Updating the package:** rules that are new in Sonar's default rule set are `warning` unless the file lists them. If
+  the new version reports findings for such a rule, the build of the update pull request fails. Add the rule at
+  `suggestion`.
+- **SonarCloud analysis:** the SonarScanner removes every analyzer whose file name starts with `SonarAnalyzer` and runs
+  its own version instead. It also switches `TreatWarningsAsErrors` off. So the analysis neither counts a finding twice
+  nor fails on a `warning` rule.
+- **Release builds** leave the analyzer out, for example the "Release build" job of the FWO Test Install workflow. The
+  installer is not affected at all: it copies only the `files` directories of the roles to the target, without
+  `roles/Directory.Build.props`. The analyzer runs only in the compiler and adds nothing to the built assemblies, so
+  run time is unaffected.
+- **Build time:** the analyzer makes a full Debug rebuild of `roles/FWO.sln` about 20 s slower (about 20 s to 40 s on
+  a developer machine). `dotnet format` in the pre-commit hook takes about 20 s longer as well.
+- **Rules that only SonarCloud checks:** 25 rules of the profile are not in the open-source package. Among them are the
+  rules based on symbolic execution (for example S2259 null dereference, S2583 and S2589 conditions that are always
+  true or false, S3655, S4158, S2222 locks), several security rules (S2053, S3329, S4347, S5773, S6781) and the Entity
+  Framework rules (for example S8717, S8733, S9022). The same applies to the taint analysis
+  (`roslyn.sonaranalyzer.security.cs`) and architecture (`csharparchitecture`) rules of the profile.
+
 ### Required Actions policy
 
 From 2 December 2026, GitHub blocks workflows triggered by `pull_request_target` in public repositories by default.

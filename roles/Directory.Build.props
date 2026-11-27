@@ -6,4 +6,10 @@
     <!-- run the IDE code style rules configured as warning in .editorconfig during the build -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
+  <!-- Sonar's C# rules at the levels of SonarAnalyzer.globalconfig, in Debug builds only (developers, agents, SonarCloud
+       analysis). Release builds leave the analyzer out. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.36.0.15337" PrivateAssets="all" IncludeAssets="analyzers" />
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)SonarAnalyzer.globalconfig" />
+  </ItemGroup>
 </Project>

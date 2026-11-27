@@ -3,6 +3,7 @@
 ## 9.9.6 - 25.11.2026
 
 - CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
+- build: Debug builds run Sonar's C# rules (`SonarAnalyzer.CSharp`) at the levels of `roles/SonarAnalyzer.globalconfig`; rules the code base is free of fail the build on a new finding, the others are suggestions until their findings are fixed, see documentation/developer-docs/github/sonarcloud-workflow.md
 - dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
 - dependencies: update NuGet packages (AngleSharp to 1.11.0)
 - notifications: new placeholder `@@STATECHANGE_COMMENT@@` for workflow emails (subject and body) with the comment or reason entered together with the triggering state change

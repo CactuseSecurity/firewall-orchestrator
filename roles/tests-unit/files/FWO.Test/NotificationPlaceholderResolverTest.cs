@@ -1,4 +1,5 @@
 using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Services;
 using NUnit.Framework;
 using System.Net;
@@ -146,6 +147,83 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ReplaceNotificationPlaceholders_InsertsStateChangeCommentAndEncodesItInHtmlBodies()
+        {
+            NotificationPlaceholderResolver.NotificationPlaceholderValues values = new()
+            {
+                Reason = "request reason",
+                StateChangeComment = "obsolete <b>\"now\"</b> & 'later'"
+            };
+            const string kTemplate = "@@REASON@@ | @@STATECHANGE_COMMENT@@";
+
+            string plain = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(kTemplate, values);
+            string html = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(kTemplate, values, isHtmlBody: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(plain, Is.EqualTo("request reason | obsolete <b>\"now\"</b> & 'later'"));
+                Assert.That(html, Does.Not.Contain("<b>"));
+                Assert.That(html, Does.Not.Contain("\"now\""));
+                Assert.That(html, Does.Contain("&lt;b&gt;"));
+                Assert.That(html, Does.StartWith("request reason | obsolete "));
+            });
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholders_KeepsRequestReasonAndStateChangeCommentApart()
+        {
+            WfTicket ticket = new() { Id = 7, Reason = "needed for backup" };
+            NotificationPlaceholderData data = new() { StateChangeComment = "interface is obsolete" };
+
+            string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                "Rejected: @@STATECHANGE_COMMENT@@ (requested for: @@REASON@@)", ticket, null, data);
+            string withoutComment = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders("[@@STATECHANGE_COMMENT@@]", ticket, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(subject, Is.EqualTo("Rejected: interface is obsolete (requested for: needed for backup)"));
+                Assert.That(withoutComment, Is.EqualTo("[]"));
+            });
+        }
+
+        [Test]
+        public void RestrictCallerPlaceholderData_KeepsStateChangeCommentAndLimitsItsLength()
+        {
+            NotificationPlaceholderData callerData = new() { StateChangeComment = "interface is obsolete" };
+            NotificationPlaceholderData maximum = new() { StateChangeComment = new string('c', NotificationPlaceholderResolver.kMaxCallerContentLength) };
+            NotificationPlaceholderData tooLong = new() { StateChangeComment = new string('c', NotificationPlaceholderResolver.kMaxCallerContentLength + 1) };
+
+            NotificationPlaceholderData? restricted = NotificationPlaceholderResolver.RestrictCallerPlaceholderData(callerData, "caller", kUiHostName, out string? error);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(error, Is.Null);
+                Assert.That(restricted?.StateChangeComment, Is.EqualTo("interface is obsolete"));
+                Assert.That(NotificationPlaceholderResolver.RestrictCallerPlaceholderData(maximum, "caller", kUiHostName, out string? maximumError), Is.Not.Null);
+                Assert.That(maximumError, Is.Null);
+                Assert.That(NotificationPlaceholderResolver.RestrictCallerPlaceholderData(tooLong, "caller", kUiHostName, out string? tooLongError), Is.Null);
+                Assert.That(tooLongError, Does.Contain(NotificationPlaceholderResolver.kMaxCallerContentLength.ToString()));
+            });
+        }
+
+        [Test]
+        public void Copy_ReturnsIndependentValues()
+        {
+            NotificationPlaceholderData original = new() { InterfaceName = "Interface 1", Content = "content" };
+
+            NotificationPlaceholderData copy = original.Copy();
+            copy.StateChangeComment = "comment";
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copy, Is.Not.SameAs(original));
+                Assert.That(copy.InterfaceName, Is.EqualTo("Interface 1"));
+                Assert.That(copy.Content, Is.EqualTo("content"));
+                Assert.That(original.StateChangeComment, Is.Empty);
+            });
+        }
+
+        [Test]
         public void RestrictCallerPlaceholderData_RejectsOversizedValuesAndAcceptsNone()
         {
             NotificationPlaceholderData longName = new() { InterfaceName = new string('n', NotificationPlaceholderResolver.kMaxCallerTextLength + 1) };
@@ -225,6 +303,39 @@ namespace FWO.Test
             string body = (string)buildBody.Invoke(null, arguments)!;
 
             Assert.That(body, Is.EqualTo("Reason: " + (encoded ? WebUtility.HtmlEncode(kContent) : kContent)));
+        }
+
+        [TestCase("Rejected: " + STATECHANGE_COMMENT + ".", "Rejected: " + STATECHANGE_COMMENT + ".")]
+        [TestCase("Rejected: " + STATECHANGE_COMMENT + ". " + CONTENT, "Rejected: " + STATECHANGE_COMMENT + ". obsolete")]
+        [TestCase("Rejected: " + CONTENT, "Rejected: obsolete")]
+        [TestCase("Rejected: ", "Rejected: obsolete")]
+        public void BuildWorkflowActionBody_DoesNotAppendContentShownAsStateChangeComment(string template, string expectedBody)
+        {
+            FwoNotification notification = new() { Layout = NotificationLayout.SimpleText, EmailBody = template };
+            NotificationPlaceholderData data = new() { Content = "obsolete", StateChangeComment = "obsolete" };
+
+            string body = InvokeBuildWorkflowActionBody(notification, data);
+
+            Assert.That(body, Is.EqualTo(expectedBody));
+        }
+
+        [Test]
+        public void BuildWorkflowActionBody_AppendsContentThatDiffersFromTheStateChangeComment()
+        {
+            FwoNotification notification = new() { Layout = NotificationLayout.SimpleText, EmailBody = "Comment: " + STATECHANGE_COMMENT + ". " };
+            NotificationPlaceholderData data = new() { Content = "other content", StateChangeComment = "obsolete" };
+
+            string body = InvokeBuildWorkflowActionBody(notification, data);
+
+            Assert.That(body, Is.EqualTo("Comment: " + STATECHANGE_COMMENT + ". other content"));
+        }
+
+        private static string InvokeBuildWorkflowActionBody(FwoNotification notification, NotificationPlaceholderData data)
+        {
+            MethodInfo buildBody = typeof(EmailHelper).GetMethod("BuildWorkflowActionBody", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(nameof(EmailHelper), "BuildWorkflowActionBody");
+            object?[] arguments = [notification, null, data];
+            return (string)buildBody.Invoke(null, arguments)!;
         }
 
         private static NotificationPlaceholderResolver.NotificationPlaceholderValues CreateValues(string payload)

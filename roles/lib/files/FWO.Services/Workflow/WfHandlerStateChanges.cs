@@ -63,6 +63,8 @@ namespace FWO.Services.Workflow
         {
             bool emailBundleStarted = false;
             bool emailBundleFlushAttempted = false;
+            string? promotionComment = TakeOptComment(ticket);
+            using IDisposable stateChangeCommentScope = BeginStateChangeComment(promotionComment);
             try
             {
                 if (!CheckActTicketChangeable() || !await PromoteTicket(ticket))
@@ -73,7 +75,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                await UpdateRequestTasksFromTicket(approvalComment: ticket.OptComment());
+                await UpdateRequestTasksFromTicket(approvalComment: promotionComment);
                 // In the request phase, task actions execute in middleware and
                 // may promote the task and ticket further. The UI still holds
                 // the pre-action task state here, so deriving the ticket from
@@ -116,6 +118,8 @@ namespace FWO.Services.Workflow
         {
             bool emailBundleStarted = false;
             bool emailBundleFlushAttempted = false;
+            string? promotionComment = TakeOptComment(ticket);
+            using IDisposable stateChangeCommentScope = BeginStateChangeComment(promotionComment);
             try
             {
                 int targetTicketStateId = ticket.StateId;
@@ -123,7 +127,7 @@ namespace FWO.Services.Workflow
                 emailBundleStarted = true;
 
                 await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId,
-                    approvalComment: ticket.OptComment());
+                    approvalComment: promotionComment);
                 ActTicket.StateId = targetTicketStateId;
                 await UpdateActTicketState();
 

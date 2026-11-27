@@ -183,10 +183,22 @@ namespace FWO.Services
                 string content = notification.Layout == NotificationLayout.HtmlInBody
                     ? HtmlOutputEncoder.EncodeText(placeholderData.Content)
                     : placeholderData.Content;
-                return NotificationEmailLayoutHelper.BuildBody(notification, content);
+                return NotificationEmailLayoutHelper.BuildBody(notification, content,
+                    appendWithoutPlaceholder: !IsShownAsStateChangeComment(notification, placeholderData));
             }
 
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
+        }
+
+        /// <summary>
+        /// True if the body already shows the caller content via the state change comment placeholder, e.g. the reason for
+        /// rejecting an interface. The content must then not be appended to the body a second time.
+        /// </summary>
+        private static bool IsShownAsStateChangeComment(FwoNotification notification, NotificationPlaceholderData placeholderData)
+        {
+            string notificationBody = notification.EmailBody ?? "";
+            return notificationBody.Contains(Placeholder.STATECHANGE_COMMENT)
+                && string.Equals(placeholderData.Content.Trim(), placeholderData.StateChangeComment?.Trim(), StringComparison.Ordinal);
         }
 
         private async Task<int> LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,

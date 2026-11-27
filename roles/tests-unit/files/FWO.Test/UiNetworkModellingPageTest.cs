@@ -14,6 +14,9 @@ using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Pages.NetworkModelling;
 using FWO.Ui.Services;
+using GraphQL;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -24,7 +27,7 @@ using System.Security.Claims;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class UiNetworkModellingPageTest
+    internal partial class UiNetworkModellingPageTest
     {
         private static readonly List<string> kAuditorRoles = [Roles.Auditor];
 
@@ -420,10 +423,50 @@ namespace FWO.Test
             public List<string> UnexpectedQueries { get; } = [];
             public List<string> ExtRequestRoles { get; } = [];
 
+            /// <summary>
+            /// Ticket ids answered for the latest firewall change request; empty if the app was never requested.
+            /// </summary>
+            public List<TicketId> LatestTicketIds { get; set; } = [new() { Id = 42 }];
+
+            /// <summary>
+            /// Workflow state of the answered ticket: 10 is in progress, 90 done, 91 rejected.
+            /// </summary>
+            public int TicketStateId { get; set; } = 10;
+
+            /// <summary>
+            /// Answer for the last external request of a ticket; null answers the default request.
+            /// </summary>
+            public List<ExternalRequest>? LastRequests { get; set; }
+
+            /// <summary>
+            /// Connections answered for every app; null answers the default connection per app.
+            /// </summary>
+            public List<ModellingConnection>? Connections { get; set; }
+
+            /// <summary>
+            /// Queries answered by an exception, to reach the error handling of the page.
+            /// </summary>
+            public HashSet<string> FailingQueries { get; } = [];
+
+            /// <summary>
+            /// Holds the answer to the state query back until completed, so the page can be seen while loading.
+            /// </summary>
+            public TaskCompletionSource? StatesGate { get; set; }
+
+            /// <summary>
+            /// Update handler of the last subscription to ticket state changes, to simulate a ticket update.
+            /// </summary>
+            public GraphQlApiSubscription<List<WfTicket>>.SubscriptionUpdate? TicketUpdateHandler { get; private set; }
+
+            /// <summary>
+            /// Error handler of the last subscription to ticket state changes, to simulate a failing subscription.
+            /// </summary>
+            public Action<Exception>? TicketSubscriptionErrorHandler { get; private set; }
+
             private readonly Stack<string> previousRoles = new();
             public string ActiveRole { get; private set; } = "";
 
-            private readonly List<FwoOwner> owners =
+            public List<FwoOwner> Owners { get; set; } =
             [
                 CreateOwner(10, "Alpha App", "APP-A"),
                 CreateOwner(20, "Beta App", "APP-B")
@@ -438,15 +481,37 @@ namespace FWO.Test
                 queryAnswers = CreateQueryAnswers();
             }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                if (FailingQueries.Contains(query))
+                {
+                    throw new InvalidOperationException($"query failed: {query}");
+                }
+                if (query == RequestQueries.getStates && StatesGate != null)
+                {
+                    await StatesGate.Task;
+                }
                 if (queryAnswers.TryGetValue(query, out Func<object?, object>? answer))
                 {
-                    return Result<QueryResponseType>(answer(variables));
+                    return (QueryResponseType)answer(variables);
                 }
 
                 UnexpectedQueries.Add(query);
-                return Task.FromResult(default(QueryResponseType)!);
+                return default!;
+            }
+
+            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
+                GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null,
+                string? operationName = null)
+            {
+                if (subscriptionUpdateHandler is GraphQlApiSubscription<List<WfTicket>>.SubscriptionUpdate ticketUpdateHandler)
+                {
+                    TicketUpdateHandler = ticketUpdateHandler;
+                    TicketSubscriptionErrorHandler = exceptionHandler;
+                }
+                return new SimulatedApiSubscription<SubscriptionResponseType>(this,
+                    new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()),
+                    new GraphQLRequest(subscription, variables, operationName), exceptionHandler, subscriptionUpdateHandler);
             }
 
             /// <summary>
@@ -459,7 +524,8 @@ namespace FWO.Test
                     [RequestQueries.getStates] = _ => new List<WfState>
                     {
                         new() { Id = 10, Name = "In progress" },
-                        new() { Id = 90, Name = "Done" }
+                        new() { Id = 90, Name = "Done" },
+                        new() { Id = 91, Name = "Rejected" }
                     },
                     [RequestQueries.getExtStates] = _ => new List<WfExtState>
                     {
@@ -474,7 +540,7 @@ namespace FWO.Test
                     [StmQueries.getRuleActions] = _ => new List<RuleAction>(),
                     [StmQueries.getTracking] = _ => new List<Tracking>(),
                     [DeviceQueries.getDeviceDetails] = _ => new List<Device>(),
-                    [OwnerQueries.getOwnersWithConn] = _ => owners.Select(owner => new FwoOwner(owner)).ToList(),
+                    [OwnerQueries.getOwnersWithConn] = _ => Owners.Select(owner => new FwoOwner(owner)).ToList(),
                     [OwnerQueries.getEditableOwnersWithConn] = variables => AnswerEditableOwners(variables),
                     [ModellingQueries.getConnectionsResolved] = variables => AnswerConnections(variables),
                     [ModellingQueries.getDummyAppRole] = _ => new List<ModellingAppRole> { new() { Id = 999, IdString = "DUMMY", Name = "Dummy" } },
@@ -490,14 +556,16 @@ namespace FWO.Test
                     [ModellingQueries.getServicesForApp] = _ => new List<ModellingService>(),
                     [ExtRequestQueries.getLatestTicketId] = _ => AnswerLatestTicketId(),
                     [RequestQueries.getTicketById] = variables => AnswerTicket(variables),
-                    [ExtRequestQueries.getLastRequest] = variables => AnswerLastRequest(variables)
+                    [ExtRequestQueries.getLastRequest] = variables => AnswerLastRequest(variables),
+                    [ModellingQueries.deleteConnection] = variables => new ReturnId { DeletedId = GetIntVariable(variables, "id") },
+                    [ModellingQueries.addHistoryEntry] = _ => new ReturnIdWrapper()
                 };
             }
 
             private List<FwoOwner> AnswerEditableOwners(object? variables)
             {
                 int[] appIds = GetIntArrayVariable(variables, "appIds");
-                return owners.Where(owner => appIds.Contains(owner.Id)).Select(owner => new FwoOwner(owner)).ToList();
+                return Owners.Where(owner => appIds.Contains(owner.Id)).Select(owner => new FwoOwner(owner)).ToList();
             }
 
             private List<ModellingConnection> AnswerConnections(object? variables)
@@ -505,21 +573,21 @@ namespace FWO.Test
                 int appId = GetIntVariable(variables, "appId");
                 ConnectionQueryAppIds.Add(appId);
                 RecordQueryRole();
-                return CreateConnections(appId);
+                return Connections?.Select(connection => new ModellingConnection(connection)).ToList() ?? CreateConnections(appId);
             }
 
             private List<TicketId> AnswerLatestTicketId()
             {
                 RecordQueryRole();
-                return [new() { Id = 42 }];
+                return [.. LatestTicketIds];
             }
 
-            private static WfTicket AnswerTicket(object? variables)
+            private WfTicket AnswerTicket(object? variables)
             {
                 return new()
                 {
                     Id = GetLongVariable(variables, "Id"),
-                    StateId = 10,
+                    StateId = TicketStateId,
                     CreationDate = new DateTime(2026, 7, 1, 10, 0, 0),
                     Requester = new UiUser { Name = "requester" }
                 };
@@ -528,6 +596,10 @@ namespace FWO.Test
             private List<ExternalRequest> AnswerLastRequest(object? variables)
             {
                 RecordQueryRole();
+                if (LastRequests != null)
+                {
+                    return LastRequests;
+                }
                 return
                 [
                     new()
@@ -553,11 +625,6 @@ namespace FWO.Test
             public override void SwitchBack()
             {
                 ActiveRole = previousRoles.TryPop(out string? previousRole) ? previousRole : "";
-            }
-
-            private static Task<T> Result<T>(object value)
-            {
-                return Task.FromResult((T)value);
             }
 
             private static int GetIntVariable(object? variables, string name)

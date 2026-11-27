@@ -20,12 +20,15 @@ public static class GraphQlFilterBuilder
 
     /// <summary>
     /// Adds a case-insensitive text predicate for the supplied field when the value is not null or blank.
+    /// Plain text without wildcards is a contains search unless <paramref name="matchPlainTextExactly"/> is set.
     /// </summary>
-    public static void AddWildcardPredicate(List<Dictionary<string, object>> predicates, string fieldName, string? value)
+    public static void AddWildcardPredicate(List<Dictionary<string, object>> predicates, string fieldName, string? value,
+        bool matchPlainTextExactly = false)
     {
         if (!string.IsNullOrWhiteSpace(value))
         {
-            predicates.Add(new Dictionary<string, object> { [fieldName] = new Dictionary<string, object> { ["_ilike"] = BuildLikePattern(value) } });
+            string likePattern = BuildLikePattern(value, matchPlainTextExactly);
+            predicates.Add(new Dictionary<string, object> { [fieldName] = new Dictionary<string, object> { ["_ilike"] = likePattern } });
         }
     }
 

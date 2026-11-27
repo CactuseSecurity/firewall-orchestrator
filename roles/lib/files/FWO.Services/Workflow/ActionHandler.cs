@@ -187,7 +187,8 @@ namespace FWO.Services.Workflow
             RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
             try
             {
-                return await TrySendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                // all items of the group share their placeholder values, as these are part of the bundle key
+                return await TrySendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn, item.PlaceholderData);
             }
             finally
             {
@@ -372,7 +373,7 @@ namespace FWO.Services.Workflow
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
-                NotificationPlaceholders = placeholderData,
+                NotificationPlaceholders = WithStateChangeComment(placeholderData),
                 EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
         }

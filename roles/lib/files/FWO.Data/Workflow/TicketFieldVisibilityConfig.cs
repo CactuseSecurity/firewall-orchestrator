@@ -59,6 +59,24 @@ namespace FWO.Data.Workflow
         }
 
         /// <summary>
+        /// Parses the field visibility for displaying and editing tickets and applies the flow integration:
+        /// with end-only time objects the valid-from field is hidden regardless of the stored setting.
+        /// Never use the result to edit and store the visibility configuration itself.
+        /// </summary>
+        /// <param name="serializedConfig">The JSON visibility configuration.</param>
+        /// <param name="serializedFlowIntegration">The JSON flow integration configuration.</param>
+        /// <returns>The effective visibility configuration.</returns>
+        public static TicketFieldVisibilityConfig ParseEffective(string? serializedConfig, string? serializedFlowIntegration)
+        {
+            TicketFieldVisibilityConfig config = Parse(serializedConfig);
+            if (FlowIntegrationConfig.Parse(serializedFlowIntegration).IsEndOnly)
+            {
+                config.AccessTask.ShowValidFrom = false;
+            }
+            return config;
+        }
+
+        /// <summary>
         /// Serializes this field visibility configuration for storage in workflow settings.
         /// </summary>
         /// <returns>The JSON representation of this configuration.</returns>

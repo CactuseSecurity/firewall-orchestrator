@@ -225,7 +225,7 @@ public partial class DisplayRequestTask
         return ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
     }
 
-    private AccessTaskFieldVisibilityConfig AccessTaskVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
+    private AccessTaskFieldVisibilityConfig AccessTaskVisibility => TicketFieldVisibilityConfig.ParseEffective(userConfig.ReqTicketFieldVisibility, userConfig.ReqFlowIntegration).AccessTask;
 
     private bool ShowTaskField(string fieldKey)
     {

@@ -16,6 +16,7 @@ namespace FWO.Services.Workflow
         private const string kMixedAddressFamiliesTextKey = "flow_creation_mixed_address_families";
         private const string kUnreadableAddressTextKey = "flow_creation_unreadable_address";
         private const string kIneligibleFlowObjectTextKey = "flow_creation_ineligible_flow_object";
+        private const string kTimeObjectEndRequiredTextKey = "flow_creation_time_object_end_required";
         private static readonly List<string> kReusableFlowStates = [FlowState.Requested, FlowState.Implemented];
 
         /// <summary>

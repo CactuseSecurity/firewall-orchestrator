@@ -1124,7 +1124,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task FlowIntegration_LoadsConfigIntoFourDropdowns()
+        public async Task FlowIntegration_LoadsConfigIntoFiveDropdowns()
         {
             await using BunitContext context = new();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
@@ -1134,7 +1134,8 @@ namespace FWO.Test
                 SelectObjects = FlowIntegrationObjectSelectionOptions.FromFlowDb,
                 SelectServices = FlowIntegrationObjectSelectionOptions.Manually,
                 SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
-                TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Minutes
+                TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Minutes,
+                TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly
             }.ToConfigValue();
 
             IRenderedComponent<FlowIntegration> component = context.Render<FlowIntegration>(parameters => parameters
@@ -1145,13 +1146,15 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(dropdowns, Has.Count.EqualTo(4));
+                Assert.That(dropdowns, Has.Count.EqualTo(5));
                 Assert.That(dropdowns[0].Instance.SelectedElement, Is.EqualTo(FlowIntegrationObjectSelectionOptions.FromFlowDb));
                 Assert.That(dropdowns[1].Instance.SelectedElement, Is.EqualTo(FlowIntegrationObjectSelectionOptions.Manually));
                 Assert.That(dropdowns[2].Instance.SelectedElement, Is.EqualTo(FlowIntegrationObjectSelectionOptions.Both));
                 Assert.That(dropdowns[3].Instance.SelectedElement, Is.EqualTo(FlowIntegrationTimePrecisionOptions.Minutes));
                 Assert.That(dropdowns[0].Instance.ElementToString(FlowIntegrationObjectSelectionOptions.FromFlowDb), Is.EqualTo("from Flow DB"));
                 Assert.That(dropdowns[3].Instance.ElementToString(FlowIntegrationTimePrecisionOptions.Hours), Is.EqualTo("hours"));
+                Assert.That(dropdowns[4].Instance.SelectedElement, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.EndOnly));
+                Assert.That(dropdowns[4].Instance.Elements, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.All));
             });
         }
 

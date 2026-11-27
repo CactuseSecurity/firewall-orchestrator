@@ -227,6 +227,45 @@ internal sealed class UiApprovalTaskDetailsEditorServiceTest
     }
 
     [Test]
+    public async Task TimeObjectEditor_HidesBeginDateWhenTimeObjectsAreEndOnly()
+    {
+        WfReqTask accessTask = new()
+        {
+            Id = 41,
+            StateId = 3,
+            TaskType = WfTaskType.access.ToString(),
+            TargetBeginDate = new DateTime(2026, 11, 1, 8, 0, 0),
+            TargetEndDate = new DateTime(2026, 11, 1, 17, 0, 0)
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 6, Tasks = [accessTask] } };
+        SimulatedUserConfig userConfig = new()
+        {
+            ReqFlowIntegration = new FlowIntegrationConfig { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly }.ToConfigValue()
+        };
+        ApprovalTaskDetailsEditorService service = new();
+        service.Configure(handler, userConfig, () => Task.CompletedTask);
+        ApprovalTaskDetailsEditorContext context = new();
+        ApprovalTaskDetailsEditorState state = new();
+        context.Configure(handler, userConfig, () => Task.CompletedTask);
+        ApprovalTaskDetailsLookupService lookup = new(context, state);
+        ApprovalTaskDetailsTimeObjectEditor editor = new(context, state, lookup, (_, _) => true,
+            () => Task.CompletedTask);
+
+        await editor.OpenTargetDatesEditor(accessTask, WorkflowEditableFieldKeys.ValidTo);
+        await editor.OpenCreateTimeObjectTaskEditor();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.AccessTaskVisibility.ShowValidFrom, Is.False);
+            Assert.That(service.AccessTaskVisibility.ShowValidTo, Is.True);
+            Assert.That(state.TargetDatesEditorModel.ShowBeginDate, Is.False);
+            Assert.That(state.NewTimeObjectTaskModel.ShowBeginDate, Is.False);
+            Assert.That(state.NewTimeObjectTaskModel.BeginDate, Is.Null);
+            Assert.That(state.NewTimeObjectTaskModel.EndDate, Is.EqualTo(accessTask.TargetEndDate));
+        });
+    }
+
+    [Test]
     public async Task TimeObjectEditor_OpensExistingObjectAndCreateEditors()
     {
         WfReqTask accessTask = new()

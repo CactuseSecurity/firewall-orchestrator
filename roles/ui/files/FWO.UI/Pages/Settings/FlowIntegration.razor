@@ -45,6 +45,16 @@
                         </Dropdown>
                     </div>
                 </div>
+                <div class="form-group row mt-2">
+                    <label class="col-form-label col-sm-4">@(userConfig.GetText("time_object_bounds")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="string" @bind-SelectedElement="actConfig.TimeObjectBounds" ElementToString="@(option => userConfig.GetText(option))" Elements="FlowIntegrationTimeObjectBoundsOptions.All">
+                            <ElementTemplate Context="option">
+                                @(userConfig.GetText(option))
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
             </form>
         }
     </Body>

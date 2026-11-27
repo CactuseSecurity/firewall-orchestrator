@@ -732,6 +732,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ApplyToTask_CreatesAnEndOnlyTimeElementWithoutStartInput()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly }.ToConfigValue()
+            };
+            await using BunitContext context = CreateContext(userConfig: userConfig);
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
+            component.Find("#objKindTime").Change(true);
+            SetMember(component.Instance, "objectName", "until end");
+            component.Find("#objEndDate").Input("2026-11-30");
+            component.Find("#objEndTime").Input("18:00");
+
+            string? error = component.Instance.ApplyToTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objStartDate"), Is.Empty);
+                Assert.That(error, Is.Null);
+                Assert.That(task.Elements.Single().StartTime, Is.Null);
+                Assert.That(task.Elements.Single().EndTime, Is.EqualTo(kTimeEnd));
+            });
+        }
+
+        [Test]
         public async Task ApplyToTask_RejectsATimeObjectEndingBeforeItStarts()
         {
             await using BunitContext context = CreateContext();

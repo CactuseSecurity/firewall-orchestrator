@@ -244,7 +244,7 @@
     /// False when both bounds are entered and the start lies after the end, otherwise null (no marking).
     /// </summary>
     private AccessTaskFieldVisibilityConfig TimeObjectVisibility =>
-        TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
+        TicketFieldVisibilityConfig.ParseEffective(userConfig.ReqTicketFieldVisibility, userConfig.ReqFlowIntegration).AccessTask;
 
     private int ProtoId
     {

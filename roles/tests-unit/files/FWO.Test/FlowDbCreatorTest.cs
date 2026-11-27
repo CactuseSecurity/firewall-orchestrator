@@ -2011,6 +2011,202 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void BuildFlowCreationPayloads_DropsTargetBeginDateWhenTimeObjectsAreEndOnly()
+        {
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);
+            task.TargetEndDate = new DateTime(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+
+            FlowCreationPayload payload = FlowDbCreator.BuildFlowCreationPayloads(task, WfObjectScopes.RequestTask, null, null,
+                timeObjectEndOnly: true).Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(payload.TimeStart, Is.Null);
+                Assert.That(payload.TimeEnd, Is.EqualTo(task.TargetEndDate));
+                Assert.That(payload.TimeName, Is.EqualTo("< 2026-07-09 23:59:00"));
+            });
+        }
+
+        [Test]
+        public void BuildFlowCreationPayloads_DropsStartOfObjectTaskTimeElementWhenTimeObjectsAreEndOnly()
+        {
+            WfReqTask objectTask = CreateObjectTask(41, WfTaskType.object_create, CreateTimeElement(411, 41, "maintenance"));
+
+            FlowTimeSnapshot snapshot = FlowDbCreator.BuildFlowCreationPayloads(objectTask, WfObjectScopes.RequestTask, null,
+                objectTask.TicketId, timeObjectEndOnly: true).Single().TimeObjects.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(snapshot.StartTime, Is.Null);
+                Assert.That(snapshot.EndTime, Is.EqualTo(kObjectTimeEnd));
+                Assert.That(snapshot.Name, Is.EqualTo("maintenance"));
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_CreatesEndOnlyTimeObjectFromTargetDates()
+        {
+            DateTime targetEnd = new(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn, timeObjectEndOnly: true);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);
+            task.TargetEndDate = targetEnd;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            FlowTimeObject insertedTimeObject = apiConn.InsertedTimeObjects.Single();
+            TimeRef timeRef = (TimeRef)apiConn.InsertedAccess!.AccessTimeObjects!.Data.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(insertedTimeObject.StartTime, Is.Null);
+                Assert.That(insertedTimeObject.EndTime, Is.EqualTo(targetEnd));
+                Assert.That(insertedTimeObject.Name, Is.EqualTo("< 2026-07-09 23:59:00"));
+                Assert.That(insertedTimeObject.Hash, Is.EqualTo(FlowHashGenerator.GenerateTimeObjectHash(null, targetEnd)));
+                Assert.That(timeRef.TimeObjId, Is.EqualTo(insertedTimeObject.Id));
+                Assert.That(flowDbCreator.Refusals, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_PersistsEndOnlyObjectCreateTimeObject()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn, timeObjectEndOnly: true);
+            WfReqTask objectTask = CreateObjectTask(42, WfTaskType.object_create, CreateTimeElement(421, 42, "maintenance"));
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, objectTask, WfObjectScopes.RequestTask, null, objectTask.TicketId);
+
+            FlowTimeObject inserted = apiConn.InsertedTimeObjects.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(inserted.StartTime, Is.Null);
+                Assert.That(inserted.EndTime, Is.EqualTo(kObjectTimeEnd.ToUniversalTime()));
+                Assert.That(inserted.Hash, Is.EqualTo(FlowHashGenerator.GenerateTimeObjectHash(null, kObjectTimeEnd.ToUniversalTime())));
+                Assert.That(apiConn.UpdatedRequestElementTimeObjectIds[421], Is.EqualTo(inserted.Id));
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_RefusesStartOnlyTargetDatesWhenTimeObjectsAreEndOnly()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn, timeObjectEndOnly: true);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.Title = "start only access";
+            task.TargetBeginDate = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(flowDbCreator.Refusals.Single().ReasonTextKey, Is.EqualTo("flow_creation_time_object_end_required"));
+                Assert.That(flowDbCreator.Refusals.Single().RefusedValue, Is.EqualTo("start only access"));
+                Assert.That(apiConn.QueriedManagementIds, Is.Empty);
+                Assert.That(apiConn.InsertedAccess, Is.Null);
+                Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+                Assert.That(apiConn.UpdatedRequestTaskIds, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_RefusesWholeTicketWithStartOnlyTimeElementWhenTimeObjectsAreEndOnly()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn, timeObjectEndOnly: true);
+            WfReqElement startOnlyElement = CreateTimeElement(431, 43, "open end");
+            startOnlyElement.EndTime = null;
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                Tasks =
+                [
+                    CreateObjectTask(43, WfTaskType.object_create, startOnlyElement),
+                    CreateAccessTask(44, "10.0.0.1", "10.0.1.1", 443)
+                ]
+            };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(flowDbCreator.Refusals.Single().ReasonTextKey, Is.EqualTo("flow_creation_time_object_end_required"));
+                Assert.That(flowDbCreator.Refusals.Single().RefusedValue, Is.EqualTo("open end"));
+                Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+                Assert.That(apiConn.InsertedAccess, Is.Null);
+                Assert.That(apiConn.UpdatedRequestElementTimeObjectIds, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_IgnoresStartOnlyDatesOfNonFlowTicketTasksWhenTimeObjectsAreEndOnly()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn, timeObjectEndOnly: true);
+            WfReqTask nonFlowTask = new()
+            {
+                Id = 45,
+                TicketId = 7,
+                TaskType = WfTaskType.new_interface.ToString(),
+                TargetBeginDate = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc)
+            };
+            WfTicket ticket = new() { Id = 7, Tasks = [nonFlowTask, CreateAccessTask(46, "10.0.0.1", "10.0.1.1", 443)] };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(flowDbCreator.Refusals, Is.Empty);
+                Assert.That(apiConn.UpdatedRequestTaskIds, Is.EqualTo(new List<long> { 46 }));
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_AcceptsUnboundedAccessWhenTimeObjectsAreEndOnly()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn, timeObjectEndOnly: true);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(flowDbCreator.Refusals, Is.Empty);
+                Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+                Assert.That(apiConn.InsertedAccess, Is.Not.Null);
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_KeepsStartOnlyTargetDatesWhenTimeObjectsHaveStartAndEnd()
+        {
+            DateTime targetBegin = new(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = targetBegin;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            FlowTimeObject insertedTimeObject = apiConn.InsertedTimeObjects.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(flowDbCreator.Refusals, Is.Empty);
+                Assert.That(insertedTimeObject.StartTime, Is.EqualTo(targetBegin));
+                Assert.That(insertedTimeObject.EndTime, Is.Null);
+            });
+        }
+
         private static WfReqElement CreateTimeElement(long elementId, long taskId, string name)
         {
             return new()

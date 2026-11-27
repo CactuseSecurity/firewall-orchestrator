@@ -113,6 +113,25 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void EndOnlyTimeObjectsHideValidFromOfAccessTask()
+        {
+            DisplayRequestTask component = new();
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly }.ToConfigValue()
+            };
+            SetPrivateField(component, "userConfig", userConfig);
+            SetPrivateField(component, "actTaskType", WfTaskType.access);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.ValidFrom), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.ValidTo), Is.True);
+                Assert.That(TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask.ShowValidFrom, Is.True);
+            });
+        }
+
         [TestCase(StateActionTypes.AutoPromote, true, true)]
         [TestCase(StateActionTypes.AutoPromote, false, false)]
         [TestCase(StateActionTypes.TrafficPathAnalysis, false, true)]

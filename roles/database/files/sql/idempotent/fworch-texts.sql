@@ -673,6 +673,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Benachrichtigungen: Der neue Platzhalter <code>@@STATECHANGE_COMMENT@@</code> f&uuml;gt in Betreff und Text von Workflow-Emails den Kommentar bzw. Grund ein, der mit der ausl&ouml;senden Status&auml;nderung eingegeben wurde, z.B. den Grund f&uuml;r die Ablehnung einer Schnittstelle in der Modellierung, den Kommentar einer Genehmigung oder einer Ticket-Weiterleitung. Er wird auch f&uuml;r in der Middleware ausgef&uuml;hrte Aktionen, f&uuml;r dadurch ausgel&ouml;ste automatische Weiterleitungen und f&uuml;r geb&uuml;ndelte Emails zu Antrags-Auftr&auml;gen gef&uuml;llt. <code>@@REASON@@</code> bleibt der Grund des Antrags, <code>@@CONTENT@@</code> ist unver&auml;ndert; zeigt der Text den Ablehnungsgrund bereits &uuml;ber den neuen Platzhalter an, wird er nicht noch einmal am Ende angeh&auml;ngt.</li>
     <li>Workflow: Die Referenz auf ein Ticket eines vorgelagerten Workflows (z.B. bei Anlage &uuml;ber die API) kann angezeigt werden. Ist in den Workflow-Anpassungen eine Bezeichnung (z.B. &quot;ChangeId&quot;) eingetragen, erscheint die Referenz im Ticket-Dialog, als Spalte der Ticketliste und in der &Uuml;berschrift der Auftragsansichten.</li>
     <li>Oberfl&auml;che: Dialoge lassen sich am oberen Rand verschieben und &uuml;ber die rechte untere Ecke in der Gr&ouml;&szlig;e &auml;ndern; Titel und Schlie&szlig;en-Knopf bleiben beim Scrollen sichtbar. Die Einstellungsseiten haben ein einheitliches Layout mit b&uuml;ndig ausgerichteten Eingabefeldern, Schaltern f&uuml;r Ja/Nein-Einstellungen und gruppierten Auswahlfeldern. Das Anmeldefeld steht im oberen Drittel der Seite.</li>
+    <li>Flow Integration: Zeitobjekte k&ouml;nnen &uuml;ber die neue Einstellung &quot;Zeitobjekt-Grenzen&quot; nur &uuml;ber ihr Enddatum definiert werden, f&uuml;r Firewalls, die keine Startzeit kennen. Das Startdatum wird dann weder abgefragt noch in die Flow DB &uuml;bernommen; Antr&auml;ge mit Startdatum ohne Enddatum werden beim Anlegen des Flows abgelehnt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -708,6 +709,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Notifications: the new placeholder <code>@@STATECHANGE_COMMENT@@</code> inserts into the subject and body of workflow emails the comment or reason entered with the triggering state change, e.g. the reason for rejecting an interface in modelling, the comment of an approval or of a ticket promotion. It is also filled for actions executed in the middleware, for automatic promotions triggered by them and for bundled request task emails. <code>@@REASON@@</code> remains the reason of the request and <code>@@CONTENT@@</code> is unchanged; if the body already shows the rejection reason via the new placeholder, it is no longer appended at the end.</li>
     <li>Workflow: the reference to a ticket of a preceding workflow (e.g. when created via the API) can be displayed. If a label (e.g. &quot;ChangeId&quot;) is entered in Workflow Customizing, the reference is shown in the ticket dialog, as a column of the ticket list and in the headline of the task views.</li>
     <li>User interface: dialogs can be moved by their top edge and resized by their lower right corner; title and close button stay visible while scrolling. The settings pages have a uniform layout with aligned input fields, switches for yes/no settings and grouped check boxes. The login form is placed in the upper third of the page.</li>
+    <li>Flow integration: the new setting &quot;Time object bounds&quot; lets time objects be defined by their end date only, for firewalls that do not support a start time. A start date is then neither asked for nor taken over into the Flow DB; requests with a start date but no end date are refused when the flow is created.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2842,6 +2844,12 @@ INSERT INTO txt VALUES ('time_object_origin_suffix_approver', 'German', 'Suffix 
 INSERT INTO txt VALUES ('time_object_origin_suffix_approver', 'English', 'Approver time-object suffix');
 INSERT INTO txt VALUES ('time_object_origin_suffixes', 'German', 'Suffixe der Zeitobjekt-Herkunft');
 INSERT INTO txt VALUES ('time_object_origin_suffixes', 'English', 'Time-object origin suffixes');
+INSERT INTO txt VALUES ('time_object_bounds',   'German',   'Zeitobjekt-Grenzen');
+INSERT INTO txt VALUES ('time_object_bounds',   'English',  'Time object bounds');
+INSERT INTO txt VALUES ('start_and_end',        'German',   'Start- und Enddatum');
+INSERT INTO txt VALUES ('start_and_end',        'English',  'Start and end date');
+INSERT INTO txt VALUES ('end_only',             'German',   'Nur Enddatum');
+INSERT INTO txt VALUES ('end_only',             'English',  'End date only');
 INSERT INTO txt VALUES ('select_objects',       'German',   'Objekte ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_objects',       'English',  'Select objects');
 INSERT INTO txt VALUES ('select_services',      'German',   'Dienste ausw&auml;hlen');
@@ -3686,6 +3694,8 @@ INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
 INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'German',   'Flow-Objekt wird im Antragsmodul nicht mehr angeboten');
 INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'English',  'Flow object is no longer offered in the request module');
+INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'German',   'Zeitobjekt ohne Enddatum, ein Startdatum allein ist nicht zul&auml;ssig');
+INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'English',  'Time object without end date, a start date alone is not allowed');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
@@ -7768,8 +7778,12 @@ INSERT INTO txt VALUES ('H5563', 'English', 'Priorities and Deadlines: The 5 ini
     For each priority an own interval (in days) for ticket and approval deadlines can be set, which is used by the automatic computation of the deadlines.
     The value 0 is interpreted as setting no deadline.
 ');
-INSERT INTO txt VALUES ('H5564', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul. &Uuml;ber Flow Integration wird festgelegt, ob Objekte, Dienste und Zeitobjekte aus der Flow DB, manuell oder aus beiden Quellen ausgew&auml;hlt werden. Zus&auml;tzlich kann die Genauigkeit von Zeitobjekten festgelegt werden.');
-INSERT INTO txt VALUES ('H5564', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module. Flow integration defines whether objects, services, and time objects are selected from the Flow DB, manually, or from both sources. The precision for time objects can also be configured.');
+INSERT INTO txt VALUES ('H5564', 'German', 'Flow DB verwenden: Aktiviert die Nutzung der Flow DB im Workflow-Modul. &Uuml;ber Flow Integration wird festgelegt, ob Objekte, Dienste und Zeitobjekte aus der Flow DB, manuell oder aus beiden Quellen ausgew&auml;hlt werden. Zus&auml;tzlich kann die Genauigkeit von Zeitobjekten festgelegt werden.
+    Zeitobjekt-Grenzen legen fest, ob Zeitobjekte &uuml;ber Start- und Enddatum oder nur &uuml;ber das Enddatum definiert werden. Bei "Nur Enddatum" wird ein Startdatum weder abgefragt noch in die Flow DB &uuml;bernommen; Antr&auml;ge, die ein Startdatum ohne Enddatum enthalten, werden beim Anlegen des Flows abgelehnt. Antr&auml;ge ganz ohne Zeitangabe bleiben unbefristet m&ouml;glich.
+');
+INSERT INTO txt VALUES ('H5564', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module. Flow integration defines whether objects, services, and time objects are selected from the Flow DB, manually, or from both sources. The precision for time objects can also be configured.
+    Time object bounds define whether time objects are defined by a start and an end date or by their end date only. With "End date only" a start date is neither asked for nor taken over into the Flow DB; requests that contain a start date without an end date are refused when the flow is created. Requests without any time bound remain possible without time limit.
+');
 INSERT INTO txt VALUES ('H5565', 'German',  'Manuelle Eigent&uuml;merverwaltung erlauben: Es wird das manuelle Anlegen und Verwalten von Eigent&uuml;mern durch den Administrator gestattet.');
 INSERT INTO txt VALUES ('H5565', 'English', 'Allow manual owner administration: The manual creation and administration of owners can be permitted.');
 INSERT INTO txt VALUES ('H5566', 'German',  'B&uuml;ndelungsoptionen: Legen fest, wie Antrags-Auftr&auml;ge mit derselben Flow-B&uuml;ndel-ID beim Anlegen der Implementierungs-Auftr&auml;ge und in der Anzeige behandelt werden. Ob Implementierungs-Auftr&auml;ge automatisch angelegt werden, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; fest.');

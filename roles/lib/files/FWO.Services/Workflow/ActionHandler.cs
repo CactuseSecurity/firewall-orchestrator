@@ -626,8 +626,9 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            string timeObjectPrecision = FlowIntegrationConfig.Parse(wfHandler.userConfig.ReqFlowIntegration).TimeObjectPrecision;
-            FlowDbCreator flowDbCreator = new(apiConnection, timeObjectPrecision, wfHandler.userConfig.ReqTimeObjectOriginSuffixes);
+            FlowIntegrationConfig flowIntegration = FlowIntegrationConfig.Parse(wfHandler.userConfig.ReqFlowIntegration);
+            FlowDbCreator flowDbCreator = new(apiConnection, flowIntegration.TimeObjectPrecision,
+                wfHandler.userConfig.ReqTimeObjectOriginSuffixes, flowIntegration.IsEndOnly);
             bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
             if (success != null)
             {

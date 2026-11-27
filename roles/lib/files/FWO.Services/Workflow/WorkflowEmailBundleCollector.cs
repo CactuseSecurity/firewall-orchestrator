@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.Workflow;
+using System.Text.Json;
 
 namespace FWO.Services.Workflow
 {
@@ -65,8 +66,10 @@ namespace FWO.Services.Workflow
         /// <param name="requestTask">Request task the email belongs to</param>
         /// <param name="owner">Owner the recipients were resolved for, if any</param>
         /// <param name="userGrpDn">User group DN the email was triggered for, if any</param>
+        /// <param name="placeholderData">Placeholder values the email was triggered with, e.g. the state change comment, if any</param>
         /// <returns>true if the email was captured; false if the caller has to send it immediately</returns>
-        public bool TryAdd(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn)
+        public bool TryAdd(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn,
+            NotificationPlaceholderData? placeholderData = null)
         {
             if (PendingItems.Count >= WorkflowEmailBundleStore.kMaxPendingItemsPerBundle)
             {
@@ -74,7 +77,7 @@ namespace FWO.Services.Workflow
             }
 
             Touch();
-            PendingItems.Add(new WorkflowEmailBundleItem(action, requestTask, owner, userGrpDn));
+            PendingItems.Add(new WorkflowEmailBundleItem(action, requestTask, owner, userGrpDn, placeholderData));
             return true;
         }
 
@@ -89,8 +92,8 @@ namespace FWO.Services.Workflow
 
     /// <summary>
     /// One email captured into a workflow email bundle, together with the context it was captured in.
-    /// Action and request task are deep copied on creation, so the captured email cannot drift when the
-    /// live objects are mutated by later state changes before the bundle is flushed.
+    /// Action, request task and placeholder values are deep copied on creation, so the captured email cannot
+    /// drift when the live objects are mutated by later state changes before the bundle is flushed.
     /// </summary>
     public sealed class WorkflowEmailBundleItem
     {
@@ -115,6 +118,14 @@ namespace FWO.Services.Workflow
         public string? UserGrpDn { get; }
 
         /// <summary>
+        /// Copy of the placeholder values the email was triggered with, e.g. the comment of the state change. The
+        /// bundle is flushed by a later request without that state change, so these values are kept here. The free
+        /// text content of the caller is not kept: a bundled email shows the generated list of the requested
+        /// connections, which caller content would replace.
+        /// </summary>
+        public NotificationPlaceholderData? PlaceholderData { get; }
+
+        /// <summary>
         /// Key deciding which captured emails may be merged into one email at flush time. Items sharing
         /// this key are sent as a single email; items differing in it are never merged.
         /// </summary>
@@ -127,13 +138,32 @@ namespace FWO.Services.Workflow
         /// <param name="requestTask">Request task the email belongs to</param>
         /// <param name="owner">Owner the recipients were resolved for, if any</param>
         /// <param name="userGrpDn">User group DN the email was triggered for, if any</param>
-        public WorkflowEmailBundleItem(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn)
+        /// <param name="placeholderData">Placeholder values the email was triggered with, if any</param>
+        public WorkflowEmailBundleItem(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn,
+            NotificationPlaceholderData? placeholderData = null)
         {
             Action = new WfStateAction(action);
             RequestTask = new WfReqTask(requestTask);
             Owner = owner;
             UserGrpDn = userGrpDn;
-            BundleKey = BuildBundleKey(Action, RequestTask, Owner, UserGrpDn);
+            PlaceholderData = WithoutCallerContent(placeholderData);
+            BundleKey = BuildBundleKey(Action, RequestTask, Owner, UserGrpDn, PlaceholderData);
+        }
+
+        /// <summary>
+        /// Copies the placeholder values without the free text content of the caller. Only emails with the requested
+        /// connections are bundled, and a non-empty caller content would replace that generated list in the body.
+        /// </summary>
+        /// <param name="placeholderData">Placeholder values the email was triggered with, if any</param>
+        /// <returns>The copied values without content; null if there are none</returns>
+        private static NotificationPlaceholderData? WithoutCallerContent(NotificationPlaceholderData? placeholderData)
+        {
+            NotificationPlaceholderData? copy = placeholderData?.Copy();
+            if (copy != null)
+            {
+                copy.Content = "";
+            }
+            return copy;
         }
 
         /// <summary>
@@ -156,22 +186,26 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Builds the full bundle key: the request-task part plus the action and recipient context
-        /// the email was captured for.
+        /// Builds the full bundle key: the request-task part plus the action, recipient context and placeholder
+        /// values the email was captured for. Emails with different placeholder values, e.g. different state
+        /// change comments, are never merged, as one email can only show one value per placeholder.
         /// </summary>
         /// <param name="action">State action that triggered the email</param>
         /// <param name="requestTask">Request task the email was captured for</param>
         /// <param name="owner">Owner the recipients were resolved for, if any</param>
         /// <param name="userGrpDn">User group DN the email was captured for, if any</param>
+        /// <param name="placeholderData">Placeholder values the email was captured with, if any</param>
         /// <returns>Key identifying one bundle group</returns>
-        public static string BuildBundleKey(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn)
+        public static string BuildBundleKey(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn,
+            NotificationPlaceholderData? placeholderData = null)
         {
             return string.Join("|",
                 BuildTaskBundleKey(requestTask),
                 action.Id,
                 action.ExternalParams,
                 owner?.Id,
-                userGrpDn);
+                userGrpDn,
+                placeholderData == null ? "" : JsonSerializer.Serialize(placeholderData));
         }
 
         private static string BuildOwnerKey(WfReqTask requestTask)

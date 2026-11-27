@@ -188,6 +188,8 @@ namespace FWO.Services.Workflow
 
         private async Task<long> SaveTicketToDb(WfStatefulObject ticket)
         {
+            string? promotionComment = TakeOptComment(ticket);
+            using IDisposable stateChangeCommentScope = BeginStateChangeComment(promotionComment);
             int previousTicketStateId = ActTicket.StateId;
             int targetTicketStateId = ticket.StateId;
             ActTicket.StateId = targetTicketStateId;
@@ -196,7 +198,7 @@ namespace FWO.Services.Workflow
 
             if (requestTasksSynchronized)
             {
-                await SynchronizeRequestTasks(targetTicketStateId, ticket.OptComment());
+                await SynchronizeRequestTasks(targetTicketStateId, promotionComment);
             }
 
             await PersistTicket();
@@ -210,7 +212,7 @@ namespace FWO.Services.Workflow
 
             if (!requestTasksSynchronized)
             {
-                await UpdateRequestTasksAndTicket(ticket.OptComment());
+                await UpdateRequestTasksAndTicket(promotionComment);
             }
 
             ResetTicketActions();

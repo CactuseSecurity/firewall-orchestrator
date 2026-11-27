@@ -47,7 +47,7 @@ main() {
         pip install "${pip_install_options[@]}" -r scripts/requirements.txt || return $?
     fi
     pip install "${pip_install_options[@]}" ansible || return $?
-    ansible-galaxy collection install -r collections/requirements.yml -p collections --force || return $?
+    python3 scripts/run_installer_galaxy.py collection install -r collections/requirements.yml -p collections --force || return $?
 }
 
 main "$@"

@@ -233,11 +233,14 @@
         builder.CloseElement();
     };
 
-    /// <summary>Returns whether the promotion of a task is offered: if tasks may be promoted and the user may change the task.</summary>
+    /// <summary>
+    /// Returns whether the promotion of a task is offered: if tasks may be promoted and the user may change the task, and the
+    /// ticket is not outdated, as the promotion would start from its displayed state.
+    /// </summary>
     /// <param name="task">The request task.</param>
     private bool CanShowTaskPromotion(WfReqTask task)
     {
-        return CanPromoteTasks && !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(task);
+        return CanPromoteTasks && !WfHandler.ReadOnlyMode && !WfHandler.ActTicketOutdated && WfHandler.CanActOnReqTaskInCurrentPhase(task);
     }
 
     /// <summary>The configured request task actions offered for a task or a bundle displayed as one.</summary>

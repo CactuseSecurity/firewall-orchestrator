@@ -255,9 +255,10 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Returns the time restriction as "name (begin - end)", or an empty string if there is none. Like for request
-        /// tasks, a begin or end date hidden by the configured visibility is left out, and without a name the name the
-        /// time object gets on creation is built from the visible dates.
+        /// Returns the time restriction as "name (begin - end)", or an empty string if there is none. The name is the first
+        /// one given of the time element of the implementation task and the time object of the request task, as its
+        /// request row shows it; without one, a name is built from the visible dates, like for the request row. A begin or
+        /// end date hidden by the configured visibility is left out.
         /// </summary>
         /// <param name="implementationTask">The implementation task.</param>
         /// <param name="requestTask">The request task of the implementation task.</param>
@@ -270,7 +271,11 @@ namespace FWO.Ui.Services
             DateTime? endDate = visibility.ShowValidTo ? timeElement?.EndTime ?? implementationTask.TargetEndDate : null;
             // parsed once, as the time restriction is displayed for every implementation task
             timeObjectPrecision ??= FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision;
-            string? name = timeElement?.Name ?? TimeObjectElementHelper.Find(requestTask.Elements)?.Name;
+            string? name = timeElement?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = TimeObjectReferenceResolver.TimeObjectName(wfHandler.ActTicket.Tasks, requestTask);
+            }
             if (string.IsNullOrWhiteSpace(name))
             {
                 name = TimeObjectNamingHelper.BuildDateBasedName(beginDate, endDate, timeObjectPrecision);

@@ -405,9 +405,14 @@
             WfHandler.EditTicketMode, WfHandler.ReadOnlyMode);
     }
 
+    /// <summary>
+    /// Returns whether the ticket promotion is offered; not on an outdated ticket, as the promotion would start from its
+    /// displayed state.
+    /// </summary>
     private bool CanShowTicketPromotionButton()
     {
-        return WfHandler.CanPromoteTicketInCurrentPhase()
+        return !WfHandler.ActTicketOutdated
+            && WfHandler.CanPromoteTicketInCurrentPhase()
             && (CheckPromoteTicket() || CanSaveTicketChangesForApprovalView());
     }
 

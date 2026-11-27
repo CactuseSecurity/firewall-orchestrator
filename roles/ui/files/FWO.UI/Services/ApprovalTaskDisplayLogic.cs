@@ -131,6 +131,8 @@ namespace FWO.Ui.Services
         /// Formats time-object names and the visible validity interval; a name built from the dates leaves out the dates
         /// hidden by the visibility.
         /// </summary>
+        /// <param name="tasks">The request tasks.</param>
+        /// <param name="visibility">The configured field visibility of access tasks, defining whether begin and end are shown.</param>
         public string TimeObjectDisplay(IEnumerable<WfReqTask> tasks, AccessTaskFieldVisibilityConfig visibility)
         {
             string name = string.Join("; ", tasks
@@ -282,29 +284,20 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Returns the name of the time object of the task; without one, the name the time object gets on creation, built
-        /// from the visible dates only.
+        /// Returns the name of the time object of the task (see <see cref="TimeObjectReferenceResolver.TimeObjectName"/>);
+        /// without one, a name built from the visible dates only.
         /// </summary>
         /// <param name="task">The request task.</param>
         /// <param name="visibility">The configured field visibility of access tasks, defining whether begin and end are shown.</param>
         private string GetTimeObjectName(WfReqTask task, AccessTaskFieldVisibilityConfig visibility)
         {
-            WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
-            WfReqElement? effectiveTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
-                wfHandler.ActTicket.Tasks, task, null, null) ?? timeElement;
-            string name = effectiveTimeElement?.Name ?? "";
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                long? timeObjectId = TimeObjectElementHelper.GetSelectorId(timeElement);
-                WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
-                    wfHandler.ActTicket.Tasks, task, timeObjectId, null);
-                name = parallelTimeElement?.Name ?? TimeObjectNamingHelper.BuildDateBasedName(
+            string name = TimeObjectReferenceResolver.TimeObjectName(wfHandler.ActTicket.Tasks, task);
+            return string.IsNullOrWhiteSpace(name)
+                ? TimeObjectNamingHelper.BuildDateBasedName(
                     visibility.ShowValidFrom ? task.TargetBeginDate : null,
                     visibility.ShowValidTo ? task.TargetEndDate : null,
-                    FlowIntegration.TimeObjectPrecision);
-            }
-
-            return name;
+                    FlowIntegration.TimeObjectPrecision)
+                : name;
         }
 
         private static string BuildValidity(string begin, string end)

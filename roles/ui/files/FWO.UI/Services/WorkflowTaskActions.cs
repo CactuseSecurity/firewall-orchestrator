@@ -48,6 +48,7 @@ namespace FWO.Ui.Services
                 {
                     await actionHandler.PerformAction(action, task, scope, owner, ticketId);
                 }
+                return true;
             });
         }
 
@@ -55,39 +56,48 @@ namespace FWO.Ui.Services
         /// Runs actions if an action handler exists and reloads the ticket afterwards, also if an action fails.
         /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
-        /// <param name="performActions">Performs the actions with the action handler.</param>
-        private static async Task RunAndReload(WfHandler wfHandler, Func<ActionHandler, Task> performActions)
+        /// <param name="performActions">Performs the actions with the action handler; returns false if the ticket is known
+        /// to be no longer visible, so a reload would only fetch it to filter it out again.</param>
+        private static async Task RunAndReload(WfHandler wfHandler, Func<ActionHandler, Task<bool>> performActions)
         {
             if (wfHandler.ActionHandler == null)
             {
                 return;
             }
+            bool reload = true;
             try
             {
-                await performActions(wfHandler.ActionHandler);
+                reload = await performActions(wfHandler.ActionHandler);
             }
             finally
             {
-                // reports its own errors, so the error of the action is not hidden
-                await wfHandler.ReloadActTicket();
+                if (reload)
+                {
+                    // reports its own errors, so the error of the action is not hidden
+                    await wfHandler.ReloadActTicket();
+                }
             }
         }
 
         /// <summary>Returns whether the user may change all request tasks of a group (a single task or a bundle displayed as one).</summary>
         /// <param name="wfHandler">The workflow handler providing the read-only mode and the phase.</param>
         /// <param name="taskGroup">The request tasks.</param>
+        /// <remarks>Not on an outdated ticket, whose states the change would be based on.</remarks>
         public static bool CanChangeRequestTasks(WfHandler wfHandler, IReadOnlyList<WfReqTask> taskGroup)
         {
-            return taskGroup.Count > 0 && !wfHandler.ReadOnlyMode && taskGroup.All(wfHandler.CanActOnReqTaskInCurrentPhase);
+            return taskGroup.Count > 0 && !wfHandler.ReadOnlyMode && !wfHandler.ActTicketOutdated
+                && taskGroup.All(wfHandler.CanActOnReqTaskInCurrentPhase);
         }
 
         /// <summary>Returns whether the user may change an implementation task and its request task.</summary>
         /// <param name="wfHandler">The workflow handler providing the read-only mode and the phase.</param>
         /// <param name="implementationTask">The implementation task.</param>
         /// <param name="requestTask">The request task the implementation task belongs to.</param>
+        /// <remarks>Not on an outdated ticket, whose states the change would be based on.</remarks>
         public static bool CanChangeImplementationTask(WfHandler wfHandler, WfImplTask implementationTask, WfReqTask requestTask)
         {
             return !wfHandler.ReadOnlyMode
+                && !wfHandler.ActTicketOutdated
                 && wfHandler.CanActOnReqTaskInCurrentPhase(requestTask)
                 && wfHandler.CanActOnImplTaskInCurrentPhase(implementationTask);
         }
@@ -117,10 +127,11 @@ namespace FWO.Ui.Services
         /// bundle moves its lagging bundled tasks along, so a task whose state changed while the action ran on the
         /// previous tasks is skipped instead of being promoted a second time. A state changing action delegated to the
         /// middleware changes only the stored states, so the ticket is reloaded before each further task to see them. If that
-        /// reload fails (query error, or the ticket is no longer visible to the user), the remaining tasks are skipped, as
-        /// their states are unknown and sending them would be rejected, and the user is told which tasks were skipped. The
-        /// final reload is still tried: after a passing query error it brings the ticket up to date, so no stale state is
-        /// offered for another action; if the query keeps failing, its error is reported once more.
+        /// reload fails (read error, or the ticket is no longer visible to the user), the remaining tasks are skipped, as
+        /// their states are unknown and sending them would be rejected, and the user is told which tasks were skipped. After
+        /// a read error the final reload is still tried: after a passing error it brings the ticket up to date; if the error
+        /// lasts, it is reported once more. A ticket no longer visible is not fetched again. A ticket left outdated offers
+        /// no further state change (see <see cref="WfHandler.ActTicketOutdated"/>).
         /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
         /// <param name="action">The action to perform.</param>
@@ -134,23 +145,28 @@ namespace FWO.Ui.Services
                 for (int index = 0; index < taskGroup.Count; index++)
                 {
                     WfReqTask task = taskGroup[index];
-                    if (index > 0 && reloadBetweenTasks && !await wfHandler.ReloadActTicket())
+                    if (index > 0 && reloadBetweenTasks)
                     {
-                        ReportSkippedTasks(wfHandler, action, taskGroup.Skip(index));
-                        break;
+                        TicketReloadResult reload = await wfHandler.TryReloadActTicket();
+                        if (reload != TicketReloadResult.Refreshed)
+                        {
+                            ReportSkippedTasks(wfHandler, action, taskGroup.Skip(index));
+                            return reload != TicketReloadResult.NotVisible;
+                        }
                     }
                     if (CurrentStateId(wfHandler, task) == initialStateIds[index])
                     {
                         await actionHandler.PerformAction(action, task, WfObjectScopes.RequestTask, task.Owners.FirstOrDefault()?.Owner, task.TicketId);
                     }
                 }
+                return true;
             });
         }
 
         /// <summary>
         /// Tells the user that an action was not sent separately for the remaining tasks of a bundle; they may have moved
-        /// with the bundle anyway. A failed reload is only reported by the handler if its query fails, not if the ticket is
-        /// filtered out, so this is the only hint that the bundle may have moved only partly.
+        /// with the bundle anyway. A failed reload is only reported (by the db access) if the ticket can not be read, not
+        /// if it is filtered out, so this is the only hint that the bundle may have moved only partly.
         /// </summary>
         /// <param name="wfHandler">The workflow handler displaying the message.</param>
         /// <param name="action">The action, whose name is the message title.</param>

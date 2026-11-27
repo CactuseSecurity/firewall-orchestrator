@@ -261,10 +261,12 @@ internal sealed class TaskListHelperTest
         });
     }
 
-    [TestCase(ReloadFailure.QueryFailsOnce, 2, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryFailsOnce")]
-    [TestCase(ReloadFailure.QueryKeepsFailing, 3, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryKeepsFailing")]
-    [TestCase(ReloadFailure.TicketNoLongerVisible, 4, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheTicketIsNoLongerVisible")]
-    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails(ReloadFailure failure, long ticketId)
+    // the queries: the reload between the tasks and the final one, which is left out for a ticket no longer visible; the
+    // messages: the skip notice and the read error of each failed query
+    [TestCase(ReloadFailure.QueryFailsOnce, 2, 2, 2, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryFailsOnce")]
+    [TestCase(ReloadFailure.QueryKeepsFailing, 3, 2, 3, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryKeepsFailing")]
+    [TestCase(ReloadFailure.TicketNoLongerVisible, 4, 1, 1, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheTicketIsNoLongerVisible")]
+    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails(ReloadFailure failure, long ticketId, int ticketQueries, int messageCount)
     {
         string taskType = WfTaskType.access.ToString();
         // other ids than in the other tests, as the action handler drops repeated middleware delegations for a few seconds
@@ -281,6 +283,10 @@ internal sealed class TaskListHelperTest
         SkippedTasksTextUserConfig userConfig = new();
         WfHandler handler = CreateReloadingHandler(apiConnection, middlewareClient,
             (_, _, message, error) => messages.Add((message, error)), userConfig);
+        // both the old and the new states may be changed, so only an outdated ticket prevents the change
+        StateMatrixDict matrices = new();
+        matrices.Matrices[taskType] = new StateMatrix { LowestInputState = 0, LowestEndState = 10 };
+        UiRequestWorkflowTest.SetMember(handler, "stateMatrixDict", matrices);
         // the middleware moves the bundle along, but the ticket can not be reloaded afterwards: the query fails once or
         // keeps failing (reported by the db access), or the reload ends without an error, as the owner based workflow
         // hides the ticket from the user, who is no longer one of its owners
@@ -307,18 +313,29 @@ internal sealed class TaskListHelperTest
         await WorkflowTaskActions.PerformOnRequestTasks(handler, autoPromote, [first, second]);
 
         bool refreshed = failure == ReloadFailure.QueryFailsOnce;
+        bool canPerformAction = handler.CanPerformActionOnActTicket(autoPromote);
+        bool canChangeTasks = WorkflowTaskActions.CanChangeRequestTasks(handler, handler.ActTicket.Tasks);
+        WfTicket ticketAfterAction = handler.ActTicket;
+        // e.g. an implementation task of another ticket is selected, which sets the active ticket directly
+        handler.ActTicket = new WfTicket { Id = ticketId + 100 };
+        bool otherTicketOutdated = handler.ActTicketOutdated;
+        handler.ActTicket = ticketAfterAction;
         Assert.Multiple(() =>
         {
             // with its stale state, the second task would be rejected by the middleware
             Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
             // the user learns that the bundle moved only partly
             Assert.That(messages, Does.Contain(($"skipped: {second.Id}", true)));
-            // the final reload is still tried, so a passing query error does not leave a stale ticket
-            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(2));
+            Assert.That(messages, Has.Count.EqualTo(messageCount));
+            // after a read error the final reload is still tried, so a passing error does not leave a stale ticket
+            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(ticketQueries));
             Assert.That(handler.ActTicket.Tasks.Select(task => task.StateId), Is.EqualTo(refreshed ? kOncePromotedStates : kUnchangedStates));
             // a stale ticket offers no further state change, which would be sent with the old states and rejected
             Assert.That(handler.ActTicketOutdated, Is.EqualTo(!refreshed));
-            Assert.That(handler.CanPerformActionOnActTicket(autoPromote), Is.EqualTo(refreshed));
+            Assert.That(canPerformAction, Is.EqualTo(refreshed));
+            Assert.That(canChangeTasks, Is.EqualTo(refreshed));
+            // only the stale copy is outdated, not another ticket
+            Assert.That(otherTicketOutdated, Is.False);
         });
     }
 
@@ -339,7 +356,8 @@ internal sealed class TaskListHelperTest
         userConfig ??= new SimulatedUserConfig();
         WfHandler handler = new(displayMessage ?? DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConnection, middlewareClient, WorkflowPhases.planning);
         handler.ActionHandler = new ActionHandler(apiConnection, handler);
-        SetDbAccess(handler, new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
+        // like the handler, the db access reports its errors to the user
+        SetDbAccess(handler, new WfDbAccess(displayMessage ?? DefaultInit.DoNothing, userConfig, apiConnection, handler.ActionHandler, false, WorkflowPhases.planning));
         return handler;
     }
 

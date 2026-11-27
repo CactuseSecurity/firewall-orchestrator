@@ -86,15 +86,18 @@ namespace FWO.Services.Workflow
         /// <param name="ticketId">The id of the ticket.</param>
         /// <param name="ownerIds">The owners of the user, used if the workflow is owner based.</param>
         /// <param name="ticketFilter">Returns whether the ticket may be shown, e.g. to its responsible users only.</param>
-        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null, Func<WfTicket, bool>? ticketFilter = null)
+        /// <param name="onReadFailure">Called if the ticket can not be read, to tell this from a ticket that is filtered out.</param>
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null, Func<WfTicket, bool>? ticketFilter = null,
+            Action? onReadFailure = null)
         {
-            WfTicket? ticket = null;
+            WfTicket? ticket;
             try
             {
                 ticket = await GetTicket(ticketId);
                 // a failed query is reported by GetTicket, which then returns an empty ticket that must not be shown
                 if (ticket?.Id != ticketId)
                 {
+                    onReadFailure?.Invoke();
                     return null;
                 }
                 if (UserConfig.ReqOwnerBased && !AsAdmin)
@@ -108,6 +111,8 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exception)
             {
+                ticket = null;
+                onReadFailure?.Invoke();
                 DisplayMessageInUi(exception, UserConfig.GetText("fetch_requests"), "", true);
             }
             return ticket;

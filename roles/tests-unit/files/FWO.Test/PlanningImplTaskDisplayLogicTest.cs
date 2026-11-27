@@ -324,6 +324,55 @@ internal sealed class PlanningImplTaskDisplayLogicTest
     }
 
     [Test]
+    public void TimeRestriction_ShowsTheTimeObjectNameOfTheRequestRow()
+    {
+        DateTime begin = new(2027, 1, 1);
+        DateTime end = new(2027, 2, 1);
+        WfReqTask timeObjectTask = new()
+        {
+            Id = 5,
+            TaskType = WfTaskType.object_create.ToString(),
+            Elements = [new WfReqElement { Id = 50, Field = ElemFieldType.time.ToString(), Name = "maintenance", StartTime = begin, EndTime = end }]
+        };
+        WfReqTask referencingTask = new()
+        {
+            Id = 6,
+            TaskType = WfTaskType.access.ToString(),
+            TargetBeginDate = begin,
+            TargetEndDate = end,
+            Elements = [new WfReqElement { Id = 60, Field = ElemFieldType.time.ToString(), ObjectTaskId = 5 }]
+        };
+        WfReqTask namedTask = new()
+        {
+            Id = 7,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement { Id = 70, Field = ElemFieldType.time.ToString(), Name = "night" }]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [timeObjectTask, referencingTask, namedTask] } };
+        PlanningImplTaskDisplayLogic logic = CreateLogic(handler);
+        ApprovalTaskDisplayLogic requestLogic = new(handler, new SimulatedUserConfig(), [], [], [], [], false);
+        AccessTaskFieldVisibilityConfig visible = new();
+        WfImplTask unnamedImplTask = new()
+        {
+            TargetBeginDate = begin,
+            TargetEndDate = end,
+            ImplElements = [new WfImplElement { Field = ElemFieldType.time.ToString() }]
+        };
+        WfImplTask emptyNamedImplTask = new() { ImplElements = [new WfImplElement { Field = ElemFieldType.time.ToString(), Name = "" }] };
+
+        string implementationRow = logic.TimeRestriction(unnamedImplTask, referencingTask, visible);
+
+        Assert.Multiple(() =>
+        {
+            // the name of the time object another task of the ticket creates, not a name built from the dates
+            Assert.That(implementationRow, Does.StartWith("maintenance ("));
+            Assert.That(implementationRow, Is.EqualTo(requestLogic.TimeObjectDisplay([referencingTask], visible)));
+            // an empty name of the implementation task falls back to the name of the request task
+            Assert.That(logic.TimeRestriction(emptyNamedImplTask, namedTask, visible), Is.EqualTo("night"));
+        });
+    }
+
+    [Test]
     public void TimeRestriction_LeavesOutHiddenDates()
     {
         WfImplTask namedTask = new()
@@ -348,7 +397,7 @@ internal sealed class PlanningImplTaskDisplayLogicTest
             // the name built from the dates must not show the hidden begin either
             Assert.That(unnamedEndOnly, Is.Not.Empty.And.Not.Contain("2027-01-01").And.Not.Contain("01.01.2027"));
             Assert.That(logic.TimeRestriction(unnamedTask, new WfReqTask(), noDates), Is.Empty);
-            // like the request tasks, the name the time object gets on creation is built from the visible dates
+            // like for the request tasks, a name is built from the visible dates
             Assert.That(logic.TimeRestriction(unnamedTask, new WfReqTask(), new AccessTaskFieldVisibilityConfig()),
                 Is.EqualTo("2027-01-01 00:00:00 - 2027-12-31 00:00:00 (01.01.2027 00:00:00 - 31.12.2027 00:00:00)"));
             Assert.That(unnamedEndOnly, Is.EqualTo("< 2027-12-31 00:00:00 (31.12.2027 00:00:00)"));

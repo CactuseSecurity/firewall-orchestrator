@@ -1,0 +1,7 @@
+mutation newGuardicoreGateway($name: String!, $uid: String!, $devTypeId: Int!, $managementId: Int!) {
+  insert_device(objects: {dev_name: $name, dev_uid: $uid, dev_typ_id: $devTypeId, mgm_id: $managementId}) {
+    returning {
+      newId: dev_id
+    }
+  }
+}

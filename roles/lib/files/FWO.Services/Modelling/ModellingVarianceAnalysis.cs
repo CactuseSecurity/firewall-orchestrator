@@ -207,6 +207,7 @@ namespace FWO.Services.Modelling
             List<ModellingConnection> connectionsToCompare = [.. connections.Where(c => !c.IsInterface && !c.IsDocumentationOnly()).OrderBy(c => c.Id)];
             if (ruleRecognitionOption.NwSeparateGroupAnalysis && analyseAppRoles)
             {
+                await LoadManagementSettings();
                 await GetNwObjectsProductionState(cancellationToken);
                 PreAnalyseAllAppRoles(connectionsToCompare);
             }
@@ -237,6 +238,7 @@ namespace FWO.Services.Modelling
         {
             appServerComparer = new(namingConvention);
             await InitManagements();
+            await LoadManagementSettings();
             await LoadAreas();
             await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait }, cancellationToken);
             await GetNwObjectsProductionState(cancellationToken);
@@ -253,17 +255,27 @@ namespace FWO.Services.Modelling
                 foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                 {
                     ReqElements = [];
-                    AnalyseNetworkAreasForRequest(conn);
+                    if (WritesLabels(mgt))
+                    {
+                        AnalyseLabelWriterAreasForRequest(conn, mgt);
+                    }
+                    else
+                    {
+                        AnalyseNetworkAreasForRequest(conn);
+                    }
                     AnalyseAppRolesForRequest(conn, mgt);
                     AnalyseAppServersForRequest(conn);
+                    AnalyseConnectionLabelsForRequest(conn, mgt);
                     AnalyseServiceGroupsForRequest(conn, mgt);
                     AnalyseServicesForRequest(conn);
-                    if (!conn.IsInterface && ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                    if (!conn.IsInterface && ReqElements.Count > 0 && !HasLabelOnlySideForObjectWriter(mgt, conn)) // NOSONAR: populated via side effects in Analyse*ForRequest methods
                     {
                         AnalyseConnectionForRequest(mgt, conn);
                     }
                 }
                 AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
+                AnalyseNetworkAreaLabelsForRequest(mgt, connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()));
+                await AnalyseObsoleteLabelsForRequest(mgt);
             }
             TaskList.AddRange(AddAccessTaskList);
             TaskList.AddRange(ChangeAccessTaskList);
@@ -324,24 +336,40 @@ namespace FWO.Services.Modelling
                 foreach (var mgt in RelevantManagements)
                 {
                     await CollectGroupObjects(mgt.Id);
-                    ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
-                    if (prodAppRole == null)
+                    ModellingAppZone? variance = AppZoneVariance(modelledAppZone, mgt, appZoneComparer);
+                    if (variance != null)
                     {
-                        MgtsWithVariance.Add(new() { ManagementName = mgt.Name });
-                    }
-                    else
-                    {
-                        ModellingAppZone prodAppZone = new(prodAppRole);
-                        if (!appZoneComparer.Equals(prodAppZone, modelledAppZone))
-                        {
-                            prodAppZone.ManagementName = mgt.Name;
-                            MgtsWithVariance.Add(prodAppZone);
-                        }
+                        MgtsWithVariance.Add(variance);
                     }
                 }
                 return (true, MgtsWithVariance);
             }
             return (false, []);
+        }
+
+        /// <summary>
+        /// Compares the modelled app zone with the one of a management: label managements compare by addresses, others
+        /// with the app zone comparer.
+        /// </summary>
+        /// <returns>The app zone of the management (empty if it is missing) if it differs, else null.</returns>
+        private ModellingAppZone? AppZoneVariance(ModellingAppZone modelledAppZone, Management mgt, AppZoneComparer appZoneComparer)
+        {
+            ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
+            if (prodAppRole == null)
+            {
+                return new() { ManagementName = mgt.Name };
+            }
+            if (WritesLabels(mgt))
+            {
+                return LabelMembersChanged(modelledAppZone.AppServers, prodAppRole) ? new(prodAppRole) { ManagementName = mgt.Name } : null;
+            }
+            ModellingAppZone prodAppZone = new(prodAppRole);
+            if (appZoneComparer.Equals(prodAppZone, modelledAppZone))
+            {
+                return null;
+            }
+            prodAppZone.ManagementName = mgt.Name;
+            return prodAppZone;
         }
 
         private void PreAnalyseAllAppRoles(List<ModellingConnection> connections)
@@ -381,18 +409,25 @@ namespace FWO.Services.Modelling
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)
         {
+            if (IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole))
+            {
+                return;
+            }
             if (ResolveProdAppRole(modelledAppRole, mgt) == null)
             {
                 modelledAppRole.IsMissing = true;
                 varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole) { ManagementName = mgt.Name });
             }
-            else if (AppRoleChanged(modelledAppRole))
+            else if (AppRoleChanged(modelledAppRole, mgt))
             {
                 modelledAppRole.HasDifference = true;
                 ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
+                bool writesLabels = WritesLabels(mgt);
                 foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer)) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => writesLabels
+                        ? HasSameIpRange(a.Content, appServer)
+                        : IsSameGroupMember(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

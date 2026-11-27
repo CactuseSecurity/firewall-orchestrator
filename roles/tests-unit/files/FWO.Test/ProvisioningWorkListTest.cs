@@ -94,6 +94,14 @@ namespace FWO.Test
                 return gatewayId != kGatewayWithoutRuleWritesId;
             }
 
+            /// <summary>Gateways whose vendor writes new rules without position (Guardicore).</summary>
+            public HashSet<int> GatewaysWithoutPositioning { get; } = [];
+
+            public bool NewRulesNeedPosition(int gatewayId)
+            {
+                return !GatewaysWithoutPositioning.Contains(gatewayId);
+            }
+
             public ExternalTicketSystemKind GetExternalTicketSystem(int managementId)
             {
                 return managementId == kExternalManagementId ? ExternalTicketSystemKind.TufinSecureChange : ExternalTicketSystemKind.Undefined;
@@ -393,6 +401,25 @@ namespace FWO.Test
                 Assert.That(workList.Items, Is.Empty);
                 Assert.That(workList.Gaps, Has.Count.EqualTo(1));
                 Assert.That(workList.Gaps[0].Reason, Does.Contain("no rule position"));
+            });
+        }
+
+        /// <summary>Guardicore writes new rules to its Allow section, where the order does not matter: no position is needed.</summary>
+        [Test]
+        public void Build_NewRuleWithoutPositionForVendorWithoutPositioning_IsWritten()
+        {
+            WfReqTask reqTask = ReqTask(1, 1, kAutomaticManagementId, nameof(WfTaskType.access));
+            AddRuleImplTask(reqTask, 11, kAutomaticManagementId, false);
+            FixedModes modes = new();
+            modes.GatewaysWithoutPositioning.Add(kAutomaticManagementId);
+            List<WfReqTask> reqTasks = [reqTask];
+
+            ProvisioningWorkList workList = ProvisioningWorkList.Build(reqTasks, modes);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(workList.Gaps, Is.Empty);
+                Assert.That(workList.Items, Has.Count.EqualTo(1));
             });
         }
 

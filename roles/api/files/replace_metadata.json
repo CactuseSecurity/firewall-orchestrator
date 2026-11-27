@@ -1223,6 +1223,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "access_flow_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "flow_access_id",
+                      "table": {
+                        "name": "access_flow_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -3249,6 +3261,2025 @@
             },
             {
               "table": {
+                "name": "label_key",
+                "schema": "labelling"
+              },
+              "array_relationships": [
+                {
+                  "name": "app_label_key_configs",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "key_name": "config_value"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "config",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "label_values",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "key_id",
+                      "table": {
+                        "name": "label_value",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {
+                      "label_values": {
+                        "_or": [
+                          {
+                            "rule_labels": {
+                              "rule": {
+                                "_and": [
+                                  {
+                                    "mgm_id": {
+                                      "_in": "x-hasura-visible-managements"
+                                    }
+                                  },
+                                  {
+                                    "rule_relevant_for_tenant": {
+                                      "_eq": "true"
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "_or": [
+                              {
+                                "connection_source_labels": {}
+                              },
+                              {
+                                "connection_destination_labels": {}
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {
+                      "label_values": {
+                        "rule_labels": {
+                          "rule": {
+                            "_and": [
+                              {
+                                "mgm_id": {
+                                  "_in": "x-hasura-visible-managements"
+                                }
+                              },
+                              {
+                                "rule_relevant_for_tenant": {
+                                  "_eq": "true"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "label_value",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "label_key",
+                  "using": {
+                    "foreign_key_constraint_on": "key_id"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                }
+              ],
+              "array_relationships": [
+                {
+                  "name": "rule_source_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "rule_source_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_destination_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "rule_destination_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "rule_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connection_source_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "connection_source_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connection_destination_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "connection_destination_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connection_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "connection_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "access_flow_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "access_flow_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "owner_network_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "label_id",
+                      "table": {
+                        "name": "owner_network_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "value"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "owner_id",
+                      "value"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "rule_labels": {
+                            "rule": {
+                              "_and": [
+                                {
+                                  "mgm_id": {
+                                    "_in": "x-hasura-visible-managements"
+                                  }
+                                },
+                                {
+                                  "rule_relevant_for_tenant": {
+                                    "_eq": "true"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "_or": [
+                            {
+                              "connection_source_labels": {}
+                            },
+                            {
+                              "connection_destination_labels": {}
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {
+                      "rule_labels": {
+                        "rule": {
+                          "_and": [
+                            {
+                              "mgm_id": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            },
+                            {
+                              "rule_relevant_for_tenant": {
+                                "_eq": "true"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "value"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "owner_id",
+                      "value"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "label_change_event",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "import_control_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "request_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "origin_is_ui": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "actor",
+                      "connection_id",
+                      "origin_is_ui"
+                    ],
+                    "set": {
+                      "actor_id": "x-hasura-user-id"
+                    }
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "actor",
+                      "connection_id",
+                      "import_control_id",
+                      "origin_is_ui",
+                      "request_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "actor",
+                      "connection_id",
+                      "import_control_id",
+                      "origin_is_ui",
+                      "request_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "actor",
+                      "actor_id",
+                      "connection_id",
+                      "created_at",
+                      "id",
+                      "import_control_id",
+                      "origin_is_ui",
+                      "request_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "actor",
+                      "actor_id",
+                      "connection_id",
+                      "created_at",
+                      "id",
+                      "import_control_id",
+                      "origin_is_ui",
+                      "request_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "actor",
+                      "actor_id",
+                      "connection_id",
+                      "created_at",
+                      "id",
+                      "import_control_id",
+                      "origin_is_ui",
+                      "request_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rule_source_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                },
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rule_destination_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                },
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "rule_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                },
+                {
+                  "name": "rule",
+                  "using": {
+                    "foreign_key_constraint_on": "rule_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "set": {
+                      "label_source": "import"
+                    },
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {
+                      "rule": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "rule_relevant_for_tenant": {
+                              "_eq": "true"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {
+                      "rule": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "rule_relevant_for_tenant": {
+                              "_eq": "true"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "label_source",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {
+                      "label_source": {
+                        "_eq": "import"
+                      }
+                    },
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "connection_source_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "label_value": {
+                            "_or": [
+                              {
+                                "label_key": {
+                                  "_not": {
+                                    "app_label_key_configs": {
+                                      "config_key": {
+                                        "_eq": "appLabelKey"
+                                      },
+                                      "config_user": {
+                                        "_eq": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "owner_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "label_value": {
+                            "label_key": {
+                              "key_name": {
+                                "_nin": [
+                                  "AppRole",
+                                  "AppZone"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "created_event": {
+                            "_and": [
+                              {
+                                "actor_id": {
+                                  "_eq": "x-hasura-user-id"
+                                }
+                              },
+                              {
+                                "origin_is_ui": {
+                                  "_eq": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "config",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "config_key": {
+                                    "_eq": "labelBasedModelling"
+                                  }
+                                },
+                                {
+                                  "config_user": {
+                                    "_eq": 0
+                                  }
+                                },
+                                {
+                                  "config_value": {
+                                    "_in": [
+                                      "true",
+                                      "True"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "removed_event_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "removed_event": {
+                        "_and": [
+                          {
+                            "actor_id": {
+                              "_eq": "x-hasura-user-id"
+                            }
+                          },
+                          {
+                            "origin_is_ui": {
+                              "_eq": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "connection_destination_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "label_value": {
+                            "_or": [
+                              {
+                                "label_key": {
+                                  "_not": {
+                                    "app_label_key_configs": {
+                                      "config_key": {
+                                        "_eq": "appLabelKey"
+                                      },
+                                      "config_user": {
+                                        "_eq": 0
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "owner_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "label_value": {
+                            "label_key": {
+                              "key_name": {
+                                "_nin": [
+                                  "AppRole",
+                                  "AppZone"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "created_event": {
+                            "_and": [
+                              {
+                                "actor_id": {
+                                  "_eq": "x-hasura-user-id"
+                                }
+                              },
+                              {
+                                "origin_is_ui": {
+                                  "_eq": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "config",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "config_key": {
+                                    "_eq": "labelBasedModelling"
+                                  }
+                                },
+                                {
+                                  "config_user": {
+                                    "_eq": 0
+                                  }
+                                },
+                                {
+                                  "config_value": {
+                                    "_in": [
+                                      "true",
+                                      "True"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id"
+                    ]
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "removed_event_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "removed_event": {
+                        "_and": [
+                          {
+                            "actor_id": {
+                              "_eq": "x-hasura-user-id"
+                            }
+                          },
+                          {
+                            "origin_is_ui": {
+                              "_eq": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "connection_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "connection",
+                  "using": {
+                    "foreign_key_constraint_on": "connection_id"
+                  }
+                },
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "access_flow_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "access",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_access_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "flow_access_id",
+                      "label_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "flow_access_id",
+                      "label_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "flow_access_id",
+                      "label_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "owner_network_label",
+                "schema": "labelling"
+              },
+              "object_relationships": [
+                {
+                  "name": "created_event",
+                  "using": {
+                    "foreign_key_constraint_on": "created_event_id"
+                  }
+                },
+                {
+                  "name": "label_value",
+                  "using": {
+                    "foreign_key_constraint_on": "label_id"
+                  }
+                },
+                {
+                  "name": "owner_network",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_network_id"
+                  }
+                },
+                {
+                  "name": "removed_event",
+                  "using": {
+                    "foreign_key_constraint_on": "removed_event_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "owner_network_id",
+                      "removed_event_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "owner_network_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "owner_network_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "change_history",
                 "schema": "public"
               },
@@ -3748,6 +5779,54 @@
                       "table": {
                         "name": "service_group_connection",
                         "schema": "modelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connection_source_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "connection_source_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connection_destination_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "connection_destination_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "connection_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "connection_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "label_change_events",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "connection_id",
+                      "table": {
+                        "name": "label_change_event",
+                        "schema": "labelling"
                       }
                     }
                   }
@@ -7449,6 +9528,183 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "node_type": {
+                            "_in": [
+                              "global",
+                              "device_type"
+                            ]
+                          }
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "management"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "gateway"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-devices"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "node_type": {
+                            "_in": [
+                              "global",
+                              "device_type"
+                            ]
+                          }
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "management"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "gateway"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-devices"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {
+                      "_or": [
+                        {
+                          "node_type": {
+                            "_in": [
+                              "global",
+                              "device_type"
+                            ]
+                          }
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "management"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "gateway"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-devices"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -7547,6 +9803,94 @@
                       "node_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "fwWriteDeleteObjects",
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "fwWriteDeleteObjects",
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "fwWriteDeleteObjects",
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "fwWriteDeleteObjects",
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
+                        ]
+                      }
+                    }
                   },
                   "comment": ""
                 }
@@ -9015,6 +11359,45 @@
                     },
                     "session_argument": "hasura_session"
                   }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {
+                      "stm_dev_typ": {
+                        "dev_typ_name": {
+                          "_eq": "Guardicore Gateway"
+                        },
+                        "dev_typ_version": {
+                          "_eq": "REST"
+                        }
+                      },
+                      "management": {
+                        "stm_dev_typ": {
+                          "dev_typ_name": {
+                            "_eq": "Guardicore Management"
+                          },
+                          "dev_typ_version": {
+                            "_eq": "REST"
+                          }
+                        }
+                      }
+                    },
+                    "set": {
+                      "do_not_import": false,
+                      "hide_in_gui": false,
+                      "dev_comment": "Dummy gateway grouping host-based Guardicore policies."
+                    },
+                    "columns": [
+                      "dev_name",
+                      "dev_uid",
+                      "dev_typ_id",
+                      "mgm_id"
+                    ]
+                  },
+                  "comment": "Allow the importer to register dummy gateways for host-based Guardicore policies only."
                 }
               ],
               "select_permissions": [
@@ -10561,6 +12944,18 @@
                       "table": {
                         "name": "zone",
                         "schema": "firewall"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "label_change_events",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_control_id",
+                      "table": {
+                        "name": "label_change_event",
+                        "schema": "labelling"
                       }
                     }
                   }
@@ -16189,6 +18584,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "owner_network_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_network_id",
+                      "table": {
+                        "name": "owner_network_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -20032,6 +22439,42 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "rule_source_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_source_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_destination_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_destination_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "rule_labels",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "rule_id",
+                      "table": {
+                        "name": "rule_label",
+                        "schema": "labelling"
+                      }
+                    }
+                  }
                 }
               ],
               "computed_fields": [
@@ -20112,7 +22555,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ]
                   },
                   "comment": ""
@@ -20163,7 +22608,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -20216,7 +22663,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -20269,7 +22718,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -20322,7 +22773,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -20375,7 +22828,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -20441,7 +22896,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -20507,7 +22964,9 @@
                       "rule_svc",
                       "rule_svc_refs",
                       "rule_track",
-                      "rule_uid"
+                      "rule_uid",
+                      "rule_dst_labels",
+                      "rule_src_labels"
                     ],
                     "computed_fields": [
                       "rule_relevant_for_tenant"
@@ -37388,6 +39847,18 @@
                       "table": {
                         "name": "ticket_comment",
                         "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "label_change_events",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "request_id",
+                      "table": {
+                        "name": "label_change_event",
+                        "schema": "labelling"
                       }
                     }
                   }

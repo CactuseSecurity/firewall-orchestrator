@@ -289,5 +289,25 @@ namespace FWO.Test
 
             Assert.That(targets.Single().Name, Is.EqualTo("mds"));
         }
+
+        [Test]
+        public async Task ResolveObjectTargets_TakesTheLabelCreationSettingForManagementsThatWriteLabels()
+        {
+            const int guardicoreManagementId = 40;
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.Managements.Add(new Management { Id = guardicoreManagementId, Name = "guardicore", DeviceType = new() { Id = DeviceTypeIds.kGuardicoreManagement, Name = "Guardicore Management" } });
+            List<int> byDefault = await Resolve(api, guardicoreManagementId);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.LabelCreation, ProvisioningObjectCreationMode.Ignore);
+            List<int> withLabelsIgnored = await Resolve(api, guardicoreManagementId);
+            List<int> servicesWithLabelsIgnored = await Resolve(api, guardicoreManagementId, ObjectTaskKind.Service);
+            List<int> otherVendorWithLabelsIgnored = await Resolve(api, kStandaloneManagementId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(byDefault, Has.Count.EqualTo(1).And.Contains(guardicoreManagementId));
+                Assert.That(withLabelsIgnored, Is.Empty);
+                Assert.That(servicesWithLabelsIgnored, Has.Count.EqualTo(1));
+                Assert.That(otherVendorWithLabelsIgnored, Is.EqualTo(kStandaloneOnly));
+            });
+        }
     }
 }

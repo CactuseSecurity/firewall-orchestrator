@@ -94,6 +94,21 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             .Select(imported => imported.Object)];
     }
 
+    /// <summary>Additional info of request tasks by id, for getRequestTaskAdditionalInfo.</summary>
+    public Dictionary<long, string> RequestTaskAdditionalInfo { get; } = [];
+
+    /// <summary>Owner ids of request tasks by id, for getRequestTaskAdditionalInfo.</summary>
+    public Dictionary<long, List<int>> RequestTaskOwners { get; } = [];
+
+    private List<FWO.Data.Workflow.WfReqTask> RequestTasksById(object? variables)
+    {
+        long id = RequiredProperty<long>(RequiredVariables(variables), "id");
+        List<FwoOwnerDataHelper> owners = [.. RequestTaskOwners.GetValueOrDefault(id, []).Select(ownerId => new FwoOwnerDataHelper { Owner = new() { Id = ownerId } })];
+        return RequestTaskAdditionalInfo.TryGetValue(id, out string? additionalInfo)
+            ? [new() { Id = id, AdditionalInfo = additionalInfo, Owners = owners }]
+            : [];
+    }
+
     /// <summary>Optional test hook that can pause a query after it has been recorded and before it is applied.</summary>
     public Func<string, Task>? BeforeQueryAsync { get; set; }
 
@@ -197,6 +212,7 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ when query == ModellingQueries.getConnectionById => ConnectionsById(variables),
             _ when query == ModellingQueries.getNetworkAreas => NetworkAreasByIds(variables),
             _ when query == ObjectQueries.getImportedObjectsOfTypes => ImportedObjectsOfTypes(variables),
+            _ when query == RequestQueries.getRequestTaskAdditionalInfo => RequestTasksById(variables),
             _ when query == MonitorQueries.getOpenAlerts => new List<Alert>(),
             _ when query == MonitorQueries.addAlert => new ReturnIdWrapper(),
             _ => throw new InvalidOperationException("Unexpected device specific settings query.")

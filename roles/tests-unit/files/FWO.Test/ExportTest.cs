@@ -1684,6 +1684,29 @@ namespace FWO.Test
             Assert.That(reportRules.DisplayReportHeaderJson(), Does.Contain("\"rulebase filter\": \"TestMgt [Start A Start B]\","));
         }
 
+        [Test]
+        public void RulesGenerateHtml_ManagementRulebaseView_ReferenceRowSpansTheLabelColumns()
+        {
+            DynGraphqlQuery managementViewQuery = new("TestFilter") { ReportTimeString = "2023-04-20T17:50:04", ManagementRulebaseView = true };
+            Rule[] rules = ConstructRuleReportRules(false);
+            rules[0].SourceLabels = LabelledSource;
+            MockReportRules reportRules = ConstructReportRules(managementViewQuery, userConfig, ReportType.Rules, rules);
+            ManagementReport managementData = reportRules.ReportData.ManagementData.Single();
+            RulebaseReport rulebase = managementData.Rulebases.Single();
+            managementData.Devices =
+            [
+                CreateRuleTree(-1, "Start A", rulebase.Id, []),
+                CreateRuleTree(-2, "Start B", rulebase.Id, new Dictionary<int, int> { [rulebase.Id] = -1 })
+            ];
+            reportRules.TryBuildMockRuleTree();
+
+            string reportHtml = reportRules.ExportToHtml();
+
+            Assert.That(reportHtml, Does.Contain("<tr><td colspan=\"15\"><b>"));
+        }
+
+        private static readonly List<Dictionary<string, List<string>>> LabelledSource = [new() { ["Stage"] = ["Prod"] }];
+
         private static DeviceReport CreateRuleTree(int treeId, string treeName, int startRulebaseId, Dictionary<int, int> references)
         {
             return new DeviceReport

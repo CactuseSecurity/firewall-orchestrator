@@ -3,7 +3,8 @@ namespace FWO.Data.DeviceSpecificSettings;
 /// <summary>
 /// One kind of REST call that writes a change from an implementation task to a firewall. Each operation has its own
 /// endpoint and body template setting per device type. IPv6 network objects have operations of their own, because some
-/// vendors keep them in separate tables and their calls differ.
+/// vendors keep them in separate tables and their calls differ. Vendors that segment by labels (Guardicore) write groups
+/// as labels with IP criteria instead.
 /// </summary>
 public enum FirewallWriteOperation
 {
@@ -32,6 +33,8 @@ public enum FirewallWriteOperation
     GroupAddMembers,
     GroupRemoveMembers,
     GroupDelete,
+    LabelWrite,
+    LabelDelete,
     RuleCreate,
     RuleModify,
     RuleDelete,

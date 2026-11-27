@@ -14,6 +14,7 @@ from fwo_exceptions import (
     FwoImporterErrorInconsistenciesError,
 )
 from fwo_log import ChangeLogger, FWOLogger
+from model_controllers.fwconfig_import_rule_label import FwConfigImportRuleLabel
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
 from models.rule import Rule, RuleNormalized
 from models.rule_from import RuleFrom
@@ -148,6 +149,12 @@ class FwConfigImportRule:
 
         num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(
             list(removed_rule_uids | changed_rule_uids | xlate_fk_repoint_uids)
+        )
+        self.update_rule_label_assignments(
+            prev_rules,
+            curr_rules,
+            added_rule_uids | changed_rule_uids | xlate_fk_repoint_uids,
+            removed_rule_uids | changed_rule_uids | xlate_fk_repoint_uids,
         )
         # remove old rulebases
         removed_rulebase_uids = [
@@ -407,27 +414,15 @@ class FwConfigImportRule:
             else:
                 statement["_and"].append({"user_id": {"_is_null": True}})
             return statement
-        if ref_type in (RefType.SVC, RefType.SVC_RESOLVED):
+        if ref_type == RefType.SVC:
             return {
                 "_and": [
                     {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
                     {"svc_id": {"_eq": self.uid2id_mapper.get_service_object_id(ref_uid, before_update=True)}},  # type: ignore # ref_uid is str here   # noqa: PGH003
                 ]
             }
-        if ref_type == RefType.NWOBJ_RESOLVED:
-            return {
-                "_and": [
-                    {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"obj_id": {"_eq": self.uid2id_mapper.get_network_object_id(ref_uid, before_update=True)}},  # type: ignore # ref_uid is str here  # noqa: PGH003
-                ]
-            }
-        if ref_type == RefType.USER_RESOLVED:
-            return {
-                "_and": [
-                    {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
-                    {"user_id": {"_eq": self.uid2id_mapper.get_user_id(ref_uid, before_update=True)}},  # type: ignore # ref_uid is str here  # noqa: PGH003
-                ]
-            }
+        if ref_type in (RefType.NWOBJ_RESOLVED, RefType.SVC_RESOLVED, RefType.USER_RESOLVED):
+            return self.get_resolved_ref_remove_statement(ref_type, rule_uid, ref_uid)  # type: ignore # ref_uid is str here  # noqa: PGH003
         if ref_type in (RefType.SRC_ZONE, RefType.DST_ZONE):
             return {
                 "_and": [
@@ -443,6 +438,30 @@ class FwConfigImportRule:
                 ]
             }
         raise FwoImporterError(f"unknown ref type: {ref_type}")
+
+    def get_resolved_ref_remove_statement(self, ref_type: RefType, rule_uid: str, ref_uid: str) -> dict[str, Any]:
+        """
+        Build the remove filter for a rule_nw_[object|service|user]_resolved row.
+
+        The only index of these tables is their primary key (mgm_id, rule_id, <ref id>, created). Filtering on
+        mgm_id as well lets PostgreSQL use it instead of scanning the whole table for every chunk. The rows are
+        inserted with the current management id (see get_ref_add_statement), so the filter matches the same rows.
+        """
+        if ref_type == RefType.NWOBJ_RESOLVED:
+            ref_condition = {"obj_id": {"_eq": self.uid2id_mapper.get_network_object_id(ref_uid, before_update=True)}}
+        elif ref_type == RefType.SVC_RESOLVED:
+            ref_condition = {"svc_id": {"_eq": self.uid2id_mapper.get_service_object_id(ref_uid, before_update=True)}}
+        elif ref_type == RefType.USER_RESOLVED:
+            ref_condition = {"user_id": {"_eq": self.uid2id_mapper.get_user_id(ref_uid, before_update=True)}}
+        else:
+            raise FwoImporterError(f"not a resolved ref type: {ref_type}")
+        return {
+            "_and": [
+                {"mgm_id": {"_eq": self.import_details.state.mgm_details.current_mgm_id}},
+                {"rule_id": {"_eq": self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)}},
+                ref_condition,
+            ]
+        }
 
     def get_outdated_refs_to_remove(
         self, prev_rule: RuleNormalized, rule: RuleNormalized | None, *, remove_all: bool
@@ -917,6 +936,31 @@ class FwConfigImportRule:
 
         return int(remove_result["data"]["update_firewall_rulebase"]["affected_rows"])
 
+    def update_rule_label_assignments(
+        self,
+        prev_rules: dict[str, RuleNormalized],
+        curr_rules: dict[str, RuleNormalized],
+        inserted_rule_uids: set[str],
+        removed_rule_uids: set[str],
+    ) -> None:
+        """
+        Write the label assignments of the inserted rule versions and close those of the removed rule versions.
+
+        Must run after the new rule versions got their rule_ids, so that the assignments can reference them.
+        """
+        inserted_rules = {
+            self.uid2id_mapper.get_rule_id(rule_uid): curr_rules[rule_uid]
+            for rule_uid in inserted_rule_uids
+            if FwConfigImportRuleLabel.has_labels(curr_rules[rule_uid])
+        }
+        removed_rule_ids = [
+            self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)
+            for rule_uid in removed_rule_uids
+            if rule_uid in prev_rules and FwConfigImportRuleLabel.has_labels(prev_rules[rule_uid])
+        ]
+        rule_label_import = FwConfigImportRuleLabel(self.import_details.api_call, self.import_details.state.import_id)
+        rule_label_import.write_rule_label_assignments(inserted_rules, removed_rule_ids)
+
     def mark_rules_removed(self, rule_uids_to_remove: list[str]) -> tuple[int, list[int]]:
         """
         Marks removed and changed rules as removed in the database and returns the number of changes and the list of removed rule IDs.
@@ -1189,6 +1233,8 @@ class FwConfigImportRule:
             rule_comment=rule.rule_comment,
             rule_src_zone=rule.rule_src_zone,
             rule_dst_zone=rule.rule_dst_zone,
+            rule_src_labels=rule.rule_src_labels,
+            rule_dst_labels=rule.rule_dst_labels,
             access_rule=rule.access_rule,
             nat_rule=rule.nat_rule,
             is_global=False,

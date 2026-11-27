@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Data.Enums;
@@ -48,6 +49,28 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
         public int ElementsPerFetch { get; set; } = 100;
+
+        [JsonProperty("ruleLabelDisplayMode"), JsonPropertyName("ruleLabelDisplayMode")]
+        public RuleLabelDisplayMode RuleLabelDisplayMode { get; set; } = RuleLabelDisplayMode.LabelColumns;
+
+        [JsonProperty("showRuleLevelLabels"), JsonPropertyName("showRuleLevelLabels")]
+        public bool ShowRuleLevelLabels { get; set; } = true;
+
+        [JsonProperty("appLabelKey"), JsonPropertyName("appLabelKey")]
+        public string AppLabelKey { get; set; } = "App";
+
+        [JsonProperty("appLabelValueFormat"), JsonPropertyName("appLabelValueFormat")]
+        public string AppLabelValueFormat { get; set; } = LabelValueFormat.kDefault;
+
+        [JsonProperty("groupLabelValueFormat"), JsonPropertyName("groupLabelValueFormat")]
+        public string GroupLabelValueFormat { get; set; } = LabelValueFormat.kDefault;
+
+        /// <summary>Prefix of the Guardicore rulesets of common services, see the positioning algorithm gcEndOfAppRulesetCommonSvc.</summary>
+        [JsonProperty("modComSvcSectionPrefix"), JsonPropertyName("modComSvcSectionPrefix")]
+        public string ModComSvcSectionPrefix { get; set; } = "ComSvc";
+
+        [JsonProperty("labelBasedModelling"), JsonPropertyName("labelBasedModelling")]
+        public bool LabelBasedModelling { get; set; } = false;
 
         [JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
         public int MaxInitialFetchesRightSidebar { get; set; } = 10;
@@ -602,9 +625,6 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
         public bool ModRolloutActive { get; set; } = true;
-
-        [JsonProperty("modRolloutResolveServiceGroups"), JsonPropertyName("modRolloutResolveServiceGroups")]
-        public bool ModRolloutResolveServiceGroups { get; set; } = true;
 
         [JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
         public bool ModRolloutBundleTasks { get; set; } = false;

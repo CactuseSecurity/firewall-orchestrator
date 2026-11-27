@@ -37,6 +37,18 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Members to remove from a group, as rendered into the request.</summary>
         public List<string> MembersToRemove { get; } = [];
 
+        /// <summary>
+        /// Whether the step gives a label exactly the members to add (a newly created group) instead of changing its current
+        /// members by the members to add and to remove.
+        /// </summary>
+        public bool ReplacesMembers { get; init; }
+
+        /// <summary>
+        /// Former value of the label a label write writes (same key): if the label does not exist under its value yet, the
+        /// label of the former value is renamed instead of creating a new one, so that the rules keep referencing it.
+        /// </summary>
+        public string? FormerLabelValue { get; init; }
+
         /// <summary>Sets a placeholder to a text value.</summary>
         public FirewallWriteStep SetText(string placeholder, string? value)
         {

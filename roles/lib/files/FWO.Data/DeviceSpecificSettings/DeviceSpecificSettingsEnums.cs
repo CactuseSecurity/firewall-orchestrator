@@ -87,7 +87,13 @@ public enum ProvisioningPositioningAlgorithm
     [EnumMember(Value = "allowCategoryEndOfAppSectionDistinguishCommonServices")]
     AllowCategoryEndOfAppSectionDistinguishCommonServices = 6,
     [EnumMember(Value = "cpLayerGuardEndOfZonePairSection")]
-    CheckPointLayerGuardEndOfZonePairSection = 7
+    CheckPointLayerGuardEndOfZonePairSection = 7,
+    /// <summary>
+    /// Guardicore: one ruleset per app named like its App label by the App label value format (e.g. "app name (app id)"),
+    /// common services in a ruleset of their own with the configured prefix; new rules are appended at the end of their ruleset.
+    /// </summary>
+    [EnumMember(Value = "gcEndOfAppRulesetCommonSvc")]
+    GuardicoreEndOfAppRulesetDistinguishCommonServices = 8
 }
 
 /// <summary>Gateways on which generated rules are installed.</summary>

@@ -29,13 +29,15 @@ namespace FWO.Services.Modelling
         {
             varianceResult = new() { Managements = RelevantManagements };
             AnalyseRules(conn);
-            if (varianceResult.ConnsNotImplemented.Count > 0)
+            if (varianceResult.ConnsNotImplemented.Count > 0 || IsMissingOnLabelWriter(mgt, conn))
             {
                 AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));
             }
             else if (varianceResult.RuleDifferences.Count > 0)
             {
-                foreach (var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
+                IEnumerable<Rule> differingRules = varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id);
+                // a management that writes labels writes all rules of the connection with one task, see LabelRuleStepPlanner
+                foreach (var rule in WritesLabels(mgt) ? differingRules.Take(1) : differingRules)
                 {
                     ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, ReqElements));
                 }
@@ -46,9 +48,11 @@ namespace FWO.Services.Modelling
         {
             List<ModellingConnection> RegardedAsDeletedConns = [.. DeletedConns, .. dokuOnlyConnections];
             List<int> RegardedDeletedConnectionIds = RegardedAsDeletedConns.ConvertAll(c => c.Id);
+            HashSet<int> requestedConnIds = [];
             foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
             {
-                if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
+                if (int.TryParse(FindConnectionMarker(rule, mgt.Id), out int connId) && RegardedDeletedConnectionIds.Contains(connId)
+                    && (!WritesLabels(mgt) || requestedConnIds.Add(connId)))
                 {
                     ModellingConnection deletedConn = RegardedAsDeletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
                     DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, deletedConn, true, GetElementsFromRule(rule, deletedConn)));
@@ -134,7 +138,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
         {
-            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
+            Dictionary<string, string> addInfo = RuleTaskAdditionalInfo(conn);
             return new()
             {
                 Title = ConstructCreateTaskTitle(conn),
@@ -157,7 +161,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> elements)
         {
-            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
+            Dictionary<string, string> addInfo = RuleTaskAdditionalInfo(conn);
             List<WfReqElement> ruleElements =
             [
                 .. elements,
@@ -223,30 +227,50 @@ namespace FWO.Services.Modelling
 
         private void AnalyseAppRoleForRequest(ModellingAppRole appRole, Management mgt, bool isSource = false)
         {
-            if (!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id)
+            bool requestsAppRole = (!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole);
+            if (requestsAppRole)
             {
-                if (ResolveProdAppRole(appRole, mgt) == null)
-                {
-                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_role") + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
-                    {
-                        RequestNewAppRole(appRole, mgt);
-                    }
-                }
-                else if (AppRoleChanged(appRole) &&
-                    TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
-                    DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
-                {
-                    RequestUpdateAppRole(appRole, mgt);
-                }
+                RequestAppRoleChanges(appRole, mgt);
             }
 
             ReqElements.Add(new()
             {
                 RequestAction = RequestAction.create.ToString(),
                 Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
-                GroupName = appRole.IdString
+                GroupName = WritesLabels(mgt) ? RuleLabelName(appRole, mgt, requestsAppRole) : appRole.IdString
             });
         }
+
+        /// <summary>
+        /// Requests the app role on a management, if it is missing there, its members changed or its label is to be renamed,
+        /// unless the same task is requested already.
+        /// </summary>
+        private void RequestAppRoleChanges(ModellingAppRole appRole, Management mgt)
+        {
+            if (ResolveProdAppRole(appRole, mgt) == null)
+            {
+                if (!IsRequested(TaskList, userConfig.GetText("new_app_role") + appRole.IdString, mgt))
+                {
+                    RequestNewAppRole(appRole, mgt);
+                }
+            }
+            else if (AppRoleChanged(appRole, mgt))
+            {
+                string updateTitle = userConfig.GetText("update_app_role") + appRole.IdString;
+                if (!IsRequested(TaskList, updateTitle + userConfig.GetText("add_members"), mgt)
+                    && !IsRequested(DeleteObjectTasksList, updateTitle + userConfig.GetText("remove_members"), mgt))
+                {
+                    RequestUpdateAppRole(appRole, mgt);
+                }
+            }
+            else if (WritesLabels(mgt) && IsRenamed(existingAppRole, AppRoleLabel(appRole)))
+            {
+                RequestLabelRename(AppRoleLabel(appRole), existingAppRole!, mgt, appRole.AppServers, AppRoleAddInfo(appRole, mgt));
+            }
+        }
+
+        private static bool IsRequested(List<WfReqTask> tasks, string title, Management mgt) =>
+            tasks.Exists(task => task.Title == title && task.OnManagement?.Id == mgt.Id);
 
         private async Task AnalyseAppZoneForRequest(Management mgt)
         {
@@ -256,6 +280,15 @@ namespace FWO.Services.Modelling
             }
             ModellingAppZone? oldAppZone = await AppZoneHandler.GetExistingModelledAppZone();
             PlannedAppZoneDbUpdate = await AppZoneHandler.PlanAppZoneDbUpdate(oldAppZone);
+            if (IsExcluded(mgt, ModellingTypes.ModObjectType.AppZone) || !SettingsOf(mgt).ModellingCreateAppZones)
+            {
+                return;
+            }
+            if (WritesLabels(mgt))
+            {
+                AnalyseAppZoneLabelForRequest(PlannedAppZoneDbUpdate, mgt);
+                return;
+            }
 
             ModellingAppRole? prodAppZone = oldAppZone == null ? null : ResolveProdAppRole(oldAppZone, mgt);
             if (prodAppZone == null)
@@ -281,10 +314,17 @@ namespace FWO.Services.Modelling
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
+            string prodName = ProdGroupName(appRole, mgt);
             string sanitizedARName = appRole.IdString.SanitizeJsonFieldMand(ref shortened);
-            if (allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodAppRolesOfMgt))
+            existingAppRole = null;
+            if (WritesLabels(mgt))
             {
-                existingAppRole = prodAppRolesOfMgt.FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
+                // a label of another name or format stands for the app role as well, it is renamed
+                existingAppRole = FindProdLabel(mgt, AppRoleLabel(appRole), appRole.IdString);
+            }
+            else if (allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodAppRolesOfMgt))
+            {
+                existingAppRole = prodAppRolesOfMgt.FirstOrDefault(a => a.Name == prodName || a.Name == sanitizedARName);
             }
             if (existingAppRole != null)
             {
@@ -340,7 +380,7 @@ namespace FWO.Services.Modelling
             return WithIpSuffixedName(appServer);
         }
 
-        private bool AppRoleChanged(ModellingAppRole appRole)
+        private bool AppRoleChanged(ModellingAppRole appRole, Management mgt)
         {
             newAppServers = [];
             deletedAppServers = [];
@@ -349,6 +389,10 @@ namespace FWO.Services.Modelling
             if (existingAppRole is null)
             {
                 return false;
+            }
+            if (WritesLabels(mgt))
+            {
+                return LabelMembersChanged(appRole.AppServers, existingAppRole);
             }
 
             if (appRole is ModellingAppZone appZone)
@@ -443,6 +487,28 @@ namespace FWO.Services.Modelling
             return false;
         }
 
+        /// <summary>
+        /// The additional info of a task of an app role or app zone: its id string, its object type, which the firewall
+        /// write takes instead of guessing it from the name, and its id. For a management that writes labels also the label
+        /// the group is written as and, if the existing label found last (<see cref="existingAppRole"/>) has another name,
+        /// the label to rename.
+        /// </summary>
+        private Dictionary<string, string> AppRoleAddInfo(ModellingAppRole appRole, Management mgt)
+        {
+            ModellingTypes.ModObjectType objectType = appRole is ModellingAppZone ? ModellingTypes.ModObjectType.AppZone : ModellingTypes.ModObjectType.AppRole;
+            Dictionary<string, string> addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, appRole.IdString },
+                { AdditionalInfoKeys.GrpType, objectType.ToString() },
+                { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() }
+            };
+            if (WritesLabels(mgt))
+            {
+                AddLabelInfo(addInfo, AppRoleLabel(appRole), existingAppRole);
+            }
+            return addInfo;
+        }
+
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
         {
             string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("new_app_zone") : userConfig.GetText("new_app_role");
@@ -461,7 +527,7 @@ namespace FWO.Services.Modelling
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
+            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole, mgt);
             TaskList.Add(new()
             {
                 Title = title + appRole.IdString,
@@ -478,7 +544,7 @@ namespace FWO.Services.Modelling
         {
             string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("update_app_zone") : userConfig.GetText("update_app_role");
             FillGroupMembers(appRole.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
+            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole, mgt);
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
@@ -607,13 +673,13 @@ namespace FWO.Services.Modelling
         {
             foreach (ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
             {
-                if (userConfig.ModRolloutResolveServiceGroups)
+                if (ResolvesServiceGroups(mgt))
                 {
                     AddResolvedServiceGroup(svcGrp);
                     continue;
                 }
 
-                if ((!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id) &&
+                if ((!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.ServiceGroup) &&
                     TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
                 {
                     RequestNewServiceGroup(svcGrp, mgt);
@@ -660,7 +726,12 @@ namespace FWO.Services.Modelling
                     GroupName = svcGrp.Name
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, svcGrp.Name }, { AdditionalInfoKeys.SvcGrpId, svcGrp.Id.ToString() } };
+            Dictionary<string, string>? addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, svcGrp.Name },
+                { AdditionalInfoKeys.GrpType, nameof(ModellingTypes.ModObjectType.ServiceGroup) },
+                { AdditionalInfoKeys.SvcGrpId, svcGrp.Id.ToString() }
+            };
             TaskList.Add(new()
             {
                 Title = userConfig.GetText("new_svc_grp") + svcGrp.Name,

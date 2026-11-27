@@ -6,6 +6,7 @@
 @using FWO.Middleware.Client
 @using FWO.Ui.Services
 @using FWO.Basics
+@using FWO.Data.Labelling
 
 @page "/settings/reportgeneral"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -60,6 +61,22 @@
         <SettingsRow LabelKey="resolveNetworkAreas" TooltipKey="H5456" Marked="true" LabelFor="cbx_resolveNAs">
             <div class="form-check form-switch">
                 <input id="cbx_resolveNAs" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ResolveNetworkAreas">
+            </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="rule_label_display" TooltipKey="H5464" LabelFor="dropdown-input-ruleLabelDisplay">
+            <div class="settings-input-md">
+                <Dropdown Id="ruleLabelDisplay" ElementType="RuleLabelDisplayMode" @bind-SelectedElement="configData!.RuleLabelDisplayMode"
+                        ElementToString="@(mode => userConfig.GetText("rule_label_display_" + mode.ToString()))"
+                        Elements="Enum.GetValues(typeof(RuleLabelDisplayMode)).Cast<RuleLabelDisplayMode>()">
+                    <ElementTemplate Context="mode">
+                        @(userConfig.GetText("rule_label_display_" + mode.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="show_rule_level_labels" TooltipKey="H5465" LabelFor="cbx_showRuleLevelLabels">
+            <div class="form-check form-switch">
+                <input id="cbx_showRuleLevelLabels" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ShowRuleLevelLabels">
             </div>
         </SettingsRow>
         <hr />

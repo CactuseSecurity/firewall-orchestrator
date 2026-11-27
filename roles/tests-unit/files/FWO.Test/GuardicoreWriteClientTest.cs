@@ -1,0 +1,687 @@
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
+using NUnit.Framework;
+using RestSharp;
+using System.Net;
+using System.Text.Json.Nodes;
+
+namespace FWO.Test
+{
+    /// <summary>
+    /// Writing groups as Guardicore labels through the firewall writer: labels are looked up by key and value, created with
+    /// their IP criteria, changed only where they differ, deleted by id, and nothing is written twice.
+    /// </summary>
+    [TestFixture]
+    internal class GuardicoreWriteClientTest
+    {
+        private const string kAuthenticatePath = "/api/v3.0/authenticate";
+        private const string kLabelsPath = "/api/v4.0/labels";
+        private const string kBulkPath = "/api/v4.0/labels/bulk";
+        private const string kNoLabels = """{"objects":[]}""";
+        private const string kAppRoleName = "AR4711-001";
+        private const string kFormattedValue = "Billing (AR4711-001)";
+        private const string kFormattedLabelName = "AppRole: " + kFormattedValue;
+        private const string kIssueExampleBody =
+            """[{"key":"AppRole","value":"AR4711-001","criteria":[{"field":"numeric_ip_addresses","op":"SUBNET","argument":"1.2.3.4/32"},""" +
+            """{"field":"numeric_ip_addresses","op":"SUBNET","argument":"2.3.4.0/24"},""" +
+            """{"field":"numeric_ip_addresses","op":"RANGE","argument":"1.1.1.0-1.1.1.17"}]}]""";
+
+        private static readonly List<string> kExcludedAppRoles = [nameof(ModellingTypes.ModObjectType.AppRole)];
+        private static readonly List<string> kExcludedAppServers = [nameof(ModellingTypes.ModObjectType.AppServer)];
+        private static readonly List<string> kUpdatedCriteria = ["10.0.0.1/32", "10.0.0.3/32"];
+        private static readonly List<string> kOneHost = ["10.0.0.1/32"];
+        private static readonly List<string> kTwoHosts = ["10.0.0.1/32", "10.0.0.2/32"];
+        private static readonly List<string> kIpFieldOnly = ["numeric_ip_addresses"];
+        private static readonly List<string> kAssetAndIpFields = ["id", "numeric_ip_addresses"];
+        private static readonly List<string> kLookupOffsets = ["0", "1"];
+
+        private static string ExistingLabel(params string[] subnets)
+        {
+            JsonArray criteria = [];
+            int index = 1;
+            foreach (string subnet in subnets)
+            {
+                criteria.Add(new JsonObject { ["id"] = $"c{index++}", ["field"] = "numeric_ip_addresses", ["op"] = "SUBNET", ["argument"] = subnet });
+            }
+            JsonObject label = new() { ["id"] = "lab-1", ["key"] = "AppRole", ["value"] = kAppRoleName, ["dynamic_criteria"] = criteria };
+            JsonArray objects = [label];
+            return new JsonObject { ["objects"] = objects }.ToJsonString();
+        }
+
+        private static string LabelWithAsset(string key, string value, List<string> subnets, string assetId)
+        {
+            JsonArray criteria = [.. subnets.Select(subnet => (JsonNode?)new JsonObject { ["field"] = "numeric_ip_addresses", ["op"] = "SUBNET", ["argument"] = subnet })];
+            JsonArray assignments = [new JsonObject { ["field"] = "id", ["op"] = "EQUALS", ["argument"] = assetId, ["source"] = "User" }];
+            JsonObject label = new() { ["id"] = "lab-1", ["key"] = key, ["value"] = value, ["dynamic_criteria"] = criteria, ["static_criteria"] = assignments };
+            JsonArray objects = [label];
+            return new JsonObject { ["objects"] = objects }.ToJsonString();
+        }
+
+        private static List<string> CriteriaFields(RecordedFirewallRequest update) =>
+            [.. JsonNode.Parse(update.Body!)![0]!["criteria"]!.AsArray().Select(criterion => criterion!["field"]!.GetValue<string>())];
+
+        private static FirewallSimulation Simulation(string labels, string bulkAnswer = """{"succeeded":["lab-1"],"failed":[]}""")
+        {
+            FirewallSimulation simulation = new();
+            simulation.Handler = request => request.Resource switch
+            {
+                kAuthenticatePath => FirewallWriteTestSupport.Ok("""{"access_token":"tok"}"""),
+                kLabelsPath => FirewallWriteTestSupport.Ok(labels),
+                kBulkPath => FirewallWriteTestSupport.Ok(bulkAnswer),
+                _ => FirewallWriteTestSupport.Ok("{}")
+            };
+            return simulation;
+        }
+
+        /// <summary>The context of a task whose request task names its group an app role, as the variance analysis does.</summary>
+        private static FirewallWriteContext Context(GlobalDeviceSpecificSettings? settings = null, int deviceTypeId = FirewallVendors.kGuardicoreManagement,
+            ModellingTypes.ModObjectType? groupType = ModellingTypes.ModObjectType.AppRole) =>
+            FirewallWriteTestSupport.Context(deviceTypeId, settings) with { GroupObjectType = groupType };
+
+        private static Task<ModifyFirewallResult> Write(FirewallSimulation simulation, WfImplTask task, FirewallWriteContext? context = null) =>
+            new FirewallWriter(new FixedFirewallWriteDataSource(context ?? Context()), new SimulatedFirewallWriteClientFactory(simulation)).ModifyFirewall(task);
+
+        /// <summary>The label call among the rendered calls, which also hold the publish call of the session.</summary>
+        private static RenderedFirewallRequest LabelWriteOf(List<RenderedFirewallRequest> requests) =>
+            requests.Single(request => request.Operation == FirewallWriteOperation.LabelWrite);
+
+        private static WfImplElement Member(string ip, string? ipEnd = null, RequestAction action = RequestAction.create, string groupName = kAppRoleName)
+        {
+            WfImplElement member = FirewallWriteTestSupport.Network(ip, ip, ipEnd, action: action);
+            member.GroupName = groupName;
+            return member;
+        }
+
+        [Test]
+        public async Task GroupCreate_CreatesAMissingLabelWithTheIpCriteriaOfTheIssue()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create,
+                Member("1.2.3.4"), Member("2.3.4.0/24"), Member("1.1.1.0", "1.1.1.17")));
+
+            RecordedFirewallRequest lookup = simulation.Requests.Single(request => request.Resource == kLabelsPath);
+            RecordedFirewallRequest create = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests[0].Resource, Is.EqualTo(kAuthenticatePath));
+                Assert.That(JsonNode.Parse(simulation.Requests[0].Body!)!["username"]!.GetValue<string>(), Is.EqualTo("writer"));
+                Assert.That(lookup.QueryParameters["key"], Is.EqualTo("AppRole"));
+                Assert.That(lookup.QueryParameters["value"], Is.EqualTo(kAppRoleName));
+                Assert.That(lookup.Headers["Authorization"], Is.EqualTo("Bearer tok"));
+                Assert.That(create.Method, Is.EqualTo(Method.Post));
+                Assert.That(JsonNode.DeepEquals(JsonNode.Parse(create.Body!), JsonNode.Parse(kIssueExampleBody)), Is.True, create.Body);
+            });
+        }
+
+        [Test]
+        public async Task GroupModify_ReplacesTheCriteriaThroughTheBulkUpdateOfApiV4()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32", "10.0.0.2/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.0.3"), Member("10.0.0.2", action: RequestAction.delete)));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            JsonNode label = JsonNode.Parse(update.Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(update.QueryParameters["override"], Is.EqualTo("true"));
+                Assert.That(update.QueryParameters["append"], Is.EqualTo("false"));
+                Assert.That(label["key"]!.GetValue<string>(), Is.EqualTo("AppRole"));
+                Assert.That(label["value"]!.GetValue<string>(), Is.EqualTo(kAppRoleName));
+                Assert.That(label["criteria"]!.AsArray().Select(criterion => criterion!["argument"]!.GetValue<string>()), Is.EqualTo(kUpdatedCriteria));
+                Assert.That(simulation.Requests.Where(request => request.Resource != kAuthenticatePath).All(request => request.Resource.StartsWith("/api/v4.0/")), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task RepeatedRequest_WritesNothingTwice()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32", "10.0.0.3/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create,
+                Member("10.0.0.1"), Member("10.0.0.3")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True);
+                Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
+                Assert.That(simulation.Requests.Exists(request => request.Method != Method.Get && request.Resource != kAuthenticatePath), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task LabelLookup_ReadsOnUntilTheTotalWhenTheApiCapsThePageSize()
+        {
+            JsonObject otherLabel = new() { ["id"] = "lab-0", ["key"] = "AppRole", ["value"] = "AR4711-000" };
+            JsonArray firstObjects = [otherLabel];
+            string firstPage = new JsonObject { ["objects"] = firstObjects, ["total_count"] = 2 }.ToJsonString();
+            JsonObject secondPageObject = JsonNode.Parse(ExistingLabel("10.0.0.1/32", "10.0.0.3/32"))!.AsObject();
+            secondPageObject["total_count"] = 2;
+            string secondPage = secondPageObject.ToJsonString();
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            simulation.Handler = request => request.Resource switch
+            {
+                kAuthenticatePath => FirewallWriteTestSupport.Ok("""{"access_token":"tok"}"""),
+                kLabelsPath => FirewallWriteTestSupport.Ok(request.QueryParameters["start_at"] == "0" ? firstPage : secondPage),
+                _ => FirewallWriteTestSupport.Ok("{}")
+            };
+
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create,
+                Member("10.0.0.1"), Member("10.0.0.3")));
+
+            List<RecordedFirewallRequest> lookups = [.. simulation.Requests.Where(request => request.Resource == kLabelsPath)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["start_at"]), Is.EqualTo(kLookupOffsets));
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["offset"]), Is.EqualTo(kLookupOffsets), "the older name of start_at");
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["max_results"]), Is.All.EqualTo("1000"));
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["limit"]), Is.All.EqualTo("1000"), "the older name of max_results");
+                Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
+            });
+        }
+
+        [Test]
+        public async Task GroupModify_OfAnAppRoleRemovesItsStaticAssetAssignments()
+        {
+            FirewallSimulation simulation = Simulation(LabelWithAsset("AppRole", kAppRoleName, kOneHost, "asset-1"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.1.5", action: RequestAction.delete)));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(CriteriaFields(update), Is.EqualTo(kIpFieldOnly), update.Body);
+            });
+        }
+
+        [Test]
+        public async Task GroupModify_OfOtherLabelsKeepsTheirStaticAssetAssignments()
+        {
+            FirewallSimulation simulation = Simulation(LabelWithAsset("Stage", "Prod", kTwoHosts, "asset-1"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged, groupName: "Stage: Prod"), Member("10.0.0.2", action: RequestAction.delete, groupName: "Stage: Prod")));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(CriteriaFields(update), Is.EqualTo(kAssetAndIpFields), update.Body);
+            });
+        }
+
+        [Test]
+        public async Task AddressesNoIpCriterionHolds_FailTheTaskWithoutWriting()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.1.5", action: RequestAction.delete)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unsupported));
+                Assert.That(result.IsRetryable, Is.False);
+                Assert.That(result.Steps.Single().Message, Does.Contain("10.0.1.5/32"));
+                Assert.That(simulation.Requests.Exists(request => request.Resource == kBulkPath), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task AddressesNoIpCriterionHolds_FailTheTaskAfterTheOtherChangesAreWritten()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32", "10.0.0.2/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.0.2", action: RequestAction.delete),
+                Member("10.0.1.5", action: RequestAction.delete)));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Steps.Single().Message, Does.Contain("10.0.1.5/32").And.Not.Contain("10.0.0.2"));
+                Assert.That(JsonNode.Parse(update.Body!)![0]!["criteria"]!.AsArray().Select(criterion => criterion!["argument"]!.GetValue<string>()),
+                    Is.EqualTo(kOneHost));
+            });
+        }
+
+        [Test]
+        public async Task GroupDelete_DeletesTheLabelValueById()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_delete,
+                Member("10.0.0.1", action: RequestAction.delete)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Delete && request.Resource == "/api/v4.0/labels/lab-1"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task GroupDelete_OfAMissingLabelSucceedsWithoutDeleting()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True);
+                Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyDeletedNote));
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Delete), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task GroupDelete_ThatIsGoneMeanwhileCountsAsDeleted()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Method == Method.Delete ? FirewallWriteTestSupport.Response(HttpStatusCode.NotFound, "") : answer(request);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1")));
+            Assert.That(result.Success, Is.True, result.Message);
+        }
+
+        [Test]
+        public async Task GroupDelete_IsSkippedWhileDeletingObjectsIsOff()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1")),
+                Context(new GatewayDeviceSpecificSettings { FwWriteDeleteObjects = false }));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True);
+                Assert.That(result.SkippedDeletions, Has.Count.EqualTo(1));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task FailedBulkItems_FailTheTask()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels, """{"succeeded":[],"failed":["AppRole: AR4711-001"]}""");
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Rejected));
+            });
+        }
+
+        [Test]
+        public async Task FailedLogin_IsAnAuthenticationError()
+        {
+            FirewallSimulation simulation = new() { Handler = _ => FirewallWriteTestSupport.Response(HttpStatusCode.Unauthorized, "{}") };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")));
+            Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Authentication));
+        }
+
+        [Test]
+        public async Task FailedLookup_FailsTheTask()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Resource == kLabelsPath ? FirewallWriteTestSupport.Response(HttpStatusCode.ServiceUnavailable, "") : answer(request);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.IsRetryable, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTasks_WriteNothing()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.object_create, Member("10.0.0.1")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True);
+                Assert.That(result.Message, Does.StartWith("Nothing to write."));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        /// <summary>Rules are only written for modelled connections, which the marker of the request task names.</summary>
+        [Test]
+        public async Task RuleTasks_WithoutConnectionMarker_AreInvalidTaskData()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(result.Message, Does.Contain("connection marker"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task GroupsThatStandForNoLabel_AreInvalidTaskData()
+        {
+            ModifyFirewallResult result = await Write(Simulation(kNoLabels), FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "WebServers")),
+                Context(groupType: null));
+            Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+        }
+
+        /// <summary>
+        /// The label key is taken from the object type the request task names, never guessed from a prefix of the name: an
+        /// app role id string without that type stands for no label, a group requested as app zone writes an AppZone label
+        /// whatever its name starts with.
+        /// </summary>
+        [Test]
+        public async Task LabelKeys_ComeFromTheRequestedTypeNotFromTheName()
+        {
+            FirewallSimulation untyped = Simulation(kNoLabels);
+            ModifyFirewallResult withoutType = await Write(untyped, FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), Context(groupType: null));
+            List<RenderedFirewallRequest> appZone = new FirewallWriter(new FixedFirewallWriteDataSource(Context()))
+                .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "ARCHIVE_SRV")),
+                    Context(groupType: ModellingTypes.ModObjectType.AppZone));
+            JsonNode body = JsonNode.Parse(LabelWriteOf(appZone).Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutType.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(untyped.Requests, Is.Empty);
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppZone"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo("ARCHIVE_SRV"));
+            });
+        }
+
+        /// <summary>
+        /// The context of a group task for which the variance analysis names the label in the configured value format and
+        /// the existing label of the app role under its former value.
+        /// </summary>
+        private static FirewallWriteContext RenameContext(string? formerLabelName = "AppRole: " + kAppRoleName) =>
+            Context() with { LabelName = kFormattedLabelName, FormerLabelName = formerLabelName };
+
+        /// <summary>A management that has the app role label under its former value only and accepts the rename.</summary>
+        private static FirewallSimulation SimulationWithFormerLabel(params string[] subnets)
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            simulation.Handler = request => request.Resource switch
+            {
+                kAuthenticatePath => FirewallWriteTestSupport.Ok("""{"access_token":"tok"}"""),
+                kLabelsPath => FirewallWriteTestSupport.Ok(request.QueryParameters["value"] == kAppRoleName ? ExistingLabel(subnets) : kNoLabels),
+                kBulkPath => FirewallWriteTestSupport.Ok("""{"succeeded":["lab-1"],"failed":[]}"""),
+                _ => FirewallWriteTestSupport.Ok("""{"id":"lab-1"}""")
+            };
+            return simulation;
+        }
+
+        [Test]
+        public async Task RenamedLabel_IsRenamedInPlaceInsteadOfCreated()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged)), RenameContext());
+
+            RecordedFirewallRequest rename = simulation.Requests.Single(request => request.Method == Method.Put);
+            JsonNode body = JsonNode.Parse(rename.Body!)!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(rename.Resource, Is.EqualTo("/api/v4.0/labels/lab-1"));
+                Assert.That(rename.QueryParameters["append"], Is.EqualTo("true"));
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppRole"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo(kFormattedValue));
+                Assert.That(body["criteria"], Is.Null, "the criteria are kept");
+                Assert.That(result.Steps[0].Message, Does.StartWith("Renamed from 'AppRole: AR4711-001'."));
+                Assert.That(simulation.Requests.Exists(request => request.Resource == kBulkPath), Is.False, "neither created nor changed");
+            });
+        }
+
+        [Test]
+        public async Task RenamedLabel_WithOtherMembers_IsRenamedThenUpdatedUnderItsNewValue()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.0.3")), RenameContext());
+
+            List<RecordedFirewallRequest> writes = [.. simulation.Requests.Where(request => request.Method != Method.Get && request.Resource != kAuthenticatePath)];
+            JsonNode update = JsonNode.Parse(writes[1].Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(writes[0].Method, Is.EqualTo(Method.Put));
+                Assert.That(writes[1].Resource, Is.EqualTo(kBulkPath));
+                Assert.That(update["value"]!.GetValue<string>(), Is.EqualTo(kFormattedValue));
+                Assert.That(update["criteria"]!.AsArray().Select(criterion => criterion!["argument"]!.GetValue<string>()), Is.EqualTo(kUpdatedCriteria));
+            });
+        }
+
+        [Test]
+        public async Task RenamedLabel_ThatExistsUnderItsNewValueAlready_IsNotRenamed()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            FirewallWriteContext context = Context() with { LabelName = "AppRole: " + kAppRoleName, FormerLabelName = "AppRole: Old (AR4711-001)" };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged)), context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Put), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FailedRename_FailsTheTaskWithoutCreating()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Method == Method.Put ? FirewallWriteTestSupport.Response(HttpStatusCode.BadRequest, "{}") : answer(request);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged)), RenameContext());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(simulation.Requests.Exists(request => request.Resource == kBulkPath), Is.False);
+            });
+        }
+
+        [Test]
+        public void RequestedLabelName_IsWrittenInsteadOfTheGroupName()
+        {
+            FirewallWriteContext context = RenameContext(null);
+            List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(context))
+                .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), context);
+            JsonNode body = JsonNode.Parse(LabelWriteOf(requests).Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppRole"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo(kFormattedValue));
+                Assert.That(LabelWriteOf(requests).Step.FormerLabelValue, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task GroupDelete_DeletesTheRequestedLabel()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            FirewallWriteContext context = Context() with { LabelName = "AppRole: " + kAppRoleName };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_delete,
+                Member("10.0.0.1", action: RequestAction.delete, groupName: "AppRole: Other")), context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Delete && request.Resource == "/api/v4.0/labels/lab-1"), Is.True);
+            });
+        }
+
+        [TestCase("Stage: Prod", "AppRole: AR4711-001")]
+        [TestCase("AppZone: Billing (AR4711-001)", null)]
+        [TestCase(kFormattedLabelName, "AppZone: AR4711-001")]
+        [TestCase(kFormattedLabelName, "AR4711-001")]
+        public async Task RequestedLabelsOfAnotherKey_AreInvalidTaskData(string labelName, string? formerLabelName)
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            FirewallWriteContext context = Context() with { LabelName = labelName, FormerLabelName = formerLabelName };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify, Member("10.0.0.1")), context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(simulation.Requests.Exists(request => request.Method != Method.Get && request.Resource != kAuthenticatePath), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task MembersWithoutAddress_AreInvalidTaskData()
+        {
+            WfImplElement member = Member("10.0.0.1");
+            member.IpString = null;
+            ModifyFirewallResult result = await Write(Simulation(kNoLabels), FirewallWriteTestSupport.Task(WfTaskType.group_create, member));
+            Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+        }
+
+        [Test]
+        public void GroupsNamedKeyAndValue_WriteThatLabel()
+        {
+            List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(Context()))
+                .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "Stage: Prod")), Context());
+            JsonNode body = JsonNode.Parse(LabelWriteOf(requests).Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("Stage"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo("Prod"));
+                Assert.That(LabelWriteOf(requests).Step.ReplacesMembers, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ExcludedObjectTypes_AreNotWritten()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            GatewayDeviceSpecificSettings settings = new() { ProvisioningExcludedObjectTypes = kExcludedAppRoles };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), Context(settings));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True);
+                Assert.That(result.Message, Does.Contain("exclude their object type from provisioning").And.Contain("LabelWrite 'AppRole: AR4711-001'"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void ExcludedAppServers_AreIgnored()
+        {
+            GatewayDeviceSpecificSettings settings = new() { ProvisioningExcludedObjectTypes = kExcludedAppServers };
+            FirewallWriteContext context = Context(settings, FirewallVendors.kCheckPointR8x);
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1"));
+
+            List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(context)).RenderAll(task, context);
+            Assert.Multiple(() =>
+            {
+                Assert.That(requests.Exists(request => request.Operation == FirewallWriteOperation.HostCreate), Is.True);
+                Assert.That(requests.Exists(request => request.Operation == FirewallWriteOperation.GroupCreate), Is.True);
+            });
+        }
+
+        [Test]
+        public void ExcludedGroups_LeaveOutTheirMemberObjectsOnOtherVendors()
+        {
+            GatewayDeviceSpecificSettings settings = new() { ProvisioningExcludedObjectTypes = kExcludedAppRoles };
+            FirewallWriteContext context = Context(settings, FirewallVendors.kCheckPointR8x);
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1"));
+
+            List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(context)).RenderAll(task, context);
+            List<RenderedFirewallRequest> withoutExclusion = new FirewallWriter(new FixedFirewallWriteDataSource(context))
+                .RenderAll(task, context with { Settings = new GatewayDeviceSpecificSettings() });
+            Assert.Multiple(() =>
+            {
+                Assert.That(requests, Is.Empty);
+                Assert.That(withoutExclusion.Exists(request => request.Operation == FirewallWriteOperation.HostCreate), Is.True);
+            });
+        }
+
+        [Test]
+        public void GroupTypes_OfTasks()
+        {
+            FirewallWriteContext appRole = Context();
+            FirewallWriteContext networkArea = Context(groupType: ModellingTypes.ModObjectType.NetworkArea);
+            FirewallWriteContext serviceGroup = Context(groupType: ModellingTypes.ModObjectType.ServiceGroup);
+            FirewallWriteContext untyped = Context(groupType: null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_modify, Member("10.0.0.1", groupName: "AppZone: AZ1")), appRole),
+                    Is.EqualTo(ModellingTypes.ModObjectType.AppZone), "the key of a name \"key: value\" wins");
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1", groupName: "NA50")), networkArea),
+                    Is.EqualTo(ModellingTypes.ModObjectType.NetworkArea));
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "Svc")), serviceGroup),
+                    Is.EqualTo(ModellingTypes.ModObjectType.ServiceGroup));
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "AR4711-001")), untyped), Is.Null,
+                    "no type is guessed from a prefix of the name");
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")), appRole), Is.Null);
+            });
+        }
+
+        /// <summary>
+        /// Guardicore knows no service groups: a service group task that reaches it (e.g. from the createTicket API) writes
+        /// nothing and succeeds with a note instead of failing as a group that stands for no label.
+        /// </summary>
+        [Test]
+        public async Task ServiceGroupTask_IsLeftOutWithANote()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            WfImplElement https = FirewallWriteTestSupport.Service("Https", 6, 443);
+            https.GroupName = "WebServices";
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_create, https);
+
+            ModifyFirewallResult result = await Write(simulation, task, Context(groupType: null));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.Message, Does.Contain("knows no service groups"));
+                Assert.That(result.Message, Does.Contain("service group 'WebServices'"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ServiceGroupTask_NamedByItsRequest_IsLeftOutWithoutElements()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_delete);
+
+            ModifyFirewallResult result = await Write(simulation, task, Context(groupType: ModellingTypes.ModObjectType.ServiceGroup));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.Message, Does.Contain("service group 'rule-1'"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void IsServiceGroupTask_OnlyForGroupTasksOfServiceGroups()
+        {
+            WfImplElement https = FirewallWriteTestSupport.Service("Https", 6, 443);
+            Assert.Multiple(() =>
+            {
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.group_modify, https), Context(groupType: null)), Is.True);
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")),
+                    Context(groupType: ModellingTypes.ModObjectType.ServiceGroup)), Is.True);
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), Context()), Is.False);
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.access, https), Context(groupType: null)), Is.False,
+                    "an access task with services is no group task");
+                Assert.That(LabelStepPlanner.Plan(FirewallWriteTestSupport.Task(WfTaskType.group_modify, https), Context(groupType: null)), Is.Empty);
+            });
+        }
+    }
+}

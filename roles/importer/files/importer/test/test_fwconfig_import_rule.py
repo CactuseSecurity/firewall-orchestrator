@@ -78,6 +78,65 @@ class TestFwConfigImportRule:
         assert prepared.rule_src_zone == "src_zone"
         assert prepared.rule_dst_zone == "dst_zone"
 
+    def test_prepare_rule_for_import_passes_rule_labels(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        fwconfig_import_rule.uid2id_mapper = mocker.Mock()
+        fwconfig_import_rule.uid2id_mapper.get_rulebase_id.return_value = 1
+        fwconfig_import_rule.import_details = mocker.Mock()
+        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 1
+        fwconfig_import_rule.import_details.state.import_id = 1
+        fwconfig_import_rule.import_details.state.lookup_action.return_value = 1
+        fwconfig_import_rule.import_details.state.lookup_track.return_value = 1
+        normalized_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        normalized_rule.rule_src_labels = [{"AppRole": ["AR1", "AR2"], "Stage": "Prod"}, {"AppRole": "AR3"}]
+
+        prepared = fwconfig_import_rule.prepare_rule_for_import(normalized_rule, "rulebase-uid")
+
+        assert prepared.model_dump()["rule_src_labels"] == [
+            {"AppRole": ["AR1", "AR2"], "Stage": "Prod"},
+            {"AppRole": "AR3"},
+        ]
+        assert prepared.rule_dst_labels is None
+
+    def test_update_rule_label_assignments_passes_only_rules_with_labels(
+        self, fwconfig_import_rule: FwConfigImportRule, mocker: MockerFixture
+    ):
+        def get_rule_id(uid: str, before_update: bool = False) -> int:
+            return {"labelled": 1, "plain": 2}[uid] + (100 if before_update else 0)
+
+        fwconfig_import_rule.uid2id_mapper = mocker.Mock()
+        fwconfig_import_rule.uid2id_mapper.get_rule_id.side_effect = get_rule_id
+        write = mocker.patch(
+            "model_controllers.fwconfig_import_rule.FwConfigImportRuleLabel.write_rule_label_assignments",
+            return_value=(1, 1),
+        )
+        labelled = build_normalized_rule("labelled", rule_src_zone=None, rule_dst_zone=None)
+        labelled.rule_src_labels = [{"Stage": "Prod"}]
+        plain = build_normalized_rule("plain", rule_src_zone=None, rule_dst_zone=None)
+        rules = {"labelled": labelled, "plain": plain}
+
+        fwconfig_import_rule.update_rule_label_assignments(rules, rules, {"labelled", "plain"}, {"labelled", "plain"})
+
+        write.assert_called_once_with({1: labelled}, [101])
+
+    def test_is_change_security_relevant_detects_label_change(self, fwconfig_import_rule: FwConfigImportRule):
+        old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule.rule_dst_labels = [{"Stage": "Prod"}]
+
+        assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule)
+
+    def test_is_change_security_relevant_detects_regrouped_labels(self, fwconfig_import_rule: FwConfigImportRule):
+        old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        old_rule.rule_dst_labels = [{"AppRole": "AR1", "Stage": "Prod"}]
+        new_rule.rule_dst_labels = [{"AppRole": "AR1"}, {"Stage": "Prod"}]
+
+        assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule)
+
     def test_write_changelog_rules_changed_rule_writes_new_and_old_ids(
         self,
         fwconfig_import_rule: FwConfigImportRule,

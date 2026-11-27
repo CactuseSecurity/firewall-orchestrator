@@ -144,6 +144,18 @@
   become: true
   become_user: postgres
 
+# the upgrade file is run three times within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the resolveServiceGroups migration of the 10.0.0 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-10.0.0-resolve-service-groups.sql')
+         | replace('-- @run-upgrade-10.0.0', lookup('file', role_path + '/../database/files/upgrade/10.0.0.sql')) }}
+  register: test_upgrade_10_0_0_resolve_service_groups
+  changed_when: false
+  become: true
+  become_user: postgres
+
 # the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
 - name: test the SecureChange template migration of the 9.8.5 database upgrade
   command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"

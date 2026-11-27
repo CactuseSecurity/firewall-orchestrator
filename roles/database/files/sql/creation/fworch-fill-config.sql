@@ -104,7 +104,6 @@ insert into config (config_key, config_value, config_user) VALUES ('modIntegrati
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStates', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStateMarker', 'ImplementationState', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutActive', 'true', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutBundleTasks', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutNatHeuristic', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modRolloutRemovedAppServers', 'false', 0);
@@ -200,6 +199,13 @@ insert into config (config_key, config_value, config_user) VALUES ('reqCreateReq
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
+-- key of the App label; Hasura restricts modellers to App labels of their own apps by this entry
+INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey', 'App', 0);
+-- format of the values of the App labels and of the labels of app roles, app zones and network areas ({name}, {id})
+INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelValueFormat', '{id}', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('groupLabelValueFormat', '{id}', 0);
+-- prefix of the Guardicore rulesets of common services (positioning algorithm gcEndOfAppRulesetCommonSvc)
+INSERT INTO config (config_key, config_value, config_user) VALUES ('modComSvcSectionPrefix', 'ComSvc', 0);
 
 -- keys of personal settings (properties marked [UserConfigData] in ConfigData.cs)
 INSERT INTO config_user_key (config_key) VALUES ('maxMessages');

@@ -23,6 +23,11 @@ namespace FWO.Data.Workflow
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        /// <summary>
+        /// Modelling object type of the group of a group task (a name of ModellingTypes.ModObjectType, e.g. "AppRole"),
+        /// which the firewall write takes instead of guessing it from the group name.
+        /// </summary>
+        public const string GrpType = "GrpType";
         public const string GroupId = "GroupId";
         public const string RequestContactName = "requestContactName";
         public const string RequestContactId = "requestContactId";
@@ -38,6 +43,21 @@ namespace FWO.Data.Workflow
         public const string ExtraConfigs = "ExtraConfigs";
         /// <summary>Extra configurations of the interface the modelled connection uses, as requested.</summary>
         public const string InterfaceExtraConfigs = "InterfaceExtraConfigs";
+        /// <summary>
+        /// Marker of the modelled connection of a rule task (e.g. "FWOC123"), by which rules written for it are found
+        /// again (Guardicore: the rule comment).
+        /// </summary>
+        public const string ConnMarker = "ConnMarker";
+        /// <summary>
+        /// Name "key: value" of the label a group task of a management that writes labels writes (an app role, app zone or
+        /// network area with its value in the configured format), e.g. "AppRole: FWO-Produktion (AR5003080-005)".
+        /// </summary>
+        public const string LabelName = "LabelName";
+        /// <summary>
+        /// Name "key: value" of the existing label of the group under another value (former name or format), which the
+        /// firewall write renames to <see cref="LabelName"/>; absent if the label keeps its name.
+        /// </summary>
+        public const string FormerLabelName = "FormerLabelName";
     }
 
     public class WfReqTaskBase : WfTaskBase

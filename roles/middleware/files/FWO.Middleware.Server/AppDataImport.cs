@@ -4,11 +4,13 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
 using FWO.Services.Modelling;
+using FWO.Services.Labelling;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Net;
@@ -24,6 +26,8 @@ namespace FWO.Middleware.Server
         private List<ModellingImportAppData> ImportedApps = [];
         private List<FwoOwner> ExistingApps = [];
         private List<ModellingAppServer> ExistingAppServers = [];
+        private AppServerLabelImport appServerLabelImport;
+        private readonly HashSet<int> importedOwnerIds = [];
 
         private Ldap internalLdap = new();
 
@@ -52,6 +56,13 @@ namespace FWO.Middleware.Server
         public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig, Func<IPAddress, Task<string>>? reverseDnsLookup = null) : base(apiConnection, globalConfig)
         {
             this.reverseDnsLookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUpPreferredAsync;
+            appServerLabelImport = NewAppServerLabelImport(new OwnerChangeImportTracker(apiConnection));
+        }
+
+        private AppServerLabelImport NewAppServerLabelImport(OwnerChangeImportTracker ownerChangeTracker)
+        {
+            return new(apiConnection, async () => await ownerChangeTracker.EnsureAnCreateImportControl(), false, AddLogEntry, globalConfig.AppLabelKey,
+                globalConfig.AppLabelValueFormat);
         }
 
         /// <summary>
@@ -99,6 +110,8 @@ namespace FWO.Middleware.Server
             cancellationToken.ThrowIfCancellationRequested();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
+            appServerLabelImport = NewAppServerLabelImport(ownerChangeTracker);
+            importedOwnerIds.Clear();
 
             try
             {
@@ -114,6 +127,7 @@ namespace FWO.Middleware.Server
                     }
                     await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker, cancellationToken);
                 }
+                await appServerLabelImport.SyncOtherOwners(importedOwnerIds, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -249,6 +263,7 @@ namespace FWO.Middleware.Server
                     await AddOwnerChangeIfNeeded(existingApp, incomingApp, ownerChangeTracker);
                     await AddOwnerLifeCycleStateActiveChangeIfNeeded(existingApp, ownerLifeCycleStateId, incomingApp.ImportSource, ownerChangeTracker);
                 }
+                importedOwnerIds.Add(appId);
                 if (!string.IsNullOrWhiteSpace(incomingApp.MainUser) && IsResponsibleTypeActive(GlobalConst.kOwnerResponsibleTypeMain))
                 {
                     await UpdateRoles(incomingApp.MainUser, GetRolesForType(GlobalConst.kOwnerResponsibleTypeMain));
@@ -337,7 +352,9 @@ namespace FWO.Middleware.Server
             ModellingImportAppData incomingApp,
             OwnerChangeImportTracker ownerChangeTracker)
         {
-            if (!existingApp.Active || HaveAppServerChanges(incomingApp))
+            // a renamed app gets another App label if the values contain the name, which its rules get by the owner change
+            bool appLabelRenamed = new LabelValueFormat(globalConfig.AppLabelValueFormat).NameChangeAltersValue(existingApp.Name, incomingApp.Name);
+            if (!existingApp.Active || HaveAppServerChanges(incomingApp) || appServerLabelImport.LabelsChanged || appLabelRenamed)
             {
                 await ownerChangeTracker.AddOwnerChange(existingApp.Id, existingApp.Id, ChangelogActionType.CHANGE, incomingApp.ImportSource);
             }
@@ -565,6 +582,7 @@ namespace FWO.Middleware.Server
                     await PrepareIncomingAppServer(appServer);
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
+                await appServerLabelImport.SyncOwnerAppLabels(appId, incomingApp.Name);
             }
             return appId;
         }
@@ -588,6 +606,7 @@ namespace FWO.Middleware.Server
             await UpdateOwnerResponsibles(existingApp.Id, responsibles, existingApp.OwnerResponsibles ?? []);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
+            await appServerLabelImport.SyncOwnerAppLabels(existingApp.Id, incomingApp.Name);
         }
 
         private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, OwnerChangeImportTracker ownerChangeTracker)
@@ -1085,6 +1104,7 @@ namespace FWO.Middleware.Server
                 appId = applId
             };
             ExistingAppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAppServersBySource, Variables);
+            await appServerLabelImport.LoadActiveLabels(ExistingAppServers.Select(appServer => appServer.Id));
             foreach (var incomingAppServer in incomingApp.AppServers)
             {
                 if (await SaveAppServer(incomingAppServer, applId, incomingApp.ImportSource))
@@ -1144,6 +1164,7 @@ namespace FWO.Middleware.Server
                 {
                     return false;
                 }
+                await appServerLabelImport.SyncLabels(existingAppServer.Id, incomingAppServer.Name, incomingAppServer.Labels);
                 return true;
             }
             catch (Exception exc)
@@ -1217,6 +1238,7 @@ namespace FWO.Middleware.Server
                         ChangeSource = newModAppServer.ImportSource
                     });
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, newModAppServer);
+                    await appServerLabelImport.SyncLabels(newModAppServer.Id, newModAppServer.Name, incomingAppServer.Labels);
                 }
             }
             catch (Exception exc)
@@ -1356,6 +1378,7 @@ namespace FWO.Middleware.Server
                     ChangeSource = appServer.ImportSource
                 });
                 await AppServerHelper.ReactivateOtherSource(apiConnection, userConfig, appServer);
+                await appServerLabelImport.CloseLabels(appServer.Id, appServer.Name);
             }
             catch (Exception exc)
             {

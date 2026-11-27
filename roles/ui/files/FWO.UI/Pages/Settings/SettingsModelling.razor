@@ -2,6 +2,8 @@
 @using FWO.Api.Client.Queries
 @using FWO.Basics
 @using FWO.Data
+@using FWO.Data.Labelling
+@using FWO.ExternalSystems.FirewallWrite
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Services
@@ -41,6 +43,17 @@
             <div class="form-check form-switch">
                 <input id="cbx_allow_service_in_conn" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AllowServiceInConn">
             </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="labelBasedModelling" TooltipKey="H5604a" LabelFor="cbx_label_based_modelling">
+            <div class="form-check form-switch">
+                <input id="cbx_label_based_modelling" type="checkbox" role="switch" class="form-check-input" @bind="configData!.LabelBasedModelling">
+            </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="groupLabelValueFormat" TooltipKey="H5604b" LabelFor="groupLabelValueFormat">
+            <input id="groupLabelValueFormat" type="text" maxlength="@LabelValueFormat.kMaxFormatLength" class="form-control form-control-sm settings-input-md" @bind="configData!.GroupLabelValueFormat" />
+        </SettingsRow>
+        <SettingsRow LabelKey="modComSvcSectionPrefix" TooltipKey="H5604c" LabelFor="modComSvcSectionPrefix">
+            <input id="modComSvcSectionPrefix" type="text" maxlength="@GuardicoreRulesets.kMaxCommonServicePrefixLength" class="form-control form-control-sm settings-input-md" @bind="configData!.ModComSvcSectionPrefix" />
         </SettingsRow>
         <hr />
         <SettingsRow LabelKey="overviewDisplayLines" TooltipKey="H5605" Marked="true" LabelFor="overviewDisplayLines">
@@ -183,11 +196,6 @@
         <SettingsRow LabelKey="modRolloutActive" TooltipKey="H5634" LabelFor="cbx_rollout_active">
             <div class="form-check form-switch">
                 <input id="cbx_rollout_active" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutActive">
-            </div>
-        </SettingsRow>
-        <SettingsRow LabelKey="modRolloutResolveServiceGroups" TooltipKey="H5631" LabelFor="cbx_rollout_resolve_service_groups">
-            <div class="form-check form-switch">
-                <input id="cbx_rollout_resolve_service_groups" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutResolveServiceGroups">
             </div>
         </SettingsRow>
         <SettingsRow LabelKey="modRolloutBundleTasks" TooltipKey="H5632" LabelFor="cbx_rollout_bundle_tasks">
@@ -484,6 +492,11 @@ else
             }
             if (configData != null)
             {
+                if (!LabelValueFormat.IsValid(configData.GroupLabelValueFormat))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText(LabelValueFormat.kInvalidFormatTextKey), true);
+                    return;
+                }
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
 
@@ -533,6 +546,9 @@ else
         configData!.ModComSvcExcludedAreas = PrepareAreas(ComSvcExcludedAreas, ComSvcExcludedAreasToDelete);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
+        configData!.GroupLabelValueFormat = configData.GroupLabelValueFormat.Trim();
+        // an empty prefix would mix the rulesets of common services with those of the apps
+        configData!.ModComSvcSectionPrefix = GuardicoreRulesets.EffectivePrefix(configData.ModComSvcSectionPrefix);
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)

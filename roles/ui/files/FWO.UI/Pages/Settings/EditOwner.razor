@@ -5,11 +5,13 @@
 @using FWO.Config.Api
 @using FWO.Config.Api.Data
 @using FWO.Data
+@using FWO.Data.Labelling
 @using FWO.Data.Middleware
 @using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Services
+@using FWO.Services.Modelling
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using Newtonsoft.Json
@@ -604,6 +606,7 @@
         await EnsureOwnerResponsibleRolesFromConfig(ActOwner);
         await AddRuleOwners();
         await AddNetworkOwners();
+        await AppServerHelper.AssignOwnerAppLabel(apiConnection, userConfig, ActOwner.Id);
         ExistingOwners.Add(ActOwner);
 
         Log.WriteAudit(
@@ -616,6 +619,7 @@
     private async Task UpdateOwnerInDb()
     {
         DateTime? decommDate = GetDecommDateAfterLifecycleChange();
+        FwoOwner? previousOwner = ExistingOwners.FirstOrDefault(owner => owner.Id == ActOwner.Id);
         var variables = new
         {
             id = ActOwner.Id,
@@ -645,6 +649,9 @@
         await AddRuleOwners();
         await DeleteNetworkOwners();
         await AddNetworkOwners();
+        // the app servers carry the App label of the owner, which follows a changed or removed app id (or name, if the values contain it)
+        await AppServerHelper.AssignOwnerAppLabel(apiConnection, userConfig, ActOwner.Id);
+        await RecordAppLabelChange(previousOwner?.ExtAppId, previousOwner?.Name);
         ExistingOwners[ExistingOwners.FindIndex(x => x.Id == ActOwner.Id)] = ActOwner;
 
         Log.WriteAudit(
@@ -652,6 +659,29 @@
             Text: $"Edited Owner: {ActOwner.Name} (Responsibles: {FormatOwnerResponsibles(ActOwner.GetAllOwnerResponsibles())})",
             UserName: userConfig.User.Name,
             UserDN: userConfig.User.Dn);
+    }
+
+    /// <summary>
+    /// Records a change of the App label of the owner (a changed app id, or a changed name if the App label values contain
+    /// it) as owner change, so that the next rule owner mapping run of the middleware gives the rules of the owner the new
+    /// App label. A failure is shown, the owner itself is saved already.
+    /// </summary>
+    private async Task RecordAppLabelChange(string? previousAppId, string? previousName)
+    {
+        bool appIdChanged = !string.Equals(previousAppId?.Trim() ?? "", ActOwner.ExtAppId?.Trim() ?? "", StringComparison.Ordinal);
+        bool nameChanged = new LabelValueFormat(userConfig.AppLabelValueFormat).NameChangeAltersValue(previousName, ActOwner.Name);
+        if (!appIdChanged && !nameChanged)
+        {
+            return;
+        }
+        try
+        {
+            await new OwnerChangeRecorder(apiConnection).RecordChange(ActOwner.Id, ActOwner.ImportSource);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_owner"), "", true);
+        }
     }
 
     private async Task UpdateOwnerResponsiblesInDb(FwoOwner owner)

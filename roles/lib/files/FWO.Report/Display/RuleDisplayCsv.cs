@@ -7,6 +7,7 @@ using FWO.Report.Filter;
 using System.Text;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using FWO.Data.Labelling;
 
 namespace FWO.Ui.Display
 {
@@ -18,6 +19,62 @@ namespace FWO.Ui.Display
         public string OutputCsv(string? input)
         {
             return $"{CsvOutputEncoder.EncodeCell(input)},";
+        }
+
+        /// <summary>
+        /// Csv header field of the source labels, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplaySourceLabelsCsvHeader()
+        {
+            return ShowSourceLabelField ? "\"source-labels\"," : "";
+        }
+
+        /// <summary>
+        /// Csv header field of the destination labels, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplayDestinationLabelsCsvHeader()
+        {
+            return ShowDestinationLabelField ? "\"destination-labels\"," : "";
+        }
+
+        /// <summary>
+        /// Csv header field of the rule labels, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCsvHeader()
+        {
+            return ShowRuleLevelLabels ? "\"rule-labels\"," : "";
+        }
+
+        /// <summary>
+        /// Csv field of the source labels with AND / OR, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplaySourceLabelsCsv(Rule rule)
+        {
+            return ShowSourceLabelField ? OutputCsv(FormatSideLabelsCsv(rule.SourceLabels)) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the destination labels with AND / OR, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplayDestinationLabelsCsv(Rule rule)
+        {
+            return ShowDestinationLabelField ? OutputCsv(FormatSideLabelsCsv(rule.DestinationLabels)) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the rule labels, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCsv(Rule rule)
+        {
+            return ShowRuleLevelLabels ? OutputCsv(RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels)) : "";
+        }
+
+        /// <summary>
+        /// Formats the labels of a rule side with AND / OR.
+        /// </summary>
+        public static string FormatSideLabelsCsv(List<Dictionary<string, List<string>>>? labels)
+        {
+            return RuleLabelFormatter.FormatSideLabels(labels, RuleLabelFormatter.kCsvAnd, RuleLabelFormatter.kCsvOr);
         }
 
         public string DisplayNumberCsv(Rule rule)

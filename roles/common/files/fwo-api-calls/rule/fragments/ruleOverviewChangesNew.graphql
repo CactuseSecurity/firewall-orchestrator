@@ -83,4 +83,5 @@ fragment ruleOverviewChangesNew on firewall_rule {
       name: dev_name
     }
   }
+  ...ruleLabelsAfterChange
 }

@@ -1,6 +1,8 @@
+using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
 using FWO.Logging;
 using FWO.Services.PathAnalysis;
 
@@ -90,7 +92,8 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Returns the gateways of an access task: entered devices take precedence over the path analysis algorithm.
+        /// Returns the gateways of an access task: entered devices take precedence; an access task of a management that
+        /// writes labels (Guardicore) gets the gateway of its management; otherwise the path analysis algorithm decides.
         /// A null entry stands for one implementation task without gateway.
         /// </summary>
         private async Task<List<int?>> DetermineAccessTargets(WfReqTask reqTask)
@@ -103,7 +106,63 @@ namespace FWO.Services.Workflow
             {
                 return [.. reqTask.GetResolvedDeviceList(Devices).Distinct().Select(deviceId => (int?)deviceId)];
             }
-            return [.. (await GetAlgorithmDeviceIds(reqTask)).Select(deviceId => (int?)deviceId)];
+            List<int>? labelWriterGateway = await GetLabelWriterGateway(reqTask);
+            if (labelWriterGateway != null)
+            {
+                return [.. labelWriterGateway.Select(deviceId => (int?)deviceId)];
+            }
+            List<int> algorithmDeviceIds = await GetAlgorithmDeviceIds(reqTask);
+            return [.. algorithmDeviceIds.Select(deviceId => (int?)deviceId)];
+        }
+
+        /// <summary>
+        /// Returns the gateway an access task of a management that writes labels (Guardicore) is implemented on. Such a
+        /// management enforces its policy on the hosts and has no gateway in a network path, so the path analysis cannot
+        /// find it: the rule is written once, on the gateway of the management (the first one, if it has several).
+        /// </summary>
+        /// <returns>
+        /// Null if the task has no management or its management does not write labels; an empty list if the management
+        /// has no gateway, so the fallback task without gateway applies.
+        /// </returns>
+        private async Task<List<int>?> GetLabelWriterGateway(WfReqTask reqTask)
+        {
+            if (reqTask.ManagementId is not int managementId || managementId <= 0)
+            {
+                return null;
+            }
+            await EnsureDevicesLoaded();
+            List<Device> gateways = [.. Devices.Where(device => device.Management.Id == managementId).OrderBy(device => device.Id)];
+            DeviceType? deviceType = gateways.FirstOrDefault()?.Management.DeviceType;
+            if (deviceType == null)
+            {
+                await EnsureManagementHierarchyLoaded();
+                deviceType = Managements.Find(management => management.Id == managementId)?.DeviceType;
+            }
+            if (deviceType == null || !FirewallVendors.WritesLabels(deviceType.Id))
+            {
+                return null;
+            }
+            return gateways.Count > 0 ? [gateways[0].Id] : [];
+        }
+
+        /// <summary>
+        /// Loads the managements unless they are already loaded, e.g. by the UI initialization; the middleware server does
+        /// not load them at initialization.
+        /// </summary>
+        private async Task EnsureManagementHierarchyLoaded()
+        {
+            if (Managements.Count > 0 || apiConnection == null)
+            {
+                return;
+            }
+            try
+            {
+                Managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy) ?? [];
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(kAutoPlanLogTitle, "Could not load the managements to find the device type of an access task.", exception);
+            }
         }
 
         /// <summary>

@@ -25,6 +25,8 @@ namespace FWO.Test
         private const int kSecondGatewayId = 2;
         private const int kUnknownGatewayId = 99;
         private const int kUnknownManagementId = 98;
+        private const int kOtherManagementId = 21;
+        private const int kOtherManagementGatewayId = 3;
         private const int kOpenStateId = 4;
         private const int kCompletedStateId = 10;
 
@@ -38,6 +40,10 @@ namespace FWO.Test
         private static readonly List<int?> kFirstGatewayTask = [kFirstGatewayId];
         private static readonly List<int?> kBothGatewayTasks = [kFirstGatewayId, kSecondGatewayId];
         private static readonly List<int?> kTaskWithoutGateway = [null];
+        private static readonly List<int> kOtherManagementGateway = [kOtherManagementGatewayId];
+        private static readonly List<int?> kOtherManagementGatewayTask = [kOtherManagementGatewayId];
+        private static readonly List<int> kFirstAndOtherManagementGateway = [kFirstGatewayId, kOtherManagementGatewayId];
+        private static readonly List<int?> kFirstAndOtherManagementGatewayTasks = [kFirstGatewayId, kOtherManagementGatewayId];
         private static readonly List<int> kRequestedManagements = [kManagementId, kUnknownManagementId];
         private static readonly List<int> kNoIds = [];
         private static readonly List<Device> kNoGateways = [];
@@ -152,6 +158,27 @@ namespace FWO.Test
             return handler;
         }
 
+        /// <summary>
+        /// Handler whose loaded gateways include one of another management, with rules planned automatically everywhere.
+        /// </summary>
+        private static WfHandler CreateHandlerWithOtherManagementGateway(int taskManagementDeviceTypeId = DeviceTypeIds.kGuardicoreManagement)
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            Management taskManagement = api.Managements.Single(management => management.Id == kManagementId);
+            taskManagement.DeviceType = new DeviceType { Id = taskManagementDeviceTypeId };
+            handler.Devices.ForEach(device => device.Management = taskManagement);
+            Management otherManagement = new()
+            {
+                Id = kOtherManagementId,
+                Name = "other-mgm",
+                DeviceType = new DeviceType { Id = kDeviceTypeId, Name = "Check Point", Version = "R8x" }
+            };
+            handler.Devices.Add(new Device { Id = kOtherManagementGatewayId, Name = "gw-other", Management = otherManagement });
+            return handler;
+        }
+
         private static List<int?> DeviceIds(WfReqTask reqTask)
         {
             return [.. reqTask.ImplementationTasks.Select(implTask => implTask.DeviceId)];
@@ -246,6 +273,83 @@ namespace FWO.Test
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
             Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
+        }
+
+        /// <summary>
+        /// A management that writes labels (Guardicore) has no gateway in a network path: the access task gets exactly one
+        /// implementation task, on the first gateway of its management, without path analysis.
+        /// </summary>
+        [Test]
+        public async Task AccessTask_OfLabelWriter_GetsOneTaskOnTheGatewayOfItsManagement()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway();
+            FixedPathAnalyzer analyzer = new(kFirstAndOtherManagementGateway);
+            handler.PathAnalyzerOverride = analyzer;
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstGatewayTask));
+                Assert.That(analyzer.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task AccessTask_OfOtherVendor_KeepsAlgorithmGatewaysOfAllManagements()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway(kDeviceTypeId);
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kFirstAndOtherManagementGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstAndOtherManagementGatewayTasks));
+        }
+
+        [Test]
+        public async Task AccessTask_OfLabelWriterWithoutGateway_CreatesFallbackTaskWithoutGateway()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway();
+            Management labelWriter = handler.Devices.First(device => device.Id == kFirstGatewayId).Management;
+            handler.Devices.RemoveAll(device => device.Management.Id == kManagementId);
+            handler.Managements = [labelWriter];
+            FixedPathAnalyzer analyzer = new(kOtherManagementGateway);
+            handler.PathAnalyzerOverride = analyzer;
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
+                Assert.That(analyzer.Requests, Is.Empty, "the path analysis cannot find a host based firewall");
+            });
+        }
+
+        [Test]
+        public async Task AccessTask_WithoutManagement_KeepsAlgorithmGatewaysOfAllManagements()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway();
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kFirstAndOtherManagementGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+            reqTask.ManagementId = null;
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstAndOtherManagementGatewayTasks));
+        }
+
+        [Test]
+        public async Task AccessTask_EnteredGatewayOfOtherManagement_IsKept()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway();
+            WfReqTask reqTask = CreateAccessTask(kOtherManagementGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kOtherManagementGatewayTask));
         }
 
         [Test]

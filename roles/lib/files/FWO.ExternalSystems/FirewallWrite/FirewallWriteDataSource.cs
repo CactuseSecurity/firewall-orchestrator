@@ -1,12 +1,32 @@
+using System.Collections.Frozen;
+using System.Globalization;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Labelling;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
+    /// <summary>
+    /// The settings by which the variance analysis names what its tasks write: the connection marker of rule tasks and the
+    /// values of the labels of group tasks. The firewall write checks the request task data against them.
+    /// </summary>
+    /// <param name="ConnectionMarker">Configured marker of modelled connections (modModelledMarker); empty for the default.</param>
+    /// <param name="GroupLabelValueFormat">Configured format of the values of app role, app zone and network area labels
+    /// (groupLabelValueFormat); empty or invalid for the default.</param>
+    public sealed record ModelledObjectNaming(string? ConnectionMarker, string? GroupLabelValueFormat)
+    {
+        /// <summary>Default marker of modelled connections, as in the default configuration.</summary>
+        public const string kDefaultConnectionMarker = "FWOC";
+
+        /// <summary>The configured connection marker, or the default if none is configured.</summary>
+        public string EffectiveConnectionMarker => string.IsNullOrWhiteSpace(ConnectionMarker) ? kDefaultConnectionMarker : ConnectionMarker;
+    }
+
     /// <summary>Loads the target of an implementation task.</summary>
     public interface IFirewallWriteDataSource
     {
@@ -19,8 +39,21 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Loads the target through the API: the management with its export credentials and gateways, and the device
     /// specific settings resolved along Global, device type, management and gateway.
     /// </summary>
-    public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection) : IFirewallWriteDataSource
+    /// <param name="apiConnection">Api connection.</param>
+    /// <param name="rulesetFormat">Configured App label value format (appLabelValueFormat) and prefix of the Guardicore rulesets of
+    /// common services (modComSvcSectionPrefix), which name the Guardicore rulesets; null for the defaults.</param>
+    /// <param name="naming">Configured connection marker and group label value format, by which the variance analysis names the
+    /// connections and labels of its tasks; null for the defaults.</param>
+    public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection, GuardicoreRulesetFormat? rulesetFormat = null,
+        ModelledObjectNaming? naming = null) : IFirewallWriteDataSource
     {
+        private readonly ModelledObjectNaming objectNaming = naming ?? new ModelledObjectNaming(null, null);
+
+        private static readonly FrozenSet<string> kGroupTaskTypes =
+            [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
+        private static readonly FrozenSet<string> kRuleTaskTypes =
+            [nameof(WfTaskType.access), nameof(WfTaskType.rule_modify), nameof(WfTaskType.rule_delete)];
+
         /// <inheritdoc/>
         public async Task<FirewallWriteContext> LoadContext(WfImplTask implTask)
         {
@@ -78,15 +111,112 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(apiConnection).LoadEffectiveSettingsAsync(paths);
             FirewallGatewayRulebases rulebases = gateway == null ? FirewallGatewayRulebases.None : await LoadRulebases(gateway);
             Dictionary<string, string> ruleLayerUids = await LoadRuleLayers(implTask, management);
+            WfReqTask? requestTask = await LoadRequestTaskInfo(implTask);
+            (string? connectionMarker, GuardicoreRulesetApp? app) = await LoadModelledConnection(implTask, requestTask, management);
+            bool isGroupTask = kGroupTaskTypes.Contains(implTask.TaskType);
+            (string? labelName, string? formerLabelName) = isGroupTask ? GroupLabelNames(implTask, requestTask) : (null, null);
             return new FirewallWriteContext
             {
                 Management = management,
                 Gateway = gateway,
                 Settings = settings[0],
                 Rulebases = rulebases,
-                RuleLayerUids = ruleLayerUids
+                RuleLayerUids = ruleLayerUids,
+                GroupObjectType = isGroupTask
+                    ? DynamicIpLabel.ParseObjectType(requestTask?.GetAddInfoValue(AdditionalInfoKeys.GrpType))
+                    : null,
+                LabelName = labelName,
+                FormerLabelName = formerLabelName,
+                ConnectionMarker = connectionMarker,
+                ExtAppId = NonBlank(app?.ExtAppId),
+                AppName = NonBlank(app?.Name),
+                IsCommonService = app?.IsCommonService ?? false,
+                RulesetFormat = rulesetFormat
             };
         }
+
+        /// <summary>
+        /// Loads the additional info of the request task of a group or rule task: the modelling object type of a group
+        /// (<c>GrpType</c>) and the label it is written as (<c>LabelName</c>, <c>FormerLabelName</c>), and the marker and app of the modelled connection of a rule (<c>ConnMarker</c>, <c>ExtAppId</c>);
+        /// null for other tasks and tasks without request task.
+        /// </summary>
+        private async Task<WfReqTask?> LoadRequestTaskInfo(WfImplTask implTask)
+        {
+            if ((!kGroupTaskTypes.Contains(implTask.TaskType) && !kRuleTaskTypes.Contains(implTask.TaskType)) || implTask.ReqTaskId <= 0)
+            {
+                return null;
+            }
+            List<WfReqTask> requestTasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestTaskAdditionalInfo,
+                new { id = implTask.ReqTaskId });
+            return requestTasks.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Loads the modelled connection of a rule task of a management that writes labels, whose writer finds, replaces and
+        /// deletes the rules of the connection by its marker: the marker of the request task (<c>ConnMarker</c>) and the
+        /// owner of the connection (name and external app id) and whether it is a common service, which name the ruleset of
+        /// its rules (see <see cref="GuardicoreRulesets"/>). The request task data can be changed by
+        /// several roles, so the marker has to be exactly the configured marker followed by the connection of the request task
+        /// (<c>ConnId</c>), and the connection has to belong to an owner of the request task. Other tasks and tasks without
+        /// marker have none.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown if the marker names another connection or the connection does not
+        /// exist or belongs to none of the owners of the request task.</exception>
+        private async Task<(string? Marker, GuardicoreRulesetApp? App)> LoadModelledConnection(WfImplTask implTask, WfReqTask? requestTask, Management management)
+        {
+            string? marker = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ConnMarker));
+            if (requestTask == null || marker == null || !kRuleTaskTypes.Contains(implTask.TaskType) || !FirewallVendors.WritesLabels(management.DeviceType.Id))
+            {
+                return (null, null);
+            }
+            string connectionIdText = NonBlank(requestTask.GetAddInfoValue(AdditionalInfoKeys.ConnId)) ?? "";
+            string expectedMarker = $"{objectNaming.EffectiveConnectionMarker}{connectionIdText}".Trim();
+            if (!int.TryParse(connectionIdText, NumberStyles.None, CultureInfo.InvariantCulture, out int connectionId)
+                || !string.Equals(marker, expectedMarker, StringComparison.Ordinal))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: the connection marker of its request task is not the configured marker of its connection '{connectionIdText}'.");
+            }
+            List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById,
+                new { id = connectionId });
+            ModellingConnection connection = connections.FirstOrDefault()
+                ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: the connection {connectionId} of its request task does not exist.");
+            if (connection.AppId is not int appId || !requestTask.Owners.Exists(owner => owner.Owner.Id == appId))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: the connection {connectionId} belongs to none of the owners of its request task.");
+            }
+            return (marker, new GuardicoreRulesetApp(connection.App.Name, connection.App.ExtAppId, connection.IsCommonService));
+        }
+
+        /// <summary>
+        /// The label a group task writes (<c>LabelName</c>) and the label it renames (<c>FormerLabelName</c>). The request task
+        /// data can be changed by several roles, so both have to stand for the group of the task (<c>GrpName</c>, the id
+        /// string of the app role, app zone or network area) by the configured group label value format (see
+        /// <see cref="LabelValueFormat.Matches"/>), as the variance analysis finds them; else a task could rename or rewrite
+        /// the label of another group.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown if a named label does not stand for the group of the task.</exception>
+        private (string? LabelName, string? FormerLabelName) GroupLabelNames(WfImplTask implTask, WfReqTask? requestTask)
+        {
+            string? labelName = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.LabelName));
+            string? formerLabelName = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName));
+            string groupId = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName)) ?? "";
+            LabelValueFormat format = new(objectNaming.GroupLabelValueFormat);
+            List<string?> names = [labelName, formerLabelName];
+            foreach (string name in names.OfType<string>())
+            {
+                if (DynamicIpLabel.FromName(name) is not DynamicIpLabel label || !format.Matches(label.Value, groupId))
+                {
+                    throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                        $"Implementation task {implTask.Id}: the label '{name}' of its request task does not stand for its group '{groupId}'.");
+                }
+            }
+            return (labelName, formerLabelName);
+        }
+
+        private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         /// <summary>
         /// Loads the layers of the existing rules a rule_modify or rule_delete task names from the imported configuration,

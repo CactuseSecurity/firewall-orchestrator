@@ -3,6 +3,7 @@ using GraphQL;
 using FWO.Basics;
 using FWO.Services;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
@@ -11,6 +12,23 @@ namespace FWO.Test
 {
     internal class ModellingVarianceAnalysisTestApiConn : SimulatedApiConnection
     {
+        /// <summary>Device specific settings: a global node only, so values set there apply to every management.</summary>
+        public InMemoryDeviceSpecificSettingsApiConnection Settings { get; } = new();
+
+        /// <summary>Device type of the management; the default device type unless a test needs another one.</summary>
+        public int ManagementDeviceTypeId { get; set; }
+
+        /// <summary>Production rules returned instead of the standard rules, if set; only those of the queried management.</summary>
+        public List<Rule>? Rules { get; set; }
+
+        /// <summary>Managements returned instead of the standard management, if set.</summary>
+        public List<Management>? Managements { get; set; }
+
+        public ModellingVarianceAnalysisTestApiConn()
+        {
+            Settings.AddNode(1, DeviceSpecificScopeType.Global, "global");
+        }
+
         static readonly NetworkObject NwObj1 = new() { Id = 10, Name = "AppServerUnchanged", IP = "1.2.3.4", Type = new() { Name = ObjectType.Host } };
         static readonly NetworkObject NwObj2 = new() { Id = 11, Name = "AppServerOld", IP = "1.0.0.0", Type = new() { Name = ObjectType.Host } };
         static readonly NetworkObject Nwgroup1 = new() { Id = 1, Name = "AR504711-001", Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [new() { Object = NwObj1 }, new() { Object = NwObj2 }] };
@@ -210,6 +228,10 @@ namespace FWO.Test
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
+            if (query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys)
+            {
+                return await Settings.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
             Type responseType = typeof(QueryResponseType);
             if (responseType == typeof(List<ManagementReport>) && query == ReportQueries.getRelevantImportIdsAtTime)
             {
@@ -223,11 +245,17 @@ namespace FWO.Test
                 return response.Data;
             }
 
+            if (responseType == typeof(List<Management>) && Managements != null)
+            {
+                GraphQLResponse<dynamic> response = new() { Data = Managements };
+                return response.Data;
+            }
             if (responseType == typeof(List<Management>))
             {
                 List<Management>? managements =
                 [
-                    new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}", Devices = [ new(){ Id = 1 }] }
+                    new(){ Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}", Devices = [ new(){ Id = 1 }],
+                        DeviceType = new() { Id = ManagementDeviceTypeId } }
                 ];
                 GraphQLResponse<dynamic> response = new() { Data = managements };
                 return response.Data;
@@ -267,6 +295,15 @@ namespace FWO.Test
             else if (responseType == typeof(List<ModellingAppServer>))
             {
                 GraphQLResponse<dynamic> response = new() { Data = new List<ModellingAppServer>() { AppServer1, AppServer2, AppServer3 } };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<Rule>) && Rules != null)
+            {
+                int? managementId = variables is IDictionary<string, object?> values && values.TryGetValue("mgmId", out object? id) ? id as int? : null;
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = Rules.Where(rule => managementId == null || rule.MgmtId == managementId).Select(rule => new Rule(rule)).ToList()
+                };
                 return response.Data;
             }
             else if (responseType == typeof(List<Rule>))

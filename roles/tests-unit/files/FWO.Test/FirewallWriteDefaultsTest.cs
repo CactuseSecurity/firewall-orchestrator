@@ -12,7 +12,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class FirewallWriteDefaultsTest
     {
-        private const int kGuardicoreDeviceTypeId = 31;
+        private const int kGenericFirewallDeviceTypeId = 31;
         private const string kListValue = "[\"a\",\"b\"]";
         private const string kNameObjectsValue = "[{\"name\":\"a\"}]";
 
@@ -22,6 +22,8 @@ namespace FWO.Test
             FirewallVendors.kFortiManager5ff, FirewallVendors.kFortiOsManagement, FirewallVendors.kFortiOsGateway, FirewallVendors.kOpnSense,
             FirewallVendors.kAzure, FirewallVendors.kAzureFirewall
         ];
+
+        private static readonly List<int> kLabelDeviceTypes = [FirewallVendors.kGuardicoreManagement, FirewallVendors.kGuardicoreGateway];
 
         /// <summary>Operations every vendor family ships, besides the session steps and services that not all vendors have.</summary>
         private static readonly List<FirewallWriteOperation> kCommonOperations =
@@ -186,9 +188,24 @@ namespace FWO.Test
                 Assert.That(FirewallWriteDefaults.Get(FirewallVendors.kFortiOsGateway, FirewallWriteOperation.Publish), Is.Null);
                 Assert.That(FirewallWriteDefaults.Get(FirewallVendors.kAzure, FirewallWriteOperation.ServiceCreate), Is.Null);
                 Assert.That(FirewallWriteDefaults.GetTemplate(FirewallVendors.kFortiOsGateway, FirewallWriteOperation.HostDelete), Is.Empty);
-                Assert.That(FirewallWriteDefaults.Get(kGuardicoreDeviceTypeId, FirewallWriteOperation.HostCreate), Is.Null);
-                Assert.That(FirewallVendors.FromDeviceTypeId(kGuardicoreDeviceTypeId), Is.EqualTo(FirewallVendor.Unsupported));
-                Assert.That(FirewallVendors.SupportedDeviceTypeIds, Is.EquivalentTo(kSupportedDeviceTypes));
+                Assert.That(FirewallWriteDefaults.Get(kGenericFirewallDeviceTypeId, FirewallWriteOperation.HostCreate), Is.Null);
+                Assert.That(FirewallVendors.FromDeviceTypeId(kGenericFirewallDeviceTypeId), Is.EqualTo(FirewallVendor.Unsupported));
+                Assert.That(FirewallVendors.SupportedDeviceTypeIds, Is.EquivalentTo(kSupportedDeviceTypes.Concat(kLabelDeviceTypes)));
+                Assert.That(FirewallWriteDefaults.Get(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.HostCreate), Is.Null);
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.LabelWrite), Is.EqualTo("POST /api/v4.0/labels/bulk"));
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreGateway, FirewallWriteOperation.LabelDelete), Is.EqualTo("DELETE /api/v4.0/labels/@@LABEL_ID@@"));
+                Assert.That(FirewallVendors.FromDeviceTypeId(FirewallVendors.kGuardicoreManagement), Is.EqualTo(FirewallVendor.Guardicore));
+                Assert.That(FirewallVendors.WritesLabels(FirewallVendors.kGuardicoreGateway), Is.True);
+                Assert.That(FirewallVendors.WritesLabels(FirewallVendors.kCheckPointR8x), Is.False);
+                Assert.That(FirewallVendors.WritesRules(FirewallVendors.kGuardicoreManagement), Is.True);
+                Assert.That(FirewallVendors.NewRulesNeedPosition(FirewallVendors.kGuardicoreManagement), Is.False);
+                Assert.That(FirewallVendors.NewRulesNeedPosition(FirewallVendors.kCheckPointR8x), Is.True);
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.RuleCreate),
+                    Is.EqualTo("POST /api/v4.0/visibility/policy/rules"));
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.RuleDelete),
+                    Is.EqualTo("POST /api/v4.0/visibility/policy/rules/delete/@@RULE_ID@@"));
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.Publish),
+                    Is.EqualTo("POST /api/v4.0/visibility/policy/revisions"));
             }
         }
 

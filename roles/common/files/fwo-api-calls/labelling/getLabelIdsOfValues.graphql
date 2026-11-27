@@ -1,0 +1,11 @@
+# the label ids of the given values of any key; filtering by one list only, so that a chunked call (the importer chunks
+# every list variable in parallel) still finds every value - the keys are selected by the caller
+query getLabelIdsOfValues($values: [String!]!) {
+    labelling_label_value(where: { value: { _in: $values } }) {
+        label_id
+        value
+        label_key {
+            key_name
+        }
+    }
+}

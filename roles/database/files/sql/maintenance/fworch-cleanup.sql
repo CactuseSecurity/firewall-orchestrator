@@ -160,6 +160,22 @@ WITH
         FROM zone
         WHERE
             removed IS NOT NULL
+        -- owner imports and owner mapping runs: their import controls are referenced by the rule owner mappings and the
+        -- label change events only; deleting them would delete the mappings and labels they created (on delete cascade)
+        -- and reopen the label assignments they closed (on delete set null)
+        UNION
+        SELECT created AS id
+        FROM rule_owner
+        UNION
+        SELECT removed AS id
+        FROM rule_owner
+        WHERE
+            removed IS NOT NULL
+        UNION
+        SELECT import_control_id AS id
+        FROM labelling.label_change_event
+        WHERE
+            import_control_id IS NOT NULL
     )
 DELETE FROM import_control ic
 WHERE

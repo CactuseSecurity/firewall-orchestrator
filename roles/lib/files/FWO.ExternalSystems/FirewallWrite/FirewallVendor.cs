@@ -11,7 +11,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         FortiManager,
         FortiOs,
         OpnSense,
-        Azure
+        Azure,
+        Guardicore
     }
 
     /// <summary>
@@ -29,6 +30,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         public const int kFortiOsManagement = 24;
         public const int kFortiOsGateway = 25;
         public const int kOpnSense = 32;
+        public const int kGuardicoreManagement = FWO.Data.DeviceTypeIds.kGuardicoreManagement;
+        public const int kGuardicoreGateway = FWO.Data.DeviceTypeIds.kGuardicoreGateway;
 
         private static readonly Dictionary<int, FirewallVendor> VendorByDeviceType = new()
         {
@@ -41,7 +44,9 @@ namespace FWO.ExternalSystems.FirewallWrite
             { kFortiOsGateway, FirewallVendor.FortiOs },
             { kOpnSense, FirewallVendor.OpnSense },
             { kAzure, FirewallVendor.Azure },
-            { kAzureFirewall, FirewallVendor.Azure }
+            { kAzureFirewall, FirewallVendor.Azure },
+            { kGuardicoreManagement, FirewallVendor.Guardicore },
+            { kGuardicoreGateway, FirewallVendor.Guardicore }
         };
 
         /// <summary>Device type ids the firewall write library can write to.</summary>
@@ -53,11 +58,25 @@ namespace FWO.ExternalSystems.FirewallWrite
             return VendorByDeviceType.GetValueOrDefault(deviceTypeId, FirewallVendor.Unsupported);
         }
 
+        /// <summary>Whether groups are written as labels with IP criteria to a management of the device type, see <see cref="FirewallVendorProfile.WritesLabels"/>.</summary>
+        public static bool WritesLabels(int deviceTypeId)
+        {
+            FirewallVendor vendor = FromDeviceTypeId(deviceTypeId);
+            return vendor != FirewallVendor.Unsupported && FirewallVendorProfile.For(vendor).WritesLabels;
+        }
+
         /// <summary>Whether rules are written to a management of the device type, see <see cref="FirewallVendorProfile.WritesRules"/>.</summary>
         public static bool WritesRules(int deviceTypeId)
         {
             FirewallVendor vendor = FromDeviceTypeId(deviceTypeId);
             return vendor != FirewallVendor.Unsupported && FirewallVendorProfile.For(vendor).WritesRules;
+        }
+
+        /// <summary>Whether a new rule needs a calculated position for a management of the device type, see <see cref="FirewallVendorProfile.NewRulesNeedPosition"/>.</summary>
+        public static bool NewRulesNeedPosition(int deviceTypeId)
+        {
+            FirewallVendor vendor = FromDeviceTypeId(deviceTypeId);
+            return vendor == FirewallVendor.Unsupported || FirewallVendorProfile.For(vendor).NewRulesNeedPosition;
         }
     }
 }

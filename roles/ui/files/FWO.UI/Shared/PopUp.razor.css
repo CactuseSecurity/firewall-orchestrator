@@ -101,8 +101,8 @@
     width: 30vw;
 }
 
+/* The minimum height is set below .popup-dialog > .modal-content, which would override it here. */
 .custom-modal-content-xs {
-    min-height: 15dvh;
     max-height: 25dvh;
     min-width: 20vw;
     max-width: 25vw;
@@ -125,8 +125,9 @@
     scrolls. min-height: 0 lets the body shrink below its content and scroll instead of overflowing. */
 .modal-content {
     --fwo-modal-body-padding-top: 0px;
-    /* No top padding: the header owns the whole top strip of the popup (see .popup-header). */
-    padding: 0 2em;
+    /* No padding: the header owns the whole top strip of the popup (see .popup-header), the body
+        holds the side padding (see .modal-body below). */
+    padding: 0;
     background-color: rgba(255, 255, 255, 1);
     display: flex;
     flex-direction: column;
@@ -138,6 +139,11 @@
     min-height: 0;
     overflow-y: auto;
     padding-top: var(--fwo-modal-body-padding-top);
+    /* The side padding belongs to the scroll container: the negative side margins of a Bootstrap
+        .row inside the body have to fall into it. Without the padding they overflow the body, and
+        every popup with a row gets a horizontal scrollbar. */
+    padding-right: 2em;
+    padding-left: 2em;
 }
 
 /* All popups are column flex boxes: the content box takes the space the footer leaves, so it
@@ -153,16 +159,21 @@
     min-height: 0;
 }
 
+/* Extra small popups cannot be resized and keep their minimum height. The rule has the specificity
+    of the rule above and has to stay after it. */
+.popup-dialog > .custom-modal-content-xs {
+    min-height: 15dvh;
+}
+
 .popup-dialog > .custom-modal-footer {
     flex: 0 0 auto;
 }
 
 /* The header is the fixed part of the content box, only the body below it scrolls. It spans the
-    whole top strip of the popup, including the side padding of the content box, so the popup can be
-    moved by grabbing anywhere above the body. The padding keeps the former position of the title. */
+    whole top strip of the popup, so the popup can be moved by grabbing anywhere above the body.
+    The padding aligns the title with the side padding of the body. */
 .popup-header {
     flex: 0 0 auto;
-    margin: 0 -2em;
     padding: 2em 2em 0 2em;
 }
 

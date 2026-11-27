@@ -174,18 +174,21 @@ namespace FWO.Ui.Services
 
         /// <summary>
         /// Returns the columns needed by the implementation tasks of a table (for a bundle: of all its tasks): the rule
-        /// columns of rule implementation tasks, and the free text if a task has one or the planner may change it.
+        /// columns of rule implementation tasks, and the free text if a task has one or the user may actually add one.
         /// </summary>
         /// <param name="table">The table.</param>
         /// <param name="taskGroups">All request task groups of the ticket: single tasks or bundles displayed as one.</param>
-        public static PlanningImplColumns ImplementationColumnsFor(TaskListTable table, IEnumerable<List<WfReqTask>> taskGroups)
+        /// <param name="canEdit">Returns whether the user may change an implementation task and its request task.</param>
+        public static PlanningImplColumns ImplementationColumnsFor(TaskListTable table, IEnumerable<List<WfReqTask>> taskGroups,
+            Func<WfImplTask, WfReqTask, bool> canEdit)
         {
-            List<WfImplTask> implementationTasks = [.. taskGroups
+            List<(WfImplTask Task, WfReqTask RequestTask)> implementationTasks = [.. taskGroups
                 .Where(taskGroup => taskGroup.Count > 0 && ApprovalTaskListRowBuilder.TableOf(taskGroup[0]) == table)
-                .SelectMany(taskGroup => taskGroup.SelectMany(requestTask => requestTask.ImplementationTasks))];
-            bool freeText = implementationTasks.Any(implementationTask => !string.IsNullOrWhiteSpace(implementationTask.FreeText)
-                || PlanningImplTaskDisplayLogic.CanEditFreeText(implementationTask));
-            return new(RuleColumns(implementationTasks), freeText);
+                .SelectMany(taskGroup => taskGroup.SelectMany(requestTask =>
+                    requestTask.ImplementationTasks.Select(implementationTask => (implementationTask, requestTask))))];
+            bool freeText = implementationTasks.Any(pair => !string.IsNullOrWhiteSpace(pair.Task.FreeText)
+                || (PlanningImplTaskDisplayLogic.CanEditFreeText(pair.Task) && canEdit(pair.Task, pair.RequestTask)));
+            return new(RuleColumns([.. implementationTasks.Select(pair => pair.Task)]), freeText);
         }
 
         /// <summary>Returns the rule columns needed by implementation tasks.</summary>
@@ -207,7 +210,7 @@ namespace FWO.Ui.Services
         /// <param name="table">The table.</param>
         /// <param name="allTasks">Whether request tasks are shown too.</param>
         /// <param name="ruleColumns">The rule columns needed by the implementation tasks of the table.</param>
-        /// <param name="visibility">The configured field visibility of access tasks, applied to rule action and tracking.</param>
+        /// <param name="visibility">The configured field visibility of access tasks, applied to time restriction, rule action and tracking.</param>
         private static void AddObjectColumns(List<TaskListColumn> columns, TaskListTable table, bool allTasks,
             PlanningRuleColumns ruleColumns, AccessTaskFieldVisibilityConfig visibility)
         {
@@ -221,6 +224,8 @@ namespace FWO.Ui.Services
             AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kSource, "source"));
             AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kDestination, "destination"));
             AddIf(columns, ruleContent, new(ApprovalTaskListRowBuilder.kService, "service"));
+            AddIf(columns, ruleContent && (visibility.ShowValidFrom || visibility.ShowValidTo),
+                new(ApprovalTaskListRowBuilder.kTimeRestriction, "time_restriction"));
             columns.Add(new(ApprovalTaskListRowBuilder.kManagement, "management"));
             AddIf(columns, ruleColumns != PlanningRuleColumns.None, new(kDevice, "device"));
             AddIf(columns, ruleContent, new(kRulePosition, "rule_position"));

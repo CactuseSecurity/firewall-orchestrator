@@ -12,10 +12,13 @@
     [Parameter] public IEnumerable<List<WfReqTask>> TaskGroups { get; set; } = [];
     /// <summary>The table to display; only the task groups belonging to it are shown.</summary>
     [Parameter] public TaskListTable Table { get; set; }
+    /// <summary>The workflow states, for the state names.</summary>
     [Parameter] public WfStateDict States { get; set; } = new();
     /// <summary>Shows the actions column; only set when the promotion mode allows task-by-task promotion.</summary>
     [Parameter] public bool ShowActions { get; set; }
+    /// <summary>Returns whether a task may be promoted from its row.</summary>
     [Parameter] public Func<WfReqTask, bool> CanPromoteTask { get; set; } = _ => false;
+    /// <summary>Opens the promotion of a task.</summary>
     [Parameter] public Func<WfReqTask, Task> PromoteTask { get; set; } = _ => Task.CompletedTask;
     /// <summary>The configured task actions offered for the tasks of a row; the actions column is also shown if any row has one.</summary>
     [Parameter] public Func<IReadOnlyList<WfReqTask>, IReadOnlyList<WfStateAction>> TaskActions { get; set; } = _ => [];
@@ -47,6 +50,8 @@
         }
     }
 
+    /// <summary>Builds the table columns from the visible columns, with the actions column after the id if it is shown.</summary>
+    /// <param name="visibleColumns">The visible columns in display order.</param>
     private List<FancyColumn<ApprovalTaskListRow>> BuildColumns(List<TaskListColumn> visibleColumns)
     {
         List<FancyColumn<ApprovalTaskListRow>> fancyColumns = [.. visibleColumns.Select(BuildColumn)];
@@ -57,6 +62,11 @@
         return fancyColumns;
     }
 
+    /// <summary>
+    /// Builds a sortable, searchable table column: the compliance column with its colored status button, any other
+    /// showing the cells of its key; the id column is sorted numerically and, like the title, never hidden.
+    /// </summary>
+    /// <param name="column">The visible column.</param>
     private FancyColumn<ApprovalTaskListRow> BuildColumn(TaskListColumn column)
     {
         if (column.Key == ApprovalTaskListRowBuilder.kCompliance)
@@ -92,6 +102,8 @@
         };
     }
 
+    /// <summary>Returns the compliance status text of a row for search and sorting; empty without a compliance result.</summary>
+    /// <param name="row">The row.</param>
     private string ComplianceText(ApprovalTaskListRow row) => row.Compliance?.StatusText(userConfig) ?? "";
 
     /// <summary>Colors the whole cell green (compliant) or red (not compliant, showing the reasons on hover and click).</summary>
@@ -102,6 +114,8 @@
     /// <summary>The actions column is shown for task-by-task promotion or if a row offers a configured task action.</summary>
     private bool ShowActionsColumn => ShowActions || rows.Any(row => TaskActions(row.TaskGroup).Count > 0);
 
+    /// <summary>Renders the actions of a row: the promotion with task-by-task promotion, and the configured task actions of its tasks.</summary>
+    /// <param name="row">The row.</param>
     private RenderFragment ActionsCell(ApprovalTaskListRow row) =>
         @<div class="d-flex flex-nowrap gap-1">
             @if (ShowActions && CanPromoteTask(row.Task))

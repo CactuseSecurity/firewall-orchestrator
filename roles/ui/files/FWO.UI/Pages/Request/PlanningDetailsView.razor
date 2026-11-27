@@ -88,17 +88,29 @@
 
 @code
 {
+    /// <summary>Whether the view is shown.</summary>
     [Parameter] public bool Display { get; set; }
+    /// <summary>Notifies the parent when the view is shown or closed.</summary>
     [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    /// <summary>The workflow handler holding the active ticket.</summary>
     [Parameter] public WfHandler WfHandler { get; set; } = new();
+    /// <summary>The workflow states, for the state names.</summary>
     [Parameter] public WfStateDict States { get; set; } = new();
+    /// <summary>The workflow phase the view is opened in.</summary>
     [Parameter] public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+    /// <summary>The configured ticket actions offered in the footer.</summary>
     [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+    /// <summary>Performs a ticket action chosen in the footer.</summary>
     [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
+    /// <summary>Whether the footer offers the promotion of the ticket.</summary>
     [Parameter] public bool CanPromoteTicket { get; set; }
+    /// <summary>Opens the promotion of the ticket.</summary>
     [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
+    /// <summary>Whether the footer closes with a cancel button instead of the OK button.</summary>
     [Parameter] public bool ShowCancel { get; set; }
+    /// <summary>Reloads the parent after a change of the ticket.</summary>
     [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
+    /// <summary>Called after the view has been closed.</summary>
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
     /// <summary>Shows every request and implementation task as one table row instead of one card per task.</summary>
     [Parameter] public bool ListView { get; set; }
@@ -110,6 +122,7 @@
     private WfReqTask creationRequestTask = new();
     private WfImplTask creationImplementationTask = new();
 
+    /// <summary>Configures the editor service for read-only display and loads the data needed by the task bodies.</summary>
     protected override async Task OnInitializedAsync()
     {
         editorService.Configure(WfHandler, userConfig, ResetParent);
@@ -118,6 +131,7 @@
         await editorService.InitializeAsync(apiConnection);
     }
 
+    /// <summary>Collapses the request task details of a newly displayed ticket; forgets the collapsed details when the view is hidden.</summary>
     protected override void OnParametersSet()
     {
         if (!Display)
@@ -140,6 +154,7 @@
         }
     }
 
+    /// <summary>Creates the display logic, visibility and editor callbacks shared by the request task bodies and the list view.</summary>
     private ApprovalTaskViewContext CreateTaskViewContext()
     {
         editorService.Configure(WfHandler, userConfig, ResetParent);
@@ -147,8 +162,12 @@
         return editorService.CreateTaskViewContext();
     }
 
+    /// <summary>Saves the owner chosen in the owner editor.</summary>
+    /// <param name="owner">The owner.</param>
     private Task SaveOwner(FwoOwner owner) => editorService.SaveOwner(owner);
 
+    /// <summary>Returns whether a ticket action is offered: if allowed on the ticket and, in read-only mode, only if it changes nothing.</summary>
+    /// <param name="action">The action.</param>
     private bool CanShowOfferedAction(WfStateAction action)
     {
         return WfHandler.CanPerformActionOnActTicket(action)
@@ -167,14 +186,24 @@
         ? taskGroup
         : taskGroup.Where(task => task.ImplementationTasks.Count > 0);
 
+    /// <summary>Returns whether a task is an access task.</summary>
+    /// <param name="task">The request task.</param>
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
 
+    /// <summary>Returns whether a task creates, modifies or deletes a group.</summary>
+    /// <param name="task">The request task.</param>
     private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
 
+    /// <summary>Returns whether the details of a request task are expanded.</summary>
+    /// <param name="requestTask">The request task.</param>
     private bool RequestTaskDetailsExpanded(WfReqTask requestTask) => !collapsedRequestTaskDetails.Contains(requestTask.Id);
 
+    /// <summary>Returns whether the user may change a request task, e.g. add implementation tasks to it.</summary>
+    /// <param name="requestTask">The request task.</param>
     private bool CanMutateRequestTask(WfReqTask requestTask) => WorkflowTaskActions.CanChangeRequestTasks(WfHandler, [requestTask]);
 
+    /// <summary>Expands or collapses the details of a request task.</summary>
+    /// <param name="requestTask">The request task.</param>
     private void ToggleRequestTaskDetails(WfReqTask requestTask)
     {
         if (!collapsedRequestTaskDetails.Add(requestTask.Id))
@@ -183,12 +212,14 @@
         }
     }
 
+    /// <summary>Closes the view and notifies the parent.</summary>
     private async Task Close()
     {
         await DisplayChanged.InvokeAsync(false);
         await Closed();
     }
 
+    /// <summary>Closes the view from the popup, without waiting for the parent.</summary>
     private void ClosePopup() => _ = Close();
 
     /// <summary>The configured request task actions; for a bundle displayed as one they apply to all its tasks.</summary>
@@ -212,12 +243,18 @@
         }
     }
 
+    /// <summary>Resets the implementation task actions and reloads the parent.</summary>
     private async Task Reset()
     {
         WfHandler.ResetImplTaskActions();
         await ResetParent();
     }
 
+    /// <summary>
+    /// Opens the creation of an implementation task for a request task, if the user may change it; for a bundle, the
+    /// merged request task provides the elements and the new task belongs to the bundled task with its id.
+    /// </summary>
+    /// <param name="requestTask">The request task, or the merged request task of a bundle.</param>
     private async Task OpenImplementationTaskCreation(WfReqTask requestTask)
     {
         if (!CanMutateRequestTask(requestTask))
@@ -239,6 +276,8 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>Asks for the confirmation of deleting an implementation task, if the user may change it.</summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private async Task OpenDeleteConfirmation(WfImplTask implementationTask)
     {
         if (!CanMutateImplementationTask(implementationTask))
@@ -249,6 +288,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>
+    /// Returns whether the user may change an implementation task: its request task must be changeable and the task
+    /// must be open for actions in the current phase.
+    /// </summary>
+    /// <param name="implementationTask">The implementation task.</param>
     private bool CanMutateImplementationTask(WfImplTask implementationTask)
     {
         WfReqTask? requestTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task =>
@@ -260,8 +304,14 @@
             && WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask);
     }
 
+    /// <summary>The popup title: ticket id, title, state and requester.</summary>
     private string PlanningViewTitle => TaskDetailsViewTitle.Build(userConfig, WfHandler.ActTicket, States);
 
+    /// <summary>
+    /// Renders the header line of a request task card: ids, configured actions, title, bundle size, state, the details
+    /// toggle and, if the tasks may be changed, the creation of an implementation task.
+    /// </summary>
+    /// <param name="taskGroup">The request tasks: a single task or a bundle displayed as one; the first defines title and state.</param>
     private RenderFragment RequestTaskHeader(List<WfReqTask> taskGroup) => builder =>
     {
         WfReqTask requestTask = taskGroup[0];

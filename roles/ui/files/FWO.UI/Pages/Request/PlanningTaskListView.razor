@@ -79,7 +79,7 @@
     {
         return PlanningTaskListRowBuilder.VisibleColumns(table, mode, Context.Visibility,
             ApprovalTaskListRowBuilder.ObjectVisibilityFor(table, taskGroups, Context.ObjectVisibility),
-            PlanningTaskListRowBuilder.ImplementationColumnsFor(table, taskGroups));
+            PlanningTaskListRowBuilder.ImplementationColumnsFor(table, taskGroups, CanEditImplementationTask));
     }
 
     /// <summary>Creates the row builder; editable cells of implementation tasks open the editors of this view.</summary>

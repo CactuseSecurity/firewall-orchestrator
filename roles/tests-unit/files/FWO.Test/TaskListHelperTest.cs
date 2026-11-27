@@ -260,6 +260,28 @@ internal sealed class TaskListHelperTest
         });
     }
 
+    [Test]
+    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails()
+    {
+        string taskType = WfTaskType.access.ToString();
+        // other ids than in the test below, as the action handler drops repeated middleware delegations for a few seconds
+        WfReqTask first = new() { Id = 17, TicketId = 2, TaskType = taskType, StateId = 0 };
+        WfReqTask second = new() { Id = 18, TicketId = 2, TaskType = taskType, StateId = 0 };
+        TicketReloadApiConn apiConnection = new() { Ticket = new WfTicket { Id = 2, Tasks = [first, second] } };
+        using TestMiddlewareClient middlewareClient = new();
+        // the middleware moves the bundle along, but the ticket can not be reloaded afterwards
+        BundlePromotingMiddlewareHandler middlewareHandler = new(() => apiConnection.FailReload = true);
+        middlewareClient.UseHandler(middlewareHandler);
+        WfHandler handler = CreateReloadingHandler(apiConnection, middlewareClient);
+        handler.ActTicket = new WfTicket { Id = 2, Tasks = [first, second] };
+        WfStateAction autoPromote = new() { Id = 3, ActionType = StateActionTypes.AutoPromote.ToString(), ExternalParams = "" };
+
+        await WorkflowTaskActions.PerformOnRequestTasks(handler, autoPromote, [first, second]);
+
+        // with its stale state, the second task would be rejected by the middleware
+        Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+    }
+
     private static WfHandler CreateReloadingHandler(TicketReloadApiConn apiConnection, FWO.Middleware.Client.MiddlewareClient middlewareClient)
     {
         SimulatedUserConfig userConfig = new();
@@ -289,8 +311,14 @@ internal sealed class TaskListHelperTest
     {
         public WfTicket Ticket { get; set; } = new();
 
+        public bool FailReload { get; set; }
+
         public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
+            if (FailReload)
+            {
+                throw new HttpRequestException("reload failed");
+            }
             return query == FWO.Api.Client.Queries.RequestQueries.getTicketById
                 ? Task.FromResult((T)(object)Ticket)
                 : throw new NotImplementedException($"Unexpected query: {query}");

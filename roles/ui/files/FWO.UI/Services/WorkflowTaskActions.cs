@@ -116,7 +116,8 @@ namespace FWO.Ui.Services
         /// Performs an action on every request task of a group and reloads the ticket afterwards. Promoting one task of a
         /// bundle moves its lagging bundled tasks along, so a task whose state changed while the action ran on the
         /// previous tasks is skipped instead of being promoted a second time. A state changing action delegated to the
-        /// middleware changes only the stored states, so the ticket is reloaded before each further task to see them.
+        /// middleware changes only the stored states, so the ticket is reloaded before each further task to see them; if that
+        /// reload fails, the remaining tasks are skipped, as their states are unknown and sending them would be rejected.
         /// </summary>
         /// <param name="wfHandler">The workflow handler providing the action handler.</param>
         /// <param name="action">The action to perform.</param>
@@ -130,9 +131,10 @@ namespace FWO.Ui.Services
                 for (int index = 0; index < taskGroup.Count; index++)
                 {
                     WfReqTask task = taskGroup[index];
-                    if (index > 0 && reloadBetweenTasks)
+                    // a failed reload is already reported by the handler
+                    if (index > 0 && reloadBetweenTasks && !await wfHandler.ReloadActTicket())
                     {
-                        await wfHandler.ReloadActTicket();
+                        break;
                     }
                     if (CurrentStateId(wfHandler, task) == initialStateIds[index])
                     {

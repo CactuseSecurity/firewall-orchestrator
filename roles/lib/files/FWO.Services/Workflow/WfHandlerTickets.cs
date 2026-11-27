@@ -95,7 +95,8 @@ namespace FWO.Services.Workflow
             }
 
             WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetTicketFilter());
-            if (refreshedTicket == null)
+            // a failed query is reported by the db access and yields an empty ticket, which must not replace the ticket
+            if (refreshedTicket == null || refreshedTicket.Id != ticket.Id)
             {
                 return null;
             }

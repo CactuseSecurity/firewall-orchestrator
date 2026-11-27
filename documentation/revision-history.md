@@ -25,6 +25,11 @@
   - switching from a change report back to a rule report with report time "now" no longer keeps the time range of the change report
 - UI fix: the right sidebar of the variance and connection reports shows the IP of network objects without a name instead of an empty row (#4972)
   - the header above the modelled objects of the variance report shows the owner name instead of being empty
+- UI fix: workflow ticket monitoring filtering and sorting work again (#5571)
+  - tickets are shown in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, name, requester, start/end time) and sorting run in the database across all tickets instead of only the loaded page
+  - the id filter only offers "equals" and "does not equal", since ids are only ever compared for equality; the name filter (ticket/task title, approval's approver group) offers "starts with" (preselected), "equals" and "does not equal"; the start and end time filters compare the day of the ticket's, task's or approval's date, only "is empty" and "is not empty" check the ticket's own date (e.g. "end time is empty" finds the open tickets)
+  - the pager shows the total number of matching tickets; the count is cached and only queried again when the task type/state dropdowns or a column filter changes
+  - the state column shows an icon for each default workflow state
 
 
 ## 9.9.5 - 23.11.2026

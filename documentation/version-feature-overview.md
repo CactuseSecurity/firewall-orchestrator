@@ -283,3 +283,6 @@ For a feature-centric, thematically grouped view see
 
 ### 9.9.5 - 23.11.2026
 - Notifications: an email priority (Low, Normal, High) can be set per notification; Low and High set the Importance, Priority and X-Priority headers, which common email clients show as a marker.
+
+### 9.9.6 - 25.11.2026
+- Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, name, requester, start/end date) and sorting run in the database across all tickets, the pager shows the total number of matching tickets, and the state column shows an icon for each default workflow state.

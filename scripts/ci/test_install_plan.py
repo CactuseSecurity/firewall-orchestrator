@@ -241,7 +241,8 @@ class TestWorkflow:
         assert "exit 1" in version_step["run"]
         assert "continue-on-error" not in version_step
         assert version_step["if"] == "${{ github.event_name == 'pull_request' }}"
-        assert set(jobs["plan"]["outputs"]) == {"install_matrix", "python_versions"}
+        # has_ruff_sync_app only reports whether the ruff sync App is configured, not a verdict.
+        assert set(jobs["plan"]["outputs"]) == {"install_matrix", "python_versions", "has_ruff_sync_app"}
         assert "evaluate_version_gate.sh" not in str(jobs["plan"]["steps"])
 
     def test_version_check_runs_before_anything_is_installed(self) -> None:

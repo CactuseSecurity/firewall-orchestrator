@@ -17,6 +17,7 @@ internal sealed class TaskListHelperTest
 {
     private static readonly List<string> kValuesWithBlanks = ["a", " ", "b", "a", ""];
     private static readonly IReadOnlyList<int> kOncePromotedStates = [2, 2];
+    private static readonly IReadOnlyList<int> kUnchangedStates = [0, 0];
 
     [Test]
     public void Values_DropEmptyAndDuplicateValues()
@@ -260,30 +261,43 @@ internal sealed class TaskListHelperTest
         });
     }
 
-    [TestCase(false, 2, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryFails")]
-    [TestCase(true, 3, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFailsQuietly")]
-    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails(bool quietly, long ticketId)
+    [TestCase(ReloadFailure.QueryFailsOnce, 2, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryFailsOnce")]
+    [TestCase(ReloadFailure.QueryKeepsFailing, 3, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadQueryKeepsFailing")]
+    [TestCase(ReloadFailure.TicketNoLongerVisible, 4, TestName = "PerformOnRequestTasks_SkipsRemainingTasksIfTheTicketIsNoLongerVisible")]
+    public async Task PerformOnRequestTasks_SkipsRemainingTasksIfTheReloadFails(ReloadFailure failure, long ticketId)
     {
         string taskType = WfTaskType.access.ToString();
         // other ids than in the other tests, as the action handler drops repeated middleware delegations for a few seconds
         WfReqTask first = new() { Id = ticketId * 10 + 7, TicketId = ticketId, TaskType = taskType, StateId = 0 };
         WfReqTask second = new() { Id = ticketId * 10 + 8, TicketId = ticketId, TaskType = taskType, StateId = 0 };
-        TicketReloadApiConn apiConnection = new() { Ticket = new WfTicket { Id = ticketId, Tasks = [first, second] } };
+        WfTicket storedTicket = new()
+        {
+            Id = ticketId,
+            Tasks = [new() { Id = first.Id, TicketId = ticketId, TaskType = taskType, StateId = 0 }, new() { Id = second.Id, TicketId = ticketId, TaskType = taskType, StateId = 0 }]
+        };
+        TicketReloadApiConn apiConnection = new() { Ticket = storedTicket };
         using TestMiddlewareClient middlewareClient = new();
         List<(string Message, bool Error)> messages = [];
+        SkippedTasksTextUserConfig userConfig = new();
         WfHandler handler = CreateReloadingHandler(apiConnection, middlewareClient,
-            (_, _, message, error) => messages.Add((message, error)), new SkippedTasksTextUserConfig());
-        // the middleware moves the bundle along, but the ticket can not be reloaded afterwards: the query fails (reported
-        // by the handler), or the reload ends without an error, like for a ticket the user may no longer see
+            (_, _, message, error) => messages.Add((message, error)), userConfig);
+        // the middleware moves the bundle along, but the ticket can not be reloaded afterwards: the query fails once or
+        // keeps failing (reported by the db access), or the reload ends without an error, as the owner based workflow
+        // hides the ticket from the user, who is no longer one of its owners
         BundlePromotingMiddlewareHandler middlewareHandler = new(() =>
         {
-            if (quietly)
+            storedTicket.Tasks.ForEach(task => task.StateId = 2);
+            switch (failure)
             {
-                SetDbAccess(handler, null);
-            }
-            else
-            {
-                apiConnection.FailReload = true;
+                case ReloadFailure.QueryFailsOnce:
+                    apiConnection.FailedReloads = 1;
+                    break;
+                case ReloadFailure.QueryKeepsFailing:
+                    apiConnection.FailedReloads = int.MaxValue;
+                    break;
+                default:
+                    userConfig.ReqOwnerBased = true;
+                    break;
             }
         });
         middlewareClient.UseHandler(middlewareHandler);
@@ -292,6 +306,7 @@ internal sealed class TaskListHelperTest
 
         await WorkflowTaskActions.PerformOnRequestTasks(handler, autoPromote, [first, second]);
 
+        bool refreshed = failure == ReloadFailure.QueryFailsOnce;
         Assert.Multiple(() =>
         {
             // with its stale state, the second task would be rejected by the middleware
@@ -299,8 +314,23 @@ internal sealed class TaskListHelperTest
             // the user learns that the bundle moved only partly
             Assert.That(messages, Does.Contain(($"skipped: {second.Id}", true)));
             // the final reload is still tried, so a passing query error does not leave a stale ticket
-            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(quietly ? 0 : 2));
+            Assert.That(apiConnection.TicketQueryCount, Is.EqualTo(2));
+            Assert.That(handler.ActTicket.Tasks.Select(task => task.StateId), Is.EqualTo(refreshed ? kOncePromotedStates : kUnchangedStates));
+            // a stale ticket offers no further state change, which would be sent with the old states and rejected
+            Assert.That(handler.ActTicketOutdated, Is.EqualTo(!refreshed));
+            Assert.That(handler.CanPerformActionOnActTicket(autoPromote), Is.EqualTo(refreshed));
         });
+    }
+
+    /// <summary>Why the ticket can not be reloaded between the tasks of a bundle.</summary>
+    public enum ReloadFailure
+    {
+        /// <summary>The query fails once, the final reload succeeds.</summary>
+        QueryFailsOnce,
+        /// <summary>The query keeps failing.</summary>
+        QueryKeepsFailing,
+        /// <summary>The ticket is filtered out without an error.</summary>
+        TicketNoLongerVisible
     }
 
     private static WfHandler CreateReloadingHandler(TicketReloadApiConn apiConnection, FWO.Middleware.Client.MiddlewareClient middlewareClient,
@@ -343,7 +373,8 @@ internal sealed class TaskListHelperTest
     {
         public WfTicket Ticket { get; set; } = new();
 
-        public bool FailReload { get; set; }
+        /// <summary>The number of further ticket queries that fail.</summary>
+        public int FailedReloads { get; set; }
 
         public int TicketQueryCount { get; private set; }
 
@@ -353,8 +384,9 @@ internal sealed class TaskListHelperTest
             {
                 TicketQueryCount++;
             }
-            if (FailReload)
+            if (FailedReloads > 0)
             {
+                FailedReloads--;
                 throw new HttpRequestException("reload failed");
             }
             return query == FWO.Api.Client.Queries.RequestQueries.getTicketById

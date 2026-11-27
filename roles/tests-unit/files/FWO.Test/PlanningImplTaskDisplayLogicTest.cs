@@ -348,9 +348,10 @@ internal sealed class PlanningImplTaskDisplayLogicTest
             // the name built from the dates must not show the hidden begin either
             Assert.That(unnamedEndOnly, Is.Not.Empty.And.Not.Contain("2027-01-01").And.Not.Contain("01.01.2027"));
             Assert.That(logic.TimeRestriction(unnamedTask, new WfReqTask(), noDates), Is.Empty);
-            // like the request tasks, no name is built from the dates, which would show them twice
+            // like the request tasks, the name the time object gets on creation is built from the visible dates
             Assert.That(logic.TimeRestriction(unnamedTask, new WfReqTask(), new AccessTaskFieldVisibilityConfig()),
-                Does.StartWith("(01.01.2027").And.Not.Contain("2027-01-01"));
+                Is.EqualTo("2027-01-01 00:00:00 - 2027-12-31 00:00:00 (01.01.2027 00:00:00 - 31.12.2027 00:00:00)"));
+            Assert.That(unnamedEndOnly, Is.EqualTo("< 2027-12-31 00:00:00 (31.12.2027 00:00:00)"));
         });
     }
 }

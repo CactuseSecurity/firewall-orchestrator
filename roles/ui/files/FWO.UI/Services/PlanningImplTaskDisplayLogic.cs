@@ -255,9 +255,9 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Returns the time restriction as "name (begin - end)", or an empty string if there is none. Like the validity of
-        /// request tasks, a begin or end date hidden by the configured visibility is left out, and without a name only the
-        /// validity is shown in parentheses.
+        /// Returns the time restriction as "name (begin - end)", or an empty string if there is none. Like for request
+        /// tasks, a begin or end date hidden by the configured visibility is left out, and without a name the name the
+        /// time object gets on creation is built from the visible dates.
         /// </summary>
         /// <param name="implementationTask">The implementation task.</param>
         /// <param name="requestTask">The request task of the implementation task.</param>
@@ -266,13 +266,15 @@ namespace FWO.Ui.Services
         {
             WfImplElement? timeElement = implementationTask.ImplElements
                 .FirstOrDefault(element => element.Field == ElemFieldType.time.ToString());
-            string name = timeElement?.Name
-                ?? TimeObjectElementHelper.Find(requestTask.Elements)?.Name
-                ?? "";
             DateTime? beginDate = visibility.ShowValidFrom ? timeElement?.StartTime ?? implementationTask.TargetBeginDate : null;
             DateTime? endDate = visibility.ShowValidTo ? timeElement?.EndTime ?? implementationTask.TargetEndDate : null;
             // parsed once, as the time restriction is displayed for every implementation task
             timeObjectPrecision ??= FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision;
+            string? name = timeElement?.Name ?? TimeObjectElementHelper.Find(requestTask.Elements)?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = TimeObjectNamingHelper.BuildDateBasedName(beginDate, endDate, timeObjectPrecision);
+            }
             string begin = TimeObjectDisplayHelper.FormatValue(beginDate, timeObjectPrecision, false, "dd.MM.yyyy");
             string end = TimeObjectDisplayHelper.FormatValue(endDate, timeObjectPrecision, true, "dd.MM.yyyy");
             string validity = Validity(begin, end);

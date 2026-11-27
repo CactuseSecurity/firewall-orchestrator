@@ -396,6 +396,27 @@ internal class UiApprovalTaskDisplayLogicTest
         }
     }
 
+    [Test]
+    public void TimeObjectDisplay_BuildsTheNameFromTheVisibleDatesOnly()
+    {
+        WfReqTask task = new()
+        {
+            Id = 141,
+            TaskType = WfTaskType.access.ToString(),
+            TargetBeginDate = new DateTime(2027, 1, 1),
+            TargetEndDate = new DateTime(2027, 2, 1)
+        };
+        ApprovalTaskDisplayLogic logic = new(new WfHandler { ActTicket = new WfTicket { Tasks = [task] } }, new SimulatedUserConfig(), [], [], [], [], false);
+
+        Assert.Multiple(() =>
+        {
+            // shown in the planning list next to a named time restriction of another task
+            Assert.That(logic.TimeObjectDisplay([task], new AccessTaskFieldVisibilityConfig { ShowValidFrom = false, ShowValidTo = false }), Is.Empty);
+            Assert.That(logic.TimeObjectDisplay([task], new AccessTaskFieldVisibilityConfig { ShowValidFrom = false, ShowValidTo = true }),
+                Does.Not.Contain("2027-01-01").And.Not.Contain("01.01.2027").And.Contain("2027-02-01"));
+        });
+    }
+
     private static List<string> GetValues(WfHandler handler, WfReqTask task, ApprovalTaskElementDisplayMode mode)
     {
         ApprovalTaskDisplayLogic logic = new(

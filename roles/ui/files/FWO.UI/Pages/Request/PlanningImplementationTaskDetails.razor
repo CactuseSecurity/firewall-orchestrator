@@ -142,8 +142,21 @@
     private PlanningImplTaskEditor? editor;
     private List<IpProtocol> ipProtocols = [];
     private const int kMaxDisplayedElements = PlanningImplTaskDisplayLogic.kMaxDisplayedElements;
-    private PlanningImplTaskDisplayLogic ImplLogic => new(WfHandler, userConfig, ruleActions, trackings, ipProtocols);
-    private AccessTaskFieldVisibilityConfig accessVisibility = new();
+    private PlanningImplTaskDisplayLogic? implLogic;
+    private AccessTaskFieldVisibilityConfig? accessVisibility;
+
+    /// <summary>
+    /// The display logic, kept until the parameters or the loaded lists change, so that the values it caches (like the time
+    /// precision) are reused for all implementation tasks of a render.
+    /// </summary>
+    private PlanningImplTaskDisplayLogic ImplLogic => implLogic ??= new(WfHandler, userConfig, ruleActions, trackings, ipProtocols);
+
+    /// <summary>
+    /// The configured field visibility of access tasks, parsed once for the time restrictions of all implementation tasks.
+    /// Created on first use, so that it applies already to the render while the lists are loading.
+    /// </summary>
+    private AccessTaskFieldVisibilityConfig AccessVisibility => accessVisibility
+        ??= TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
 
     /// <summary>Editor of management, device, free text and name; in creation mode the changes stay in the new task.</summary>
     private PlanningImplTaskEditor Editor => editor ??= new(new PlanningImplTaskEditorCallbacks
@@ -156,10 +169,11 @@
     });
     private bool IsInitiallyExpanded => CreationMode || RequestTask.TaskType == WfTaskType.access.ToString();
 
-    /// <summary>Parses the configured field visibility once, as it is applied to the time restriction of every implementation task.</summary>
+    /// <summary>Drops the display logic and the field visibility, which are recreated from the new parameters on first use.</summary>
     protected override void OnParametersSet()
     {
-        accessVisibility = TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
+        implLogic = null;
+        accessVisibility = null;
     }
 
     /// <summary>Loads the rule actions, trackings and protocols displayed for the implementation tasks.</summary>
@@ -176,6 +190,8 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
+        // the display logic holds the lists, also those loaded before a failed query
+        implLogic = null;
     }
 
     /// <summary>Opens the management editor of an implementation task of the request task.</summary>
@@ -568,7 +584,7 @@
 
     /// <summary>Returns the time restriction of an implementation task, leaving out the dates hidden by the configured visibility.</summary>
     /// <param name="implementationTask">The implementation task.</param>
-    private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask, accessVisibility);
+    private string TimeRestriction(WfImplTask implementationTask) => ImplLogic.TimeRestriction(implementationTask, RequestTask, AccessVisibility);
 
     /// <summary>Renders a labeled value, with an edit button if an edit callback is given; a placeholder for an empty value.</summary>
     /// <param name="label">The label.</param>

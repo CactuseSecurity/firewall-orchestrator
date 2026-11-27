@@ -108,8 +108,18 @@ namespace FWO.Services.Workflow
             return refreshedTicket;
         }
 
+        /// <summary>
+        /// Whether the last reload of the active ticket failed, as its query failed or the ticket is no longer visible to
+        /// the user: the displayed states may be outdated, so no state changing action is offered until the ticket is
+        /// loaded again.
+        /// </summary>
+        public bool ActTicketOutdated { get; private set; }
+
+        /// <summary>Sets the active ticket, e.g. after it was selected or reloaded.</summary>
+        /// <param name="ticket">The ticket.</param>
         public void SetTicketEnv(WfTicket ticket)
         {
+            ActTicketOutdated = false;
             ActTicket = ticket;
             ResetImplTaskList();
             ActStateMatrix = MasterStateMatrix;
@@ -131,6 +141,7 @@ namespace FWO.Services.Workflow
                 WfTicket? refreshedTicket = await ReloadTicket(ActTicket);
                 if (refreshedTicket == null)
                 {
+                    ActTicketOutdated = true;
                     return false;
                 }
                 SetTicketEnv(refreshedTicket);
@@ -138,6 +149,7 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exception)
             {
+                ActTicketOutdated = true;
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
                 return false;
             }

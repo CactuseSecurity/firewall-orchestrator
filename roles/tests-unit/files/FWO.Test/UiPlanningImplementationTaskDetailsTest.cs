@@ -170,6 +170,62 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
+    public static async Task PlanningImplementationTaskDetails_HidesDatesAlreadyWhileTheListsAreLoading()
+    {
+        WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.access.ToString() };
+        WfImplTask implementationTask = new(requestTask, false)
+        {
+            Id = 21,
+            TaskNumber = 1,
+            TargetBeginDate = new DateTime(2027, 1, 1),
+            TargetEndDate = new DateTime(2027, 2, 1),
+            ImplElements = [new WfImplElement { Field = ElemFieldType.time.ToString(), Name = "maintenance" }]
+        };
+        SimulatedUserConfig userConfig = new()
+        {
+            ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+            {
+                AccessTask = new AccessTaskFieldVisibilityConfig { ShowValidFrom = false, ShowValidTo = false }
+            }.ToConfigValue()
+        };
+        PendingQueriesApiConnection apiConnection = new();
+
+        await using BunitContext context = new();
+        context.JSInterop.Mode = JSRuntimeMode.Loose;
+        context.Services.AddSingleton<UserConfig>(userConfig);
+        context.Services.AddSingleton<DomEventService>();
+        context.Services.AddSingleton<ApiConnection>(apiConnection);
+        IRenderedComponent<PlanningImplementationTaskDetails> cut = context.Render<PlanningImplementationTaskDetails>(parameters => parameters
+            .Add(parameter => parameter.ImplementationTasks, [implementationTask])
+            .Add(parameter => parameter.RequestTask, requestTask)
+            .Add(parameter => parameter.WfHandler, new WfHandler())
+            .Add(parameter => parameter.CreationMode, true));
+
+        // the first render happens while the rule actions are still being loaded
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.Loading, Is.True);
+            Assert.That(cut.Markup, Does.Contain("maintenance"));
+            Assert.That(cut.Markup, Does.Not.Contain("2027"));
+        });
+    }
+
+    /// <summary>An api connection whose queries do not finish, like a slow connection while the component renders first.</summary>
+    private sealed class PendingQueriesApiConnection : SimulatedApiConnection
+    {
+        private readonly TaskCompletionSource never = new();
+
+        public bool Loading { get; private set; }
+
+        public override async Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            Loading = true;
+            await never.Task;
+            throw new InvalidOperationException("never finishes");
+        }
+    }
+
+    [Test]
     public static async Task PlanningImplementationTaskDetails_RendersGenericTaskAndPlannerHeaderStyle()
     {
         WfImplTask task = new()

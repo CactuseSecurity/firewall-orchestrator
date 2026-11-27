@@ -127,11 +127,14 @@ namespace FWO.Ui.Services
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct());
 
-        /// <summary>Formats time-object names and the visible validity interval.</summary>
+        /// <summary>
+        /// Formats time-object names and the visible validity interval; a name built from the dates leaves out the dates
+        /// hidden by the visibility.
+        /// </summary>
         public string TimeObjectDisplay(IEnumerable<WfReqTask> tasks, AccessTaskFieldVisibilityConfig visibility)
         {
             string name = string.Join("; ", tasks
-                .Select(GetTimeObjectName)
+                .Select(task => GetTimeObjectName(task, visibility))
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct());
             string begin = "";
@@ -278,7 +281,13 @@ namespace FWO.Ui.Services
             return isEndDate ? task.TargetEndDate : task.TargetBeginDate;
         }
 
-        private string GetTimeObjectName(WfReqTask task)
+        /// <summary>
+        /// Returns the name of the time object of the task; without one, the name the time object gets on creation, built
+        /// from the visible dates only.
+        /// </summary>
+        /// <param name="task">The request task.</param>
+        /// <param name="visibility">The configured field visibility of access tasks, defining whether begin and end are shown.</param>
+        private string GetTimeObjectName(WfReqTask task, AccessTaskFieldVisibilityConfig visibility)
         {
             WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
             WfReqElement? effectiveTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
@@ -290,7 +299,9 @@ namespace FWO.Ui.Services
                 WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
                     wfHandler.ActTicket.Tasks, task, timeObjectId, null);
                 name = parallelTimeElement?.Name ?? TimeObjectNamingHelper.BuildDateBasedName(
-                    task.TargetBeginDate, task.TargetEndDate, FlowIntegration.TimeObjectPrecision);
+                    visibility.ShowValidFrom ? task.TargetBeginDate : null,
+                    visibility.ShowValidTo ? task.TargetEndDate : null,
+                    FlowIntegration.TimeObjectPrecision);
             }
 
             return name;

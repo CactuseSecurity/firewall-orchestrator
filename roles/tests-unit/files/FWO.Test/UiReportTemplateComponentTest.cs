@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -7,7 +8,9 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Ui.Pages.Reporting;
 using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -546,6 +549,598 @@ namespace FWO.Test
                 Assert.That(InvokePrivateMethod(ownerComponent, "CanSaveTemplateInEdit"), Is.True);
                 Assert.That(InvokePrivateMethod(adminComponent, "CanModifyTemplate", foreignTemplate), Is.True);
             });
+        }
+
+        private const string kTranslatedCommentKey = "T0199";
+        private const string kTranslatedComment = "Shipped template description";
+        private const int kTenantId = 4;
+
+        private sealed record DisplayedMessage(Exception? Exception, string Title, string Text);
+
+        /// <summary>
+        /// User config that translates the comment key of a shipped template, without touching the
+        /// translations shared by all tests.
+        /// </summary>
+        private sealed class TranslatingUserConfig : SimulatedUserConfig
+        {
+            public override string GetText(string key)
+            {
+                return key == kTranslatedCommentKey ? kTranslatedComment : base.GetText(key);
+            }
+        }
+
+        private sealed class TemplateDialogApiConnection : SimulatedApiConnection
+        {
+            public List<ReportTemplate> Templates { get; set; } = [];
+            public List<FwoOwner> Owners { get; set; } = [];
+            public HashSet<string> FailingQueries { get; } = [];
+            public bool AddReturnsIds { get; set; } = true;
+            public int DeleteAffectedRows { get; set; } = 1;
+            public object? AddVariables { get; private set; }
+            public object? DeleteVariables { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (FailingQueries.Contains(query))
+                {
+                    throw new InvalidOperationException("simulated api failure");
+                }
+                if (query == ReportQueries.getReportTemplates)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Templates.ToArray());
+                }
+                if (query == OwnerQueries.getOwners)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Owners);
+                }
+                if (query == ReportQueries.addReportTemplate)
+                {
+                    AddVariables = variables;
+                    ReturnIdWrapper wrapper = new() { ReturnIds = AddReturnsIds ? [new ReturnId { NewId = 99 }] : null };
+                    return Task.FromResult((QueryResponseType)(object)wrapper);
+                }
+                if (query == ReportQueries.deleteReportTemplate)
+                {
+                    DeleteVariables = variables;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = DeleteAffectedRows });
+                }
+                return Task.FromResult(CreateEmptyResponse<QueryResponseType>());
+            }
+
+            private static QueryResponseType CreateEmptyResponse<QueryResponseType>()
+            {
+                Type responseType = typeof(QueryResponseType);
+                if (responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    return Activator.CreateInstance<QueryResponseType>();
+                }
+                if (responseType.IsArray)
+                {
+                    return (QueryResponseType)(object)Array.CreateInstance(responseType.GetElementType()!, 0);
+                }
+                return default!;
+            }
+        }
+
+        private readonly List<DisplayedMessage> displayedMessages = [];
+        private readonly List<ReportTemplate> loadedTemplates = [];
+
+        private IRenderedComponent<ReportTemplateComponent> RenderTemplates(BunitContext context, bool withLoadAction = true)
+        {
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<CascadingValue<Action<Exception?, string, string, bool>>>(child => child
+                    .Add(p => p.Value, (exception, title, text, _) => displayedMessages.Add(new DisplayedMessage(exception, title, text)))
+                    .AddChildContent<ReportTemplateComponent>(component =>
+                    {
+                        if (withLoadAction)
+                        {
+                            component.Add(p => p.OnTemplateLoad, loadedTemplates.Add);
+                        }
+                    })));
+            return wrapper.FindComponent<ReportTemplateComponent>();
+        }
+
+        private static BunitContext CreateAdminContext(TemplateDialogApiConnection apiConnection, SimulatedUserConfig? userConfig = null)
+        {
+            return CreateContext(new MonitoringTestAuthStateProvider(Roles.Admin), userConfig ?? CreateUserConfig(kAdminRoles, kEmptyOwnerships), apiConnection);
+        }
+
+        private static async Task OpenDialog(IRenderedComponent<ReportTemplateComponent> component, ReportTemplate template)
+        {
+            await component.InvokeAsync(() => component.Instance.NewTemplate(template));
+            component.Render();
+        }
+
+        private static IElement ButtonWithIcon(IRenderedComponent<ReportTemplateComponent> component, string icon)
+        {
+            return component.FindAll("button").First(button => button.QuerySelector("span")?.ClassName == icon);
+        }
+
+        private static bool ShowsComponentOfType<TComponent>(IRenderedComponent<ReportTemplateComponent> component) where TComponent : IComponent
+        {
+            return component.FindComponents<TComponent>().Count > 0;
+        }
+
+        /// <summary>
+        /// Whether the dialog currently shows a component of the given type, for test cases that name it as data.
+        /// </summary>
+        private static bool ShowsComponent(IRenderedComponent<ReportTemplateComponent> component, Type componentType)
+        {
+            MethodInfo showsComponentOfType = typeof(UiReportTemplateComponentTest).GetMethod(nameof(ShowsComponentOfType), BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException($"{nameof(ShowsComponentOfType)} not found");
+            return (bool)showsComponentOfType.MakeGenericMethod(componentType).Invoke(null, [component])!;
+        }
+
+        /// <summary>
+        /// The row of the template dialog whose first label carries the given title.
+        /// </summary>
+        private static IElement DialogRow(BunitContext context, IRenderedComponent<ReportTemplateComponent> component, string labelKey)
+        {
+            string labelText = Text(context, labelKey);
+            IElement label = component.FindAll("form label").First(candidate => candidate.TextContent.Trim() == labelText + ":");
+            return label.ParentElement!;
+        }
+
+        /// <summary>
+        /// Text shown next to the label with the given title in the template dialog.
+        /// </summary>
+        private static string DialogValue(BunitContext context, IRenderedComponent<ReportTemplateComponent> component, string labelKey)
+        {
+            return DialogRow(context, component, labelKey).QuerySelectorAll("label")[1].TextContent.Trim();
+        }
+
+        private static string Text(BunitContext context, string key)
+        {
+            return context.Services.GetRequiredService<UserConfig>().GetText(key);
+        }
+
+        [Test]
+        public async Task LoadingATemplateHandsItToThePage()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            ButtonWithIcon(component, Icons.Load).Click();
+
+            Assert.That(loadedTemplates.Select(template => template.Name), Is.EqualTo((List<string>)["Rules template"]));
+        }
+
+        [Test]
+        public async Task WithoutLoadActionTheTemplatesOfferNoActions()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context, withLoadAction: false);
+
+            Assert.That(component.FindAll("tbody button"), Is.Empty);
+            Assert.That(component.Markup, Does.Contain("Rules template"));
+        }
+
+        [Test]
+        public async Task EditingATemplateOpensTheDialogWithItsValues()
+        {
+            ReportTemplate template = CreateTemplate(1, "Rules template", ReportType.Rules);
+            template.Filter = "src=1.2.3.4";
+            TemplateDialogApiConnection apiConnection = new() { Templates = [template] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            ButtonWithIcon(component, Icons.Edit).Click();
+
+            Assert.That(component.FindComponent<PopUp>().Instance.Show, Is.True);
+            Assert.That(component.Find("#saveTemplateName").GetAttribute("value"), Is.EqualTo("Rules template"));
+            Assert.That(component.Find("#saveTemplateFilterLineTextarea").GetAttribute("value"), Is.EqualTo("src=1.2.3.4"));
+        }
+
+        [Test]
+        public async Task CancellingTheDialogClosesIt()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ButtonWithIcon(component, Icons.Edit).Click();
+
+            component.FindComponent<PopUp>().FindAll("button.btn-secondary")
+                .Last(button => button.QuerySelector("span")?.ClassName == Icons.Cancel).Click();
+
+            Assert.That(component.FindComponent<PopUp>().Instance.Show, Is.False);
+        }
+
+        [Test]
+        public async Task DeletingATemplateAsksForConfirmationFirst()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            ButtonWithIcon(component, Icons.Delete).Click();
+
+            ConfirmDelete confirmDelete = component.FindComponent<ConfirmDelete>().Instance;
+            Assert.That(confirmDelete.Display, Is.True);
+            Assert.That(confirmDelete.DeleteMessage, Does.Contain("Rules template"));
+            Assert.That(apiConnection.DeleteVariables, Is.Null);
+        }
+
+        [Test]
+        public async Task ConfirmingTheDeletionRemovesTheTemplate()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ButtonWithIcon(component, Icons.Delete).Click();
+
+            component.FindComponent<ConfirmDelete>().Find("button.btn-danger").Click();
+
+            component.WaitForAssertion(() => Assert.That(component.Instance.reportTemplates, Is.Empty));
+            Assert.That(displayedMessages, Is.Empty);
+        }
+
+        [Test]
+        public async Task ADeletionWithoutEffectIsReported()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)], DeleteAffectedRows = 0 };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ButtonWithIcon(component, Icons.Delete).Click();
+
+            component.FindComponent<ConfirmDelete>().Find("button.btn-danger").Click();
+
+            component.WaitForAssertion(() => Assert.That(displayedMessages.Select(message => message.Text), Is.EqualTo((List<string>)[Text(context, "E1005")])));
+            Assert.That(component.Instance.reportTemplates, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AFailingDeletionIsReported()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            apiConnection.FailingQueries.Add(ReportQueries.deleteReportTemplate);
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ButtonWithIcon(component, Icons.Delete).Click();
+
+            component.FindComponent<ConfirmDelete>().Find("button.btn-danger").Click();
+
+            component.WaitForAssertion(() => Assert.That(displayedMessages, Has.Count.EqualTo(1)));
+            Assert.That(displayedMessages[0].Exception, Is.InstanceOf<InvalidOperationException>());
+            Assert.That(displayedMessages[0].Title, Is.EqualTo(Text(context, "delete_template")));
+        }
+
+        [Test]
+        public async Task ShippedTemplatesShowTheirTranslatedCommentAndAreHighlighted()
+        {
+            ReportTemplate template = CreateTemplate(1, "Shipped template", ReportType.Rules);
+            template.Comment = kTranslatedCommentKey;
+            ReportTemplate ownTemplate = CreateTemplate(2, "Own template", ReportType.Rules, templateOwnerId: 50);
+            ownTemplate.Comment = "my own words";
+            TemplateDialogApiConnection apiConnection = new() { Templates = [template, ownTemplate] };
+            TranslatingUserConfig userConfig = new() { User = { DbId = 50, Roles = [Roles.Admin] } };
+            await using BunitContext context = CreateAdminContext(apiConnection, userConfig);
+
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            Assert.That(component.Markup, Does.Contain(kTranslatedComment));
+            Assert.That(component.Markup, Does.Not.Contain(kTranslatedCommentKey));
+            Assert.That(component.Markup, Does.Contain("my own words"));
+            // shipped templates are owned by nobody
+            Assert.That(component.FindAll("tbody b").Select(name => name.TextContent), Is.EqualTo((List<string>)["Shipped template"]));
+        }
+
+        [TestCase(ReportType.Recertification, typeof(ReportRecertParamSelection))]
+        [TestCase(ReportType.Owners, typeof(ReportOwnerParamSelection))]
+        [TestCase(ReportType.OwnerRecertification, typeof(ReportOwnerRecertParamSelection))]
+        [TestCase(ReportType.OwnerRecertification, typeof(ReportRecertParamSelection))]
+        [TestCase(ReportType.Connections, typeof(Dropdown<FwoOwner>))]
+        [TestCase(ReportType.AppRules, typeof(ReportAppRuleParamSelection))]
+        [TestCase(ReportType.VarianceAnalysis, typeof(ReportVarianceParamSelection))]
+        [TestCase(ReportType.RecertEventReport, typeof(Dropdown<FwoOwner>))]
+        public async Task TheDialogShowsTheParametersOfTheTemplatesReportType(ReportType reportType, Type expectedComponent)
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            await OpenDialog(component, CreateTemplate(0, "new", reportType));
+
+            Assert.That(ShowsComponent(component, expectedComponent), Is.True);
+        }
+
+        [TestCase(ReportType.UnusedRules, "#saveTemplateUnused")]
+        [TestCase(ReportType.ComplianceReport, "#saveShowNonImpactRules")]
+        [TestCase(ReportType.ComplianceDiffReport, "#saveDiffReference")]
+        [TestCase(ReportType.ComplianceDiffReport, "#saveShowNonImpactRules")]
+        [TestCase(ReportType.Changes, "#saveTemplateIncludeObjectChanges")]
+        public async Task TheDialogShowsTheSettingsOfTheTemplatesReportType(ReportType reportType, string selector)
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            await OpenDialog(component, CreateTemplate(0, "new", reportType));
+
+            Assert.That(component.FindAll(selector), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task TheComplianceReportHasNoDiffInterval()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            await OpenDialog(component, CreateTemplate(0, "new", ReportType.ComplianceReport));
+
+            Assert.That(component.FindAll("#saveDiffReference"), Is.Empty);
+        }
+
+        [Test]
+        public async Task TheOwnerChooserOffersTheOwnApps()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Owners = [new FwoOwner { Id = 11, Name = "Owned App", ExtAppId = "APP-11" }] };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            await OpenDialog(component, CreateTemplate(0, "new", ReportType.Connections));
+
+            component.FindComponent<Dropdown<FwoOwner>>().Find("input").Focus();
+
+            Assert.That(component.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()), Does.Contain("Owned App (APP-11)"));
+        }
+
+        [Test]
+        public async Task ATemplateWithTenantFilterShowsTheTenant()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Rules);
+            template.ReportParams.TenantFilter = new TenantFilter(new Tenant { Id = kTenantId });
+
+            await OpenDialog(component, template);
+
+            Assert.That(DialogValue(context, component, "tenant"), Is.EqualTo(kTenantId.ToString()));
+        }
+
+        [Test]
+        public async Task ADeviceReportTemplateListsItsSelectedDevices()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Rules);
+            template.ReportParams.DeviceFilter = new DeviceFilter(
+                [new ManagementSelect { Id = 1, Name = "management", Devices = [new DeviceSelect { Id = 11, Name = "gw1", Selected = true }, new DeviceSelect { Id = 12, Name = "gw2" }] }]);
+
+            await OpenDialog(component, template);
+
+            Assert.That(DialogValue(context, component, "devices"), Is.EqualTo("gw1"));
+        }
+
+        [TestCase(ReportType.AppRules)]
+        [TestCase(ReportType.Recertification)]
+        public async Task AManagementLevelTemplateListsItsSelectedManagements(ReportType reportType)
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", reportType);
+            template.ReportParams.DeviceFilter = new DeviceFilter(
+            [
+                new ManagementSelect { Id = 1, Name = "first management", Devices = [new DeviceSelect { Id = 11, Selected = true }] },
+                new ManagementSelect { Id = 2, Name = "second management", Devices = [new DeviceSelect { Id = 21 }] }
+            ]);
+
+            await OpenDialog(component, template);
+
+            Assert.That(DialogValue(context, component, "managements"), Is.EqualTo("first management"));
+        }
+
+        [Test]
+        public async Task AManagementRulebasesViewTemplateListsItsSelectedRulebases()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Rules);
+            template.ReportParams.ManagementRulebaseView = true;
+            template.ReportParams.SelectedRulebases =
+            [
+                new SelectedRulebase { ManagementName = "management", RulebaseName = "first" },
+                new SelectedRulebase { ManagementName = "management", RulebaseName = "second" }
+            ];
+
+            await OpenDialog(component, template);
+
+            Assert.That(DialogValue(context, component, "rulebases"), Is.EqualTo("management: first, management: second"));
+        }
+
+        [Test]
+        public async Task TheDeviceSelectionOfATemplateCanBeChanged()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            await OpenDialog(component, CreateTemplate(0, "new", ReportType.Rules));
+
+            DialogRow(context, component, "devices").QuerySelector("button")!.Click();
+
+            Assert.That(component.FindComponent<ReportTemplateSelectDevice>().Instance.Display, Is.True);
+        }
+
+        [Test]
+        public async Task TheReportTimeOfATemplateIsChangedOnACopy()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Rules);
+            await OpenDialog(component, template);
+
+            DialogRow(context, component, "report_time").QuerySelector("button")!.Click();
+
+            ReportSelectTime selectTime = component.FindComponent<ReportSelectTime>().Instance;
+            Assert.That(selectTime.Display, Is.True);
+            Assert.That(selectTime.ActTimeFilter, Is.Not.SameAs(template.ReportParams.TimeFilter));
+            Assert.That(selectTime.ActTimeFilter.TimeShortcut, Is.EqualTo(template.ReportParams.TimeFilter.TimeShortcut));
+            Assert.That(await component.InvokeAsync(() => selectTime.DisplayTime()), Is.True);
+        }
+
+        [Test]
+        public async Task TheTemplateListCanBeCollapsedAndExpanded()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            await component.InvokeAsync(component.Instance.Collapse);
+            bool collapsed = component.FindAll("div.collapse").Count == 1;
+            await component.InvokeAsync(component.Instance.Uncollapse);
+
+            Assert.That(collapsed, Is.True);
+            Assert.That(component.FindAll("div.collapse"), Is.Empty);
+        }
+
+        [Test]
+        public async Task AFailingOwnerFetchLeavesTheTemplatesEmptyAndIsReported()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            apiConnection.FailingQueries.Add(OwnerQueries.getOwners);
+            await using BunitContext context = CreateAdminContext(apiConnection);
+
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            Assert.That(component.Instance.reportTemplates, Is.Empty);
+            Assert.That(displayedMessages.Select(message => message.Title), Is.EqualTo((List<string>)[Text(context, "template_fetch")]));
+        }
+
+        [Test]
+        public async Task AFailingTemplateFetchIsReported()
+        {
+            TemplateDialogApiConnection apiConnection = new();
+            apiConnection.FailingQueries.Add(ReportQueries.getReportTemplates);
+            await using BunitContext context = CreateAdminContext(apiConnection);
+
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+
+            Assert.That(component.Instance.reportTemplates, Is.Empty);
+            Assert.That(displayedMessages, Has.Count.EqualTo(1));
+            Assert.That(displayedMessages[0].Exception, Is.InstanceOf<InvalidOperationException>());
+        }
+
+        [Test]
+        public async Task SavingANewTemplateWithSurroundingBlanksSaysItWasShortened()
+        {
+            TemplateDialogApiConnection apiConnection = new();
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            await OpenDialog(component, CreateTemplate(0, "  new template  ", ReportType.Rules));
+
+            ButtonWithIcon(component, Icons.Save).Click();
+
+            component.WaitForAssertion(() => Assert.That(apiConnection.AddVariables, Is.Not.Null));
+            Assert.That(displayedMessages.Select(message => message.Text), Is.EqualTo((List<string>)[Text(context, "U0001")]));
+            Assert.That(component.Instance.reportTemplateInEdit.Name, Is.EqualTo("new template"));
+            Assert.That(component.Instance.reportTemplateInEdit.Id, Is.EqualTo(99));
+        }
+
+        [Test]
+        public async Task SavingANewTemplateWithoutReturnedIdIsReportedAndKeepsTheDialogOpen()
+        {
+            TemplateDialogApiConnection apiConnection = new() { AddReturnsIds = false };
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            await OpenDialog(component, CreateTemplate(0, "new template", ReportType.Rules));
+
+            ButtonWithIcon(component, Icons.Save).Click();
+
+            component.WaitForAssertion(() => Assert.That(displayedMessages.Select(message => message.Text), Is.EqualTo((List<string>)[Text(context, "E1004")])));
+            Assert.That(component.FindComponent<PopUp>().Instance.Show, Is.True);
+        }
+
+        [Test]
+        public async Task AFailingSaveOfANewTemplateIsReported()
+        {
+            TemplateDialogApiConnection apiConnection = new();
+            apiConnection.FailingQueries.Add(ReportQueries.addReportTemplate);
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            await OpenDialog(component, CreateTemplate(0, "new template", ReportType.Rules));
+
+            ButtonWithIcon(component, Icons.Save).Click();
+
+            component.WaitForAssertion(() => Assert.That(displayedMessages, Has.Count.EqualTo(1)));
+            Assert.That(displayedMessages[0].Title, Is.EqualTo(Text(context, "save_template")));
+            Assert.That(displayedMessages[0].Exception, Is.InstanceOf<InvalidOperationException>());
+        }
+
+        [Test]
+        public async Task AFailingUpdateIsReportedAndKeepsTheDialogOpen()
+        {
+            TemplateDialogApiConnection apiConnection = new() { Templates = [CreateTemplate(1, "Rules template", ReportType.Rules)] };
+            apiConnection.FailingQueries.Add(ReportQueries.updateReportTemplate);
+            await using BunitContext context = CreateAdminContext(apiConnection);
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ButtonWithIcon(component, Icons.Edit).Click();
+
+            ButtonWithIcon(component, Icons.Save).Click();
+
+            component.WaitForAssertion(() => Assert.That(displayedMessages, Has.Count.EqualTo(1)));
+            Assert.That(displayedMessages[0].Title, Is.EqualTo(Text(context, "edit_template")));
+            Assert.That(component.FindComponent<PopUp>().Instance.Show, Is.True);
+        }
+
+        [Test]
+        public async Task TheReportTimeOfAChangesTemplateShowsItsShortcut()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Changes);
+            template.ReportParams.TimeFilter.TimeRangeType = TimeRangeType.Shortcut;
+            template.ReportParams.TimeFilter.TimeRangeShortcut = "yesterday";
+
+            await OpenDialog(component, template);
+
+            Assert.That(component.Instance.DisplayTime(), Is.EqualTo("yesterday"));
+        }
+
+        [Test]
+        public async Task TheReportTimeOfATicketChangesTemplateShowsItsFixedDates()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.TicketChangeReport);
+            TimeFilter timeFilter = template.ReportParams.TimeFilter;
+            timeFilter.TimeRangeType = TimeRangeType.Fixeddates;
+            timeFilter.OpenStart = false;
+            timeFilter.OpenEnd = false;
+            timeFilter.StartTime = new DateTime(2026, 1, 1, 8, 0, 0);
+            timeFilter.EndTime = new DateTime(2026, 2, 1, 8, 0, 0);
+
+            await OpenDialog(component, template);
+
+            Assert.That(component.Instance.DisplayTime(), Is.EqualTo($"{timeFilter.StartTime} - {timeFilter.EndTime}"));
+        }
+
+        [Test]
+        public async Task AnUnknownTimeRangeTypeShowsNoTime()
+        {
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Changes);
+            template.ReportParams.TimeFilter.TimeRangeType = (TimeRangeType)99;
+
+            await OpenDialog(component, template);
+
+            Assert.That(component.Instance.DisplayTime(), Is.Empty);
+        }
+
+        [Test]
+        public async Task TheReportTimeOfARulesTemplateShowsItsShortcutOrTime()
+        {
+            DateTime reportTime = new(2026, 3, 4, 5, 6, 0);
+            await using BunitContext context = CreateAdminContext(new TemplateDialogApiConnection());
+            IRenderedComponent<ReportTemplateComponent> component = RenderTemplates(context);
+            ReportTemplate template = CreateTemplate(0, "new", ReportType.Rules);
+            template.ReportParams.TimeFilter.IsShortcut = true;
+            template.ReportParams.TimeFilter.TimeShortcut = "now";
+            await OpenDialog(component, template);
+            string shortcutText = component.Instance.DisplayTime();
+
+            template.ReportParams.TimeFilter.IsShortcut = false;
+            template.ReportParams.TimeFilter.ReportTime = reportTime;
+
+            Assert.That(shortcutText, Is.EqualTo("now"));
+            Assert.That(component.Instance.DisplayTime(), Is.EqualTo(reportTime.ToString()));
         }
 
         private const int kForeignOwnerId = 77;

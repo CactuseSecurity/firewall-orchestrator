@@ -137,7 +137,8 @@ namespace FWO.Report
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
         {
             List<string> unsupportedList = [];
-            DeviceFilter reducedDeviceFilter = new(deviceFilter);
+            // a deep copy, so that deselecting devices here does not clear the selection the caller keeps showing
+            DeviceFilter reducedDeviceFilter = deviceFilter.Clone();
             foreach (ManagementSelect management in reducedDeviceFilter.Managements)
             {
                 foreach (DeviceSelect device in management.Devices)

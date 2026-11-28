@@ -8,6 +8,7 @@ using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Reporting;
 using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
@@ -436,6 +437,250 @@ namespace FWO.Test
                 Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowAddInfoNames[0]));
                 Assert.That(menuMarkup, Does.Contain(kExpectedWorkflowAddInfoNames[1]));
             });
+        }
+
+        private const int kRequestedStateId = 1;
+        private const int kInProgressStateId = 2;
+        private const int kPlannedStateId = 3;
+        private const int kRequestDoneStateId = 4;
+        private const int kDerivedStateId = 5;
+        private const int kUnusedStateId = 6;
+
+        /// <summary>
+        /// Api fake delivering a workflow configuration with an active request phase, so the state matrix is built
+        /// the same way as in the installation.
+        /// </summary>
+        private sealed class WorkflowConfigurationApiConnection(List<WfStateAction>? actions = null) : SimulatedApiConnection
+        {
+            private static readonly List<WfState> States =
+            [
+                new() { Id = kRequestedStateId, Name = "requested" },
+                new() { Id = kInProgressStateId, Name = "in progress" },
+                new() { Id = kPlannedStateId, Name = "planned" },
+                new() { Id = kRequestDoneStateId, Name = "request done" },
+                new() { Id = kDerivedStateId, Name = "derived" },
+                new() { Id = kUnusedStateId, Name = "unused" }
+            ];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == RequestQueries.getStates)
+                {
+                    return Task.FromResult((QueryResponseType)(object)States.ToList());
+                }
+                if (query == RequestQueries.getActions)
+                {
+                    return Task.FromResult((QueryResponseType)(object)(actions ?? []));
+                }
+                if (query == RequestQueries.getActiveStateMatrixConfiguration || query == RequestQueries.getStateMatrixConfigurationByName)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<WorkflowConfiguration> { BuildConfiguration() });
+                }
+                throw new NotImplementedException($"Unhandled query {query}");
+            }
+
+            private static WorkflowConfiguration BuildConfiguration()
+            {
+                return new WorkflowConfiguration
+                {
+                    Id = 1,
+                    Name = "test configuration",
+                    IsActive = true,
+                    Phases =
+                    [
+                        new WorkflowConfigurationPhase
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.request.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Phase = WorkflowPhases.request.ToString(),
+                                Active = true,
+                                LowestInputState = kRequestedStateId,
+                                LowestStartState = kInProgressStateId,
+                                LowestEndState = kRequestDoneStateId,
+                                DerivedStates = [new StateMatrixDerivedState { FromStateId = kPlannedStateId, DerivedStateId = kDerivedStateId }]
+                            }
+                        }
+                    ]
+                };
+            }
+        }
+
+        private static BunitContext CreateConfiguredContext(List<WfStateAction>? actions = null)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddScoped<DomEventService>();
+            context.Services.AddSingleton<ApiConnection>(new WorkflowConfigurationApiConnection(actions));
+            return context;
+        }
+
+        private static IRenderedComponent<ReportWorkflowParamSelection> RenderConfigured(BunitContext context, WorkflowFilter workflowFilter,
+            ReportType reportType = ReportType.TicketReport, bool useFormLayout = false, Action<WorkflowFilter>? filterChanged = null)
+        {
+            return context.Render<ReportWorkflowParamSelection>(parameters => parameters
+                .Add(p => p.WorkflowFilter, workflowFilter)
+                .Add(p => p.SelectedReportType, reportType)
+                .Add(p => p.UseFormLayout, useFormLayout)
+                .Add(p => p.WorkflowFilterChanged, (WorkflowFilter changed) => filterChanged?.Invoke(changed)));
+        }
+
+        private static List<string> OpenDropdown<TElement>(IRenderedComponent<ReportWorkflowParamSelection> component)
+        {
+            IRenderedComponent<Dropdown<TElement>> dropdown = component.FindComponent<Dropdown<TElement>>();
+            dropdown.Find("input").Focus();
+            return [.. dropdown.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim())];
+        }
+
+        [Test]
+        public async Task TheActivePhasesAndTheClosedTicketsCanBeChosen()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, new WorkflowFilter());
+
+            Assert.That(OpenDropdown<string>(component), Is.EqualTo(new List<string>
+            {
+                userConfig.GetText(WorkflowPhases.request.ToString()), userConfig.GetText(GlobalConst.kClosed)
+            }));
+        }
+
+        [Test]
+        public async Task OnlyTheStatesUsedByTheActivePhasesAreOffered()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, new WorkflowFilter());
+
+            // the planned state is only reached as the source of a derived state, the unused state not at all
+            Assert.That(OpenDropdown<int?>(component), Is.EqualTo(new List<string>
+            {
+                userConfig.GetText("all"), "requested", "in progress", "planned", "request done", "derived"
+            }));
+        }
+
+        [Test]
+        public async Task TheTaskTypeChooserOffersAllRealTaskTypes()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, new WorkflowFilter());
+
+            List<string> expected = [userConfig.GetText("all"), .. Enum.GetValues<WfTaskType>()
+                .Where(taskType => taskType != WfTaskType.master).Select(taskType => userConfig.GetText(taskType.ToString()))];
+            Assert.That(OpenDropdown<WfTaskType?>(component), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public async Task ATicketChangeReportAsksForTheReferenceDate()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, new WorkflowFilter(), ReportType.TicketChangeReport);
+
+            Assert.That(OpenDropdown<WorkflowReferenceDate>(component),
+                Is.SupersetOf(Enum.GetValues<WorkflowReferenceDate>().Select(referenceDate => userConfig.GetText(referenceDate.ToString()))));
+        }
+
+        [Test]
+        public async Task ATicketReportHasNoReferenceDate()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, new WorkflowFilter());
+
+            Assert.That(component.FindComponents<Dropdown<WorkflowReferenceDate>>(), Is.Empty);
+        }
+
+        [TestCase(false, "showFullTicket")]
+        [TestCase(true, "showFullTicketTemplate")]
+        public async Task TheDetailedTicketChangeReportCanShowTheFullTicket(bool useFormLayout, string checkboxId)
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            WorkflowFilter workflowFilter = new() { DetailedView = true, ShowFullTicket = false };
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, workflowFilter, ReportType.TicketChangeReport, useFormLayout);
+            component.Find($"#{checkboxId}").Change(true);
+
+            Assert.That(workflowFilter.ShowFullTicket, Is.True);
+        }
+
+        [Test]
+        public async Task WithoutDetailedViewTheFullTicketOptionIsHidden()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            WorkflowFilter workflowFilter = new() { DetailedView = false };
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, workflowFilter, ReportType.TicketChangeReport);
+            component.Find("#detailedView").Change(true);
+
+            Assert.That(workflowFilter.DetailedView, Is.True);
+            Assert.That(component.FindAll("#showFullTicket"), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ChosenStatesAreShownAndCanBeChanged()
+        {
+            await using BunitContext context = CreateConfiguredContext();
+            WorkflowFilter workflowFilter = new() { StateIds = [kRequestedStateId] };
+            WorkflowFilter? reported = null;
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, workflowFilter, filterChanged: changed => reported = changed);
+            Dropdown<int?> stateDropdown = component.FindComponent<Dropdown<int?>>().Instance;
+            List<int?> shownSelection = [.. stateDropdown.SelectedElements];
+
+            await component.InvokeAsync(() => stateDropdown.SelectedElementsChanged.InvokeAsync([kRequestedStateId, kRequestDoneStateId]));
+
+            Assert.That(shownSelection, Is.EqualTo(new List<int?> { kRequestedStateId }));
+            Assert.That(reported?.StateIds, Is.EqualTo(new List<int> { kRequestedStateId, kRequestDoneStateId }));
+        }
+
+        [Test]
+        public void AnUnknownStateIsShownByItsId()
+        {
+            ReportWorkflowParamSelection component = CreateComponent();
+
+            string stateName = (string)InvokePrivateMethod(component, "StateIdToString", 42)!;
+
+            Assert.That(stateName, Is.EqualTo("42"));
+        }
+
+        [Test]
+        public async Task OtherActionsThanAutoPromotionAddNoAdditionalInfoName()
+        {
+            List<WfStateAction> actions =
+            [
+                new WfStateAction
+                {
+                    ActionType = StateActionTypes.SetAlert.ToString(),
+                    ExternalParams = JsonSerializer.Serialize(new ConditionalAutoPromoteParams { CheckResultLabel = "not_an_add_info" })
+                }
+            ];
+            await using BunitContext context = CreateConfiguredContext(actions);
+
+            IRenderedComponent<ReportWorkflowParamSelection> component = RenderConfigured(context, new WorkflowFilter());
+
+            List<string> addInfoNames = GetPrivateMember<List<string>>(component.Instance, "availableAddInfoNames");
+            Assert.That(addInfoNames, Does.Not.Contain("not_an_add_info"));
+            Assert.That(addInfoNames, Does.Contain(AdditionalInfoKeys.ReqOwner));
+        }
+
+        [Test]
+        public void APhaseWithoutStateMatrixOffersAllStatesInScope()
+        {
+            ReportWorkflowParamSelection component = CreateComponent(new WorkflowFilter { Phase = WorkflowPhases.request.ToString() });
+            SetMember(component, "masterStateMatrix", new GlobalStateMatrix());
+            SetMember(component, "allStates", new List<WfState> { new() { Id = kRequestedStateId, Name = "requested" } });
+
+            List<WfState> availableStates = (List<WfState>)InvokePrivateMethod(component, "GetAvailableStates")!;
+
+            Assert.That(availableStates, Is.Empty);
         }
 
         private static void SetClosedWorkflowStateScope(ReportWorkflowParamSelection component)

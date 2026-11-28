@@ -95,7 +95,7 @@
                     class="btn btn-link btn-sm text-decoration-none p-0 me-2"
                     @onclick="() => context.ToggleNode.InvokeAsync()"
                     aria-label="@(context.IsExpanded ? context.CollapseLabel : context.ExpandLabel)"
-                    aria-expanded="@context.IsExpanded">
+                    aria-expanded="@(context.IsExpanded ? "true" : "false")">
                 <i class="bi @(context.IsExpanded ? "bi-caret-down-fill" : "bi-caret-right-fill")"></i>
             </button>
             @if (!string.IsNullOrEmpty(context.Item.Rule.DisplayOrderNumberString))
@@ -163,7 +163,8 @@
     #region Properties - Private
 
     private bool ShowLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
-    private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
+    // unused rules and app rules show the last hit right after the number already
+    private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType) && !ShowLastModifiedAfterLastHit;
 
     #endregion
 

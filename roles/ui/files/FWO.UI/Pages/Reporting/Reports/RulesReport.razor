@@ -340,7 +340,8 @@
 
     private NatRuleDisplayHtml? _ruleDisplay;
     private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
-    private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
+    // unused rules and app rules show the last hit right after the number already
+    private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType) && !_showLastModifiedAfterLastHit;
 
 
     #endregion
@@ -360,7 +361,8 @@
     private string GetTableRowClasses(Rule rule)
     {
         string classes = "";
-        if (rule.SectionHeader != null)
+        // same check as the section header row: an empty header is a regular rule, whose cells must stay visible
+        if (!string.IsNullOrEmpty(rule.SectionHeader))
         {
             classes = "hide-all-but-second-child second-child-full-width ";
         }

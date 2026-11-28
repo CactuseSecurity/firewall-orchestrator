@@ -7,6 +7,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Ui.Pages.Reporting;
 using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -153,6 +154,187 @@ namespace FWO.Test
                 Assert.That(recertFilter.ShowRulesWithoutOwner, Is.False);
                 Assert.That(recertFilter.RecertOwnerList, Is.Empty);
             });
+        }
+
+        private static BunitContext CreateContext(ApiConnection apiConnection, SimulatedUserConfig userConfig)
+        {
+            BunitContext context = CreateContext();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddScoped<DomEventService>();
+            context.Services.AddSingleton(apiConnection);
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            return context;
+        }
+
+        private static IRenderedComponent<ReportRecertParamSelection> RenderSelection(BunitContext context, RecertFilter recertFilter,
+            List<(Exception? Exception, string Title)>? messages = null, string filterInput = "", Action<string>? filterInputChanged = null)
+        {
+            return context.Render<ReportRecertParamSelection>(parameters => parameters
+                .AddCascadingValue<Action<Exception?, string, string, bool>>((exception, title, _, _) => messages?.Add((exception, title)))
+                .Add(p => p.RecertFilter, recertFilter)
+                .Add(p => p.FilterInput, filterInput)
+                .Add(p => p.FilterInputChanged, (string updated) => filterInputChanged?.Invoke(updated)));
+        }
+
+        private static FwoOwner? SelectedOwner(IRenderedComponent<ReportRecertParamSelection> component)
+        {
+            return component.FindComponent<Dropdown<FwoOwner>>().Instance.SelectedElement;
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_OwnerDropdownOffersAllAndTheOwnersByName()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(
+                [new() { Id = 12, Name = "Zulu App" }, new() { Id = 11, Name = "Alpha App" }]), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, new RecertFilter());
+            IRenderedComponent<Dropdown<FwoOwner>> dropdown = component.FindComponent<Dropdown<FwoOwner>>();
+            dropdown.Find("input").Focus();
+
+            List<string> items = [.. dropdown.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim())];
+            Assert.That(items, Is.SupersetOf((List<string>)[new SimulatedUserConfig().GetText("all"), "show_rules_without_owners", "Alpha App", "Zulu App"]));
+            Assert.That(items.IndexOf("Alpha App"), Is.LessThan(items.IndexOf("Zulu App")));
+            Assert.That(SelectedOwner(component)?.Id, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_ATemplateWithOneOwnerPreselectsIt()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, new RecertFilter { RecertOwnerList = [12] });
+
+            Assert.That(SelectedOwner(component)?.Name, Is.EqualTo("App Two"));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_ATemplateWithAllOwnersSelectsAll()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, new RecertFilter { RecertOwnerList = [11, 12] });
+
+            Assert.That(SelectedOwner(component)?.Id, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_ATemplateWithAVanishedOwnerFallsBackToAll()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, new RecertFilter { RecertOwnerList = [99] });
+
+            Assert.That(SelectedOwner(component)?.Id, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_AnAdminTemplateForRulesWithoutOwnersKeepsThatChoice()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+            RecertFilter recertFilter = new() { ShowRulesWithoutOwner = true };
+
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, recertFilter);
+
+            Assert.That(SelectedOwner(component)?.Id, Is.EqualTo(-3));
+            Assert.That(recertFilter.ShowRulesWithoutOwner, Is.True);
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_ANonAdminTemplateForRulesWithoutOwnersIsReset()
+        {
+            SimulatedUserConfig userConfig = new() { User = { Roles = [Roles.Reporter], Ownerships = [11] } };
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), userConfig);
+            RecertFilter recertFilter = new() { ShowRulesWithoutOwner = true, RecertOwnerList = [11] };
+
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, recertFilter);
+
+            Assert.That(recertFilter.ShowRulesWithoutOwner, Is.False);
+            Assert.That(recertFilter.RecertOwnerList, Is.Empty);
+            Assert.That(SelectedOwner(component)?.Id, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_ChoosingOneOwnerFiltersForIt()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+            RecertFilter recertFilter = new() { ShowRulesWithoutOwner = true };
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, recertFilter);
+
+            Dropdown<FwoOwner> dropdown = component.FindComponent<Dropdown<FwoOwner>>().Instance;
+            await component.InvokeAsync(() => dropdown.SelectedElementChanged.InvokeAsync(new FwoOwner { Id = 12, Name = "App Two" }));
+
+            Assert.That(recertFilter.RecertOwnerList, Is.EqualTo((List<int>)[12]));
+            Assert.That(recertFilter.ShowRulesWithoutOwner, Is.False);
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_AnotherFilterObjectReinitializesTheOwner()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, new RecertFilter());
+
+            component.Render(parameters => parameters.Add(p => p.RecertFilter, new RecertFilter { RecertOwnerList = [11] }));
+
+            Assert.That(SelectedOwner(component)?.Name, Is.EqualTo("App One"));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_UnsettingAnyMatchOnAnEmptyFilterAddsTheExclusionAlone()
+        {
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
+            string? filterInput = null;
+            IRenderedComponent<ReportRecertParamSelection> component = RenderSelection(context, new RecertFilter { RecertShowAnyMatch = true },
+                filterInputChanged: updated => filterInput = updated);
+
+            component.Find("#recertShowAnyMatch").Input(false);
+
+            Assert.That(filterInput, Is.EqualTo("(not src==0.0.0.0 and not dst==0.0.0.0)"));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_ADueDateOfZeroIsReplacedByTheConfiguredPeriod()
+        {
+            SimulatedUserConfig userConfig = new() { User = { Roles = [Roles.Admin] }, RecertificationDisplayPeriod = 45 };
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), userConfig);
+            RecertFilter recertFilter = new() { RecertificationDisplayPeriod = 0 };
+
+            RenderSelection(context, recertFilter);
+
+            Assert.That(recertFilter.RecertificationDisplayPeriod, Is.EqualTo(45));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_WithoutAnyOwnerItSaysSo()
+        {
+            List<(Exception? Exception, string Title)> messages = [];
+            SimulatedUserConfig userConfig = new() { User = { Roles = [Roles.Reporter] } };
+            await using BunitContext context = CreateContext(new ReportRecertParamSelectionTestApiConn(), userConfig);
+
+            RenderSelection(context, new RecertFilter(), messages);
+
+            Assert.That(messages, Is.EqualTo(new List<(Exception?, string)> { (null, userConfig.GetText("no_owners")) }));
+        }
+
+        [Test]
+        public async Task ReportRecertParamSelection_AFailingOwnerFetchIsReported()
+        {
+            List<(Exception? Exception, string Title)> messages = [];
+            SimulatedUserConfig userConfig = new() { User = { Roles = [Roles.Admin] } };
+            await using BunitContext context = CreateContext(new FailingOwnerApiConnection(), userConfig);
+
+            RenderSelection(context, new RecertFilter(), messages);
+
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].Exception, Is.InstanceOf<InvalidOperationException>());
+            Assert.That(messages[0].Title, Is.EqualTo(userConfig.GetText("object_fetch")));
+        }
+
+        private sealed class FailingOwnerApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                throw new InvalidOperationException("simulated api failure");
+            }
         }
 
         private static BunitContext CreateContext()

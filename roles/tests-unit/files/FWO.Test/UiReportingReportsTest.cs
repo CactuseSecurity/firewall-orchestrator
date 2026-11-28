@@ -194,6 +194,88 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void VariancesReport_ShowsEachDifferingConnectionWithItsImplementingRules()
+        {
+            using BunitContext context = CreateContext();
+            Rule implementingRule = new() { Id = 5, Name = "implementing rule", ManagementName = "Mgmt One" };
+            OwnerConnectionReport ownerReport = new()
+            {
+                Owner = new FwoOwner { Name = "Variance Owner" },
+                RuleDifferences =
+                [
+                    new ModProdDifference
+                    {
+                        ModelledConnection = new ModellingConnection { Id = 7, Name = "Differing connection" },
+                        ImplementedRules = [implementingRule]
+                    }
+                ]
+            };
+
+            IRenderedComponent<VariancesReport> component = context.Render<VariancesReport>(parameters => parameters
+                .Add(p => p.OwnerData, [ownerReport]));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Connections with diffs"));
+                Assert.That(component.Markup, Does.Contain("7: Differing connection"));
+                Assert.That(component.FindComponent<FWO.Ui.Pages.Reporting.ReportedRulesForDiff>().Instance.Difference.ImplementedRules,
+                    Is.EqualTo(new List<Rule> { implementingRule }));
+            });
+        }
+
+        [Test]
+        public void VariancesReport_ShowsRulesOfDeletedConnectionsAndUnmodelledRules()
+        {
+            using BunitContext context = CreateContext(includeRuleTreeBuilder: true);
+            OwnerConnectionReport ownerReport = new()
+            {
+                Owner = new FwoOwner { Name = "Variance Owner" },
+                RulesForDeletedConns = [new ManagementReport { Name = "Deleted conns management" }],
+                UnmodelledRules = [new ManagementReport { Name = "Unmodelled management" }]
+            };
+
+            IRenderedComponent<VariancesReport> component = context.Render<VariancesReport>(parameters => parameters
+                .Add(p => p.OwnerData, [ownerReport]));
+
+            List<RulesReport> rulesReports = [.. component.FindComponents<RulesReport>().Select(report => report.Instance)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Rules for deleted connections"));
+                Assert.That(component.Markup, Does.Contain("Rules not modelled"));
+                Assert.That(rulesReports.Select(report => report.SelectedReportType), Is.EqualTo(new List<ReportType> { ReportType.Rules, ReportType.AppRules }));
+                Assert.That(rulesReports.Select(report => report.Managements[0].Name),
+                    Is.EqualTo(new List<string> { "Deleted conns management", "Unmodelled management" }));
+            });
+        }
+
+        [Test]
+        public void VariancesReport_SkipsEmptyManagementsAndAnEmptyImplementationState()
+        {
+            using BunitContext context = CreateContext();
+            OwnerConnectionReport ownerReport = new()
+            {
+                Owner = new FwoOwner { Name = "Variance Owner" },
+                ImplementationState = "",
+                Connections = CreateConnections("Unimplemented connection"),
+                AppRoleStats = new AppRoleStats { AppRolesMissingCount = 1, AppRolesDifferenceCount = 1 },
+                MissingAppRoles = new Dictionary<int, List<ModellingAppRole>> { { 10, [] } },
+                DifferingAppRoles = new Dictionary<int, List<ModellingAppRole>> { { 20, [] } }
+            };
+
+            IRenderedComponent<VariancesReport> component = context.Render<VariancesReport>(parameters => parameters
+                .Add(p => p.OwnerData, [ownerReport]));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("App roles not implemented"));
+                Assert.That(component.FindComponents<FWO.Ui.Shared.AppRoleTable>(), Is.Empty);
+                Assert.That(component.FindAll("div.mb-2"), Is.Empty);
+                // connections without regular ones or common services leave the section empty
+                Assert.That(component.FindComponents<FWO.Ui.Shared.ConnectionTable>(), Is.Empty);
+            });
+        }
+
         private static BunitContext CreateContext(bool includeRuleTreeBuilder = false)
         {
             BunitContext context = new();

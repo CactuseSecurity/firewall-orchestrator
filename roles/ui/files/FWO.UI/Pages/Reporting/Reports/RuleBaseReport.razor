@@ -224,7 +224,8 @@
     private string getTableRowClasses(Rule rule)
     {
         string classes = "";
-        if(rule.SectionHeader != null)
+        // same check as the section header row: an empty header is a regular rule, whose cells must stay visible
+        if(!string.IsNullOrEmpty(rule.SectionHeader))
         {
             classes = "hide-all-but-second-child second-child-full-width ";
         }

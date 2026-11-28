@@ -142,6 +142,36 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task DisplayTicket_InitSaveTicketIgnoresOutdatedTicket()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Priority = 1,
+                    Tasks = [new WfReqTask { Id = 1, Title = "Task" }]
+                }
+            };
+            // like after a failed reload of the ticket
+            SetMember(handler, "outdatedTicket", handler.ActTicket);
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+            SetMember(component, "selectedPriority", new WfPriority { NumPrio = 2, Name = "High" });
+
+            bool canSave = InvokePrivateBool(component, "CanSaveActTicket");
+            await InvokePrivateTask(component, "InitSaveTicket");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicketOutdated, Is.True);
+                Assert.That(canSave, Is.False);
+                Assert.That(handler.ActTicket.Priority, Is.EqualTo(1));
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task DisplayTicket_AddCommentIsDisabledForReadOnlyUsers(bool readOnly)

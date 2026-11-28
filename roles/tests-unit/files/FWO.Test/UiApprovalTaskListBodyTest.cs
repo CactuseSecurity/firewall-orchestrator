@@ -35,14 +35,14 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
             Assert.That(sourceZonePosition, Is.GreaterThanOrEqualTo(0));
             Assert.That(sourceZonePosition, Is.LessThan(sourcePosition));
             Assert.That(cut.FindAll("button.approval-task-display-toggle"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .approval-task-list-header-buttons button.approval-task-display-toggle"),
+            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .task-list-header-buttons button.approval-task-display-toggle"),
                 Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Other\"] .approval-task-list-header-buttons"), Is.Empty);
+            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Other\"] .task-list-header-buttons"), Is.Empty);
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Other\"]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Address\"]"), Is.Empty);
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Service\"]"), Is.Empty);
-            Assert.That(cut.Find(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .approval-task-list-title").TextContent,
+            Assert.That(cut.Find(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .task-list-title").TextContent,
                 Is.EqualTo("approval_list_access_tasks"));
         });
     }
@@ -62,9 +62,9 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         SetMember(handler, "stateMatrixDict", matrices);
 
         IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
-        Assert.That(cut.FindAll("button.approval-task-list-edit"), Has.Count.EqualTo(1));
+        Assert.That(cut.FindAll("button.task-list-edit"), Has.Count.EqualTo(1));
 
-        cut.Find("button.approval-task-list-edit").Click();
+        cut.Find("button.task-list-edit").Click();
 
         Assert.Multiple(() =>
         {
@@ -100,12 +100,12 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
 
         IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
 
-        AngleSharp.Dom.IElement value = cut.Find(".approval-task-list[data-table=\"Address\"] .approval-task-list-badge").ParentElement!;
+        AngleSharp.Dom.IElement value = cut.Find(".approval-task-list[data-table=\"Address\"] .task-list-badge").ParentElement!;
         Assert.Multiple(() =>
         {
             Assert.That(value.Children, Has.Length.EqualTo(2));
             Assert.That(value.Children[0].TextContent, Does.StartWith("removed-member"));
-            Assert.That(value.Children[1].ClassList, Does.Contain("approval-task-list-badge").And.Contain("text-bg-danger"));
+            Assert.That(value.Children[1].ClassList, Does.Contain("task-list-badge").And.Contain("text-bg-danger"));
             Assert.That(value.Children[1].TextContent, Is.EqualTo("remove_member"));
         });
     }
@@ -119,7 +119,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.FindAll("button.approval-task-list-edit"), Is.Empty);
+            Assert.That(cut.FindAll("button.task-list-edit"), Is.Empty);
             Assert.That(cut.FindAll("button.btn-warning"), Is.Empty);
         });
     }
@@ -269,7 +269,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("span.approval-task-list-compliance.btn-success"), Has.Count.EqualTo(1)));
         Assert.That(checker.CheckCount, Is.Zero);
 
-        cut.Find(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .approval-task-list-header-buttons button.approval-compliance-recheck").Click();
+        cut.Find(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .task-list-header-buttons button.approval-compliance-recheck").Click();
 
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("button.approval-task-list-compliance.btn-danger"), Has.Count.EqualTo(1)));
         Assert.Multiple(() =>
@@ -310,7 +310,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         cut.WaitForAssertion(() => Assert.That(cut.FindAll(".approval-task-list-compliance"), Has.Count.EqualTo(2)));
         Assert.That(cut.Find("button.approval-compliance-filter").ClassList, Does.Contain("btn-outline-danger"));
 
-        cut.Find(".approval-task-list[data-table=\"Access\"] .approval-task-list-header-buttons button.approval-compliance-filter").Click();
+        cut.Find(".approval-task-list[data-table=\"Access\"] .task-list-header-buttons button.approval-compliance-filter").Click();
 
         Assert.Multiple(() =>
         {

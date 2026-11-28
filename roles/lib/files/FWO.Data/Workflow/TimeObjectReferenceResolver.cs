@@ -71,6 +71,28 @@ namespace FWO.Data.Workflow
             return matchingNames.Count == 1 ? matchingNames[0] : null;
         }
 
+        /// <summary>
+        /// Returns the name of the time object of a task, as the request and implementation rows show it: the first name
+        /// given of the time element another task of the ticket defines for it, of its own time element and of the time
+        /// element its selected time object refers to; an empty string if none is named.
+        /// </summary>
+        /// <param name="tasks">All tasks in the ticket.</param>
+        /// <param name="task">The task whose time object name is returned.</param>
+        public static string TimeObjectName(IEnumerable<WfReqTask> tasks, WfReqTask task)
+        {
+            WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
+            string? name = FindParallelTimeElement(tasks, task, null, null)?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = timeElement?.Name;
+            }
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = FindParallelTimeElement(tasks, task, TimeObjectElementHelper.GetSelectorId(timeElement), null)?.Name;
+            }
+            return string.IsNullOrWhiteSpace(name) ? "" : name;
+        }
+
         /// <summary>Finds the task defining the time object referenced by an access task.</summary>
         /// <param name="tasks">All tasks in the ticket.</param>
         /// <param name="accessTask">The access task whose time reference is resolved.</param>

@@ -87,14 +87,14 @@ namespace FWO.Services.Workflow
             SetTicketOpt(action);
         }
 
-        private async Task<WfTicket?> ReloadTicket(WfTicket ticket)
+        private async Task<WfTicket?> ReloadTicket(WfTicket ticket, Action? onReadFailure = null)
         {
             if (dbAcc == null)
             {
                 return null;
             }
 
-            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetTicketFilter());
+            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetTicketFilter(), onReadFailure);
             if (refreshedTicket == null)
             {
                 return null;
@@ -108,6 +108,18 @@ namespace FWO.Services.Workflow
             return refreshedTicket;
         }
 
+        /// <summary>The copy of a ticket whose reload failed; its displayed states may be outdated.</summary>
+        private WfTicket? outdatedTicket;
+
+        /// <summary>
+        /// Whether the active ticket is the copy whose reload failed, as it could not be read or is no longer visible to
+        /// the user: its displayed states may be outdated, so no state is changed on it. Bound to that copy, so another
+        /// ticket or a reloaded copy becoming the active ticket, in whatever way, is not affected.
+        /// </summary>
+        public bool ActTicketOutdated => outdatedTicket != null && ReferenceEquals(outdatedTicket, ActTicket);
+
+        /// <summary>Sets the active ticket, e.g. after it was selected or reloaded.</summary>
+        /// <param name="ticket">The ticket.</param>
         public void SetTicketEnv(WfTicket ticket)
         {
             ActTicket = ticket;
@@ -121,26 +133,37 @@ namespace FWO.Services.Workflow
         /// <returns><see langword="true"/> when the ticket was refreshed successfully.</returns>
         public async Task<bool> ReloadActTicket()
         {
+            return await TryReloadActTicket() == TicketReloadResult.Refreshed;
+        }
+
+        /// <summary>
+        /// Reloads the active ticket after an action changed its tasks or metadata and tells why it was not refreshed. A
+        /// ticket that could not be read or is no longer visible stays the active ticket, marked as outdated. A read error
+        /// is reported to the user (by the db access), a ticket no longer visible is not.
+        /// </summary>
+        public async Task<TicketReloadResult> TryReloadActTicket()
+        {
+            if (ActTicket.Id <= 0 || dbAcc == null)
+            {
+                return TicketReloadResult.NotReloadable;
+            }
+            bool readFailed = false;
             try
             {
-                if (ActTicket.Id <= 0 || dbAcc == null)
+                WfTicket? refreshedTicket = await ReloadTicket(ActTicket, () => readFailed = true);
+                if (refreshedTicket != null)
                 {
-                    return false;
+                    SetTicketEnv(refreshedTicket);
+                    return TicketReloadResult.Refreshed;
                 }
-
-                WfTicket? refreshedTicket = await ReloadTicket(ActTicket);
-                if (refreshedTicket == null)
-                {
-                    return false;
-                }
-                SetTicketEnv(refreshedTicket);
-                return true;
             }
             catch (Exception exception)
             {
+                readFailed = true;
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
-                return false;
             }
+            outdatedTicket = ActTicket;
+            return readFailed ? TicketReloadResult.ReadFailed : TicketReloadResult.NotVisible;
         }
 
         public void SetTicketOpt(ObjAction action)

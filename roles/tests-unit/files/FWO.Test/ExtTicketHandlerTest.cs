@@ -440,7 +440,8 @@ namespace FWO.Test
             ExternalRequest externalRequest = new()
             {
                 Id = 1,
-                TicketId = 1,
+                // the ticket the test api connection returns
+                TicketId = 123,
                 TaskNumber = 1,
                 ExtRequestState = ExtStates.ExtReqRequested.ToString(),
                 ExtQueryVariables = ""

@@ -716,7 +716,7 @@ internal sealed class UiApprovalTaskDetailsEditorServiceTest
             context,
             state,
             () => Task.CompletedTask,
-            task => ApprovalTaskBundleHelper.GetTasksToUpdate(handler.ActTicket.Tasks, task, config));
+            task => TaskBundleHelper.GetTasksToUpdate(handler.ActTicket.Tasks, task, config));
 
         await editor.SaveOwnerCore(newOwner);
 

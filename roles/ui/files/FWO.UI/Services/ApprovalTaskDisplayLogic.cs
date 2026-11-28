@@ -127,11 +127,16 @@ namespace FWO.Ui.Services
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct());
 
-        /// <summary>Formats time-object names and the visible validity interval.</summary>
+        /// <summary>
+        /// Formats time-object names and the visible validity interval; a name built from the dates leaves out the dates
+        /// hidden by the visibility.
+        /// </summary>
+        /// <param name="tasks">The request tasks.</param>
+        /// <param name="visibility">The configured field visibility of access tasks, defining whether begin and end are shown.</param>
         public string TimeObjectDisplay(IEnumerable<WfReqTask> tasks, AccessTaskFieldVisibilityConfig visibility)
         {
             string name = string.Join("; ", tasks
-                .Select(GetTimeObjectName)
+                .Select(task => GetTimeObjectName(task, visibility))
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct());
             string begin = "";
@@ -278,22 +283,22 @@ namespace FWO.Ui.Services
             return isEndDate ? task.TargetEndDate : task.TargetBeginDate;
         }
 
-        private string GetTimeObjectName(WfReqTask task)
+        /// <summary>
+        /// Returns the name of the time object of the task (see <see cref="TimeObjectReferenceResolver.TimeObjectName"/>);
+        /// without one, a name built from the visible dates only.
+        /// </summary>
+        /// <param name="task">The request task.</param>
+        /// <param name="visibility">The configured field visibility of access tasks, defining whether begin and end are shown.</param>
+        private string GetTimeObjectName(WfReqTask task, AccessTaskFieldVisibilityConfig visibility)
         {
-            WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
-            WfReqElement? effectiveTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
-                wfHandler.ActTicket.Tasks, task, null, null) ?? timeElement;
-            string name = effectiveTimeElement?.Name ?? "";
-            if (string.IsNullOrWhiteSpace(name))
+            string name = TimeObjectReferenceResolver.TimeObjectName(wfHandler.ActTicket.Tasks, task);
+            if (!string.IsNullOrWhiteSpace(name))
             {
-                long? timeObjectId = TimeObjectElementHelper.GetSelectorId(timeElement);
-                WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
-                    wfHandler.ActTicket.Tasks, task, timeObjectId, null);
-                name = parallelTimeElement?.Name ?? TimeObjectNamingHelper.BuildDateBasedName(
-                    task.TargetBeginDate, task.TargetEndDate, FlowIntegration.TimeObjectPrecision);
+                return name;
             }
-
-            return name;
+            DateTime? begin = visibility.ShowValidFrom ? task.TargetBeginDate : null;
+            DateTime? end = visibility.ShowValidTo ? task.TargetEndDate : null;
+            return TimeObjectNamingHelper.BuildDateBasedName(begin, end, FlowIntegration.TimeObjectPrecision);
         }
 
         private static string BuildValidity(string begin, string end)

@@ -1,0 +1,179 @@
+@using FWO.Data
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+@{
+    List<List<WfReqTask>> taskGroups = [.. TaskBundleHelper.GroupTasks(WfHandler.ActTicket.Tasks, userConfig)];
+    List<TaskListTable> tables = ApprovalTaskListRowBuilder.UsedTables(taskGroups);
+    PlanningTaskListRowBuilder rowBuilder = CreateRowBuilder();
+}
+@* the tables come from all request tasks, so the tables and the mode button stay when only implementation tasks are shown *@
+@foreach (TaskListTable table in tables)
+{
+    <PlanningTaskListBody @key="table" Table="table" Mode="mode"
+        Rows="rowBuilder.Build(taskGroups, table, mode)"
+        Columns="VisibleColumns(table, taskGroups)"
+        HasActions="HasActions" RowActions="RowActions"
+        HeaderButtons="@(table == tables[0] ? ModeButton : null)" />
+}
+
+<PlanningImplTaskEditors Editor="Editor" />
+
+@code {
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    /// <summary>Display logic, visibility and editor callbacks of the request tasks.</summary>
+    [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
+
+    [Parameter] public WfHandler WfHandler { get; set; } = new();
+    [Parameter] public WfStateDict States { get; set; } = new();
+    [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
+    /// <summary>Opens the creation of an implementation task for a request task (for a bundle: its merged request task).</summary>
+    [Parameter] public Func<WfReqTask, Task> AddImplementationTask { get; set; } = _ => Task.CompletedTask;
+    /// <summary>Opens the deletion confirmation of an implementation task.</summary>
+    [Parameter] public Func<WfImplTask, Task> DeleteImplementationTask { get; set; } = _ => Task.CompletedTask;
+    /// <summary>Performs a configured action on all request tasks of a row (a single task or a bundle displayed as one).</summary>
+    [Parameter] public Func<IReadOnlyList<WfReqTask>, WfStateAction, Task> PerformRequestTaskAction { get; set; } = (_, _) => Task.CompletedTask;
+
+    private PlanningTaskListMode mode = PlanningTaskListMode.AllTasks;
+    private List<RuleAction> ruleActions = [];
+    private List<Tracking> trackings = [];
+    private List<IpProtocol> ipProtocols = [];
+
+    private PlanningImplTaskEditor? editor;
+
+    private PlanningImplTaskDisplayLogic ImplLogic => new(WfHandler, userConfig, ruleActions, trackings, ipProtocols);
+
+    /// <summary>Editor of management, device, free text and name of implementation tasks, opened by a click on their cell.</summary>
+    private PlanningImplTaskEditor Editor => editor ??= new(new PlanningImplTaskEditorCallbacks
+    {
+        WfHandler = () => WfHandler,
+        DisplayLogic = () => ImplLogic,
+        CanEdit = CanEditImplementationTask,
+        Save = SaveImplementationTask,
+        // a cell click only renders the cell, so the view hosting the editors is rendered explicitly
+        Refresh = () => InvokeAsync(StateHasChanged)
+    });
+
+    /// <summary>Loads the rule actions, trackings and protocols displayed for implementation tasks.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+            ipProtocols = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    /// <summary>Returns the visible columns of a table for the current mode and the configured field visibility.</summary>
+    private List<TaskListColumn> VisibleColumns(TaskListTable table, List<List<WfReqTask>> taskGroups)
+    {
+        PlanningImplTaskDisplayLogic implLogic = ImplLogic;
+        AccessTaskFieldVisibilityConfig visibility = Context.Visibility;
+        return PlanningTaskListRowBuilder.VisibleColumns(table, mode, visibility,
+            ApprovalTaskListRowBuilder.ObjectVisibilityFor(table, taskGroups, Context.ObjectVisibility),
+            PlanningTaskListRowBuilder.ImplementationColumnsFor(table, taskGroups, CanEditImplementationTask,
+                (implementationTask, requestTask) => implLogic.TimeRestriction(implementationTask, requestTask, visibility)));
+    }
+
+    /// <summary>Creates the row builder; editable cells of implementation tasks open the editors of this view.</summary>
+    private PlanningTaskListRowBuilder CreateRowBuilder()
+    {
+        PlanningImplTaskListActions implActions = new()
+        {
+            CanEdit = CanEditImplementationTask,
+            EditManagement = Editor.OpenManagement,
+            EditDevice = Editor.OpenDevice,
+            EditFreeText = Editor.OpenFreeText,
+            EditName = Editor.OpenName
+        };
+        return new PlanningTaskListRowBuilder(Context, userConfig, States, ImplLogic, implActions);
+    }
+
+    /// <summary>Switches between all tasks and only implementation tasks; the button shows the mode it switches to.</summary>
+    private RenderFragment ModeButton =>
+        @<button type="button" class="btn btn-sm btn-primary planning-task-list-mode-toggle" @onclick="ToggleMode">
+            @(DisplayService.DisplayButton(userConfig, NextModeTextKey, Icons.Swap))
+        </button>;
+
+    private string NextModeTextKey => mode == PlanningTaskListMode.AllTasks
+        ? "planning_list_show_impl_tasks"
+        : "planning_list_show_all_tasks";
+
+    /// <summary>Switches between all tasks and only implementation tasks.</summary>
+    private void ToggleMode()
+    {
+        mode = mode == PlanningTaskListMode.AllTasks ? PlanningTaskListMode.ImplementationTasks : PlanningTaskListMode.AllTasks;
+    }
+
+    /// <summary>Returns whether a row offers actions: a configured action, or creating (request task) or deleting (implementation task) an implementation task.</summary>
+    private bool HasActions(PlanningTaskListRow row) => row.ImplementationTask is WfImplTask implementationTask
+        ? CanEditImplementationTask(implementationTask, row.RequestTask)
+            || WorkflowTaskActions.VisibleForImplementationTask(WfHandler, implementationTask, row.RequestTask).Count > 0
+        : WorkflowTaskActions.CanChangeRequestTasks(WfHandler, row.TaskGroup)
+            || WorkflowTaskActions.VisibleForRequestTasks(WfHandler, row.TaskGroup).Count > 0;
+
+    /// <summary>
+    /// Request tasks offer their configured actions and the creation of an implementation task, implementation tasks
+    /// their configured actions and their deletion. For a bundle displayed as one, the actions apply to all its tasks
+    /// and a new implementation task covers the merged content of the bundle, like the automatically created ones.
+    /// </summary>
+    private RenderFragment<PlanningTaskListRow> RowActions => row =>
+        @<text>
+            @if (row.ImplementationTask is WfImplTask implementationTask)
+            {
+                <ConfiguredTaskActions OfferedActions="WorkflowTaskActions.VisibleForImplementationTask(WfHandler, implementationTask, row.RequestTask)" ActionVisibility="_ => true"
+                    ActionRequested="action => PerformImplementationTaskAction(row.RequestTask, implementationTask, action)" />
+                @if (CanEditImplementationTask(implementationTask, row.RequestTask))
+                {
+                    <button type="button" class="btn btn-sm btn-danger planning-task-list-delete" @onclick="() => DeleteImplementationTask(implementationTask)">
+                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                    </button>
+                }
+            }
+            else
+            {
+                <ConfiguredTaskActions OfferedActions="WorkflowTaskActions.VisibleForRequestTasks(WfHandler, row.TaskGroup)" ActionVisibility="_ => true"
+                    ActionRequested="action => PerformRequestTaskAction(row.TaskGroup, action)" />
+                @if (WorkflowTaskActions.CanChangeRequestTasks(WfHandler, row.TaskGroup))
+                {
+                    <button type="button" class="btn btn-sm btn-success planning-task-list-add" @onclick="() => AddImplementationTask(TaskBundleHelper.CreationRequestTask(row.TaskGroup))">
+                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add, userConfig.GetText("implementation")))
+                    </button>
+                }
+            }
+        </text>;
+
+    /// <summary>Performs a configured action on an implementation task, then reloads the ticket and resets the parent, also if the action fails.</summary>
+    private async Task PerformImplementationTaskAction(WfReqTask requestTask, WfImplTask implementationTask, WfStateAction action)
+    {
+        try
+        {
+            await WorkflowTaskActions.PerformOnImplementationTask(WfHandler, action, implementationTask, requestTask);
+        }
+        finally
+        {
+            await ResetParent();
+        }
+    }
+
+    /// <summary>Returns whether the user may change an implementation task and its request task.</summary>
+    private bool CanEditImplementationTask(WfImplTask implementationTask, WfReqTask requestTask) =>
+        WorkflowTaskActions.CanChangeImplementationTask(WfHandler, implementationTask, requestTask);
+
+    /// <summary>Saves the implementation task changed in an editor and resets the parent.</summary>
+    private async Task SaveImplementationTask()
+    {
+        await WfHandler.ChangeImplTask();
+        await ResetParent();
+    }
+}

@@ -20,6 +20,8 @@
   - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
   - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
   - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+- workflow UI: access task view, list view and planning view offer the configured task actions per task (card header, actions column; in the planning view also for implementation tasks), applied to all tasks of a bundle displayed as one; the action "Bundle tasks" is only offered on ticket level
+- workflow UI: new planning edit mode "List view" showing request and implementation tasks as table rows in the tables of the approval list view (without compliance); a header button switches between all tasks and only implementation tasks, adapting the columns; bundles displayed as one form one row (list view) or card (planning view) together with the implementation tasks of all their tasks
 - UI fix: the All tab of the right sidebar no longer lists several versions of the same object, service or user in rule reports (#4730)
   - the version removed by the latest import was returned in addition to the new one; change reports still list all versions of their time range
   - switching from a change report back to a rule report with report time "now" no longer keeps the time range of the change report

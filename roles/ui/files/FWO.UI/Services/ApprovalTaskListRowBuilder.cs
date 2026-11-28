@@ -3,6 +3,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Display;
+using static FWO.Ui.Services.TaskListHelper;
 
 namespace FWO.Ui.Services
 {
@@ -83,26 +84,36 @@ namespace FWO.Ui.Services
 
         /// <summary>Returns the table a task is displayed in.</summary>
         /// <param name="task">The request task.</param>
-        public static ApprovalTaskListTable TableOf(WfReqTask task)
+        public static TaskListTable TableOf(WfReqTask task)
         {
             if (ApprovalTaskDetailsEditorService.IsAccessTask(task))
             {
-                return ApprovalTaskListTable.Access;
+                return TaskListTable.Access;
             }
             if (ApprovalTaskDetailsEditorService.IsGroupTask(task))
             {
-                return WfObjectTaskHelper.OrdersServiceObject(task) ? ApprovalTaskListTable.Service : ApprovalTaskListTable.Address;
+                return WfObjectTaskHelper.OrdersServiceObject(task) ? TaskListTable.Service : TaskListTable.Address;
             }
             if (WfObjectTaskHelper.IsObjectTask(task.TaskType))
             {
                 return WfObjectTaskHelper.GetKind(RequestedElement(task)) switch
                 {
-                    ObjectTaskKind.Network => ApprovalTaskListTable.Address,
-                    ObjectTaskKind.Service => ApprovalTaskListTable.Service,
-                    _ => ApprovalTaskListTable.Other
+                    ObjectTaskKind.Network => TaskListTable.Address,
+                    ObjectTaskKind.Service => TaskListTable.Service,
+                    _ => TaskListTable.Other
                 };
             }
-            return ApprovalTaskListTable.Other;
+            return TaskListTable.Other;
+        }
+
+        /// <summary>Returns the tables containing at least one of the task groups, in display order.</summary>
+        /// <param name="taskGroups">The task groups: single tasks or bundles displayed as one.</param>
+        public static List<TaskListTable> UsedTables(IEnumerable<List<WfReqTask>> taskGroups)
+        {
+            HashSet<TaskListTable> usedTables = [.. taskGroups
+                .Where(taskGroup => taskGroup.Count > 0)
+                .Select(taskGroup => TableOf(taskGroup[0]))];
+            return [.. Enum.GetValues<TaskListTable>().Where(usedTables.Contains)];
         }
 
         /// <summary>Returns the visible columns of a table in display order.</summary>
@@ -112,13 +123,13 @@ namespace FWO.Ui.Services
         /// <param name="objectVisibility">The configured visibility of handler, assigned, management and reason of
         /// object and group tasks; null if the table is not restricted to object and group tasks (see
         /// <see cref="ObjectVisibilityFor"/>), then the columns of other tasks apply.</param>
-        public static List<ApprovalTaskListColumn> VisibleColumns(ApprovalTaskListTable table, AccessTaskFieldVisibilityConfig visibility,
+        public static List<TaskListColumn> VisibleColumns(TaskListTable table, AccessTaskFieldVisibilityConfig visibility,
             bool showCompliance = false, ObjectTaskFieldVisibilityConfig? objectVisibility = null)
         {
-            List<ApprovalTaskListColumn> columns = [new(kId, "id")];
-            AddIf(columns, showCompliance && table == ApprovalTaskListTable.Access, new(kCompliance, "approval_list_compliance"));
+            List<TaskListColumn> columns = [new(kId, "id")];
+            AddIf(columns, showCompliance && table == TaskListTable.Access, new(kCompliance, "approval_list_compliance"));
             // access tasks show their rule content first; title, task type and state follow just before the handler
-            if (table != ApprovalTaskListTable.Access)
+            if (table != TaskListTable.Access)
             {
                 columns.Add(new(kTaskType, "task_type"));
                 columns.Add(new(kState, "state"));
@@ -126,15 +137,15 @@ namespace FWO.Ui.Services
             }
             switch (table)
             {
-                case ApprovalTaskListTable.Access:
+                case TaskListTable.Access:
                     AddAccessColumns(columns, visibility);
                     break;
-                case ApprovalTaskListTable.Address:
+                case TaskListTable.Address:
                     columns.Add(new(kObject, "object"));
                     columns.Add(new(kContent, "content"));
                     columns.Add(new(kZone, "zone"));
                     break;
-                case ApprovalTaskListTable.Service:
+                case TaskListTable.Service:
                     columns.Add(new(kObject, "object"));
                     columns.Add(new(kContent, "content"));
                     break;
@@ -142,12 +153,11 @@ namespace FWO.Ui.Services
                     columns.Add(new(kObject, "object"));
                     break;
             }
-            bool isAccess = table == ApprovalTaskListTable.Access;
+            bool isAccess = table == TaskListTable.Access;
             ObjectTaskFieldVisibilityConfig metadataVisibility = MetadataVisibility(table, visibility, objectVisibility);
             AddIf(columns, !isAccess && metadataVisibility.ShowManagement, new(kManagement, "management"));
             AddIf(columns, metadataVisibility.ShowReason, new(kReason, "reason"));
-            AddIf(columns, visibility.ShowFreeText && table is ApprovalTaskListTable.Access or ApprovalTaskListTable.Other,
-                new(kFreeText, "free_text"));
+            AddIf(columns, ShowsRequestFreeText(table, visibility), new(kFreeText, "free_text"));
             if (isAccess)
             {
                 AddIf(columns, visibility.ShowTitle, new(kTitle, "title"));
@@ -159,6 +169,14 @@ namespace FWO.Ui.Services
             return columns;
         }
 
+        /// <summary>Returns whether the free text of request tasks is shown in a table: if configured, for access and other tasks.</summary>
+        /// <param name="table">The table.</param>
+        /// <param name="visibility">The configured field visibility.</param>
+        public static bool ShowsRequestFreeText(TaskListTable table, AccessTaskFieldVisibilityConfig visibility)
+        {
+            return visibility.ShowFreeText && table is TaskListTable.Access or TaskListTable.Other;
+        }
+
         /// <summary>
         /// Returns the object and group task visibility if all tasks of the table are object or group tasks, otherwise
         /// null: the address and service tables only hold those, the other tasks table may mix them with e.g. generic
@@ -167,13 +185,13 @@ namespace FWO.Ui.Services
         /// <param name="table">The table.</param>
         /// <param name="taskGroups">All request task groups of the ticket.</param>
         /// <param name="objectVisibility">The configured object and group task visibility.</param>
-        public static ObjectTaskFieldVisibilityConfig? ObjectVisibilityFor(ApprovalTaskListTable table,
+        public static ObjectTaskFieldVisibilityConfig? ObjectVisibilityFor(TaskListTable table,
             IEnumerable<List<WfReqTask>> taskGroups, ObjectTaskFieldVisibilityConfig objectVisibility)
         {
             bool onlyObjectTasks = taskGroups
                 .Where(taskGroup => taskGroup.Count > 0 && TableOf(taskGroup[0]) == table)
                 .All(taskGroup => IsObjectOrGroupTask(taskGroup[0]));
-            return table != ApprovalTaskListTable.Access && onlyObjectTasks ? objectVisibility : null;
+            return table != TaskListTable.Access && onlyObjectTasks ? objectVisibility : null;
         }
 
         /// <summary>Returns whether a task is an object or group task.</summary>
@@ -188,17 +206,17 @@ namespace FWO.Ui.Services
         /// object and group tasks the object task settings; other tasks always show handler and assigned and follow
         /// the access task settings for management and reason.
         /// </summary>
-        private static ObjectTaskFieldVisibilityConfig MetadataVisibility(ApprovalTaskListTable table,
+        private static ObjectTaskFieldVisibilityConfig MetadataVisibility(TaskListTable table,
             AccessTaskFieldVisibilityConfig visibility, ObjectTaskFieldVisibilityConfig? objectVisibility)
         {
-            if (table == ApprovalTaskListTable.Access)
+            if (table == TaskListTable.Access)
             {
                 return new() { ShowHandler = visibility.ShowHandler, ShowAssigned = visibility.ShowAssigned, ShowManagement = false, ShowReason = visibility.ShowReason };
             }
             return objectVisibility ?? new() { ShowManagement = visibility.ShowManagement, ShowReason = visibility.ShowReason };
         }
 
-        private static void AddAccessColumns(List<ApprovalTaskListColumn> columns, AccessTaskFieldVisibilityConfig visibility)
+        private static void AddAccessColumns(List<TaskListColumn> columns, AccessTaskFieldVisibilityConfig visibility)
         {
             columns.Add(new(kSourceZone, "source_zone"));
             columns.Add(new(kDestinationZone, "destination_zone"));
@@ -218,7 +236,7 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="taskGroups">All request task groups of the ticket.</param>
         /// <param name="table">The table to build the rows for.</param>
-        public List<ApprovalTaskListRow> Build(IEnumerable<List<WfReqTask>> taskGroups, ApprovalTaskListTable table)
+        public List<ApprovalTaskListRow> Build(IEnumerable<List<WfReqTask>> taskGroups, TaskListTable table)
         {
             return [.. taskGroups
                 .Where(taskGroup => taskGroup.Count > 0 && TableOf(taskGroup[0]) == table)
@@ -242,10 +260,10 @@ namespace FWO.Ui.Services
             return ApprovalTaskDetailsEditorService.IsGroupTask(task) ? kGroupRank : kOtherRank;
         }
 
-        private ApprovalTaskListRow BuildRow(List<WfReqTask> taskGroup, ApprovalTaskListTable table)
+        private ApprovalTaskListRow BuildRow(List<WfReqTask> taskGroup, TaskListTable table)
         {
             WfReqTask task = taskGroup[0];
-            Dictionary<string, ApprovalTaskListCell> cells = new()
+            Dictionary<string, TaskListCell> cells = new()
             {
                 [kId] = ReadOnly(ApprovalTaskDetailsEditorService.TaskIds(taskGroup)),
                 [kTitle] = Text(task, taskGroup, WorkflowEditableFieldKeys.Title, member => member.Title),
@@ -259,11 +277,11 @@ namespace FWO.Ui.Services
             };
             switch (table)
             {
-                case ApprovalTaskListTable.Access:
+                case TaskListTable.Access:
                     AddAccessCells(cells, task, taskGroup);
                     break;
-                case ApprovalTaskListTable.Address:
-                case ApprovalTaskListTable.Service:
+                case TaskListTable.Address:
+                case TaskListTable.Service:
                     AddObjectCells(cells, task, table);
                     break;
                 default:
@@ -276,12 +294,13 @@ namespace FWO.Ui.Services
             }
             return new ApprovalTaskListRow(task, cells)
             {
-                Compliance = table == ApprovalTaskListTable.Access ? ApprovalTaskCompliance.Of(taskGroup, ComplianceResults) : null
+                TaskGroup = taskGroup,
+                Compliance = table == TaskListTable.Access ? ApprovalTaskCompliance.Of(taskGroup, ComplianceResults) : null
             };
         }
 
         /// <summary>Empties the cells an object or group task hides, as its row may share the other tasks table with other tasks.</summary>
-        private void ClearHiddenObjectTaskCells(Dictionary<string, ApprovalTaskListCell> cells)
+        private void ClearHiddenObjectTaskCells(Dictionary<string, TaskListCell> cells)
         {
             ObjectTaskFieldVisibilityConfig objectVisibility = context.ObjectVisibility;
             if (!objectVisibility.ShowHandler)
@@ -302,7 +321,7 @@ namespace FWO.Ui.Services
             }
         }
 
-        private void AddAccessCells(Dictionary<string, ApprovalTaskListCell> cells, WfReqTask task, List<WfReqTask> taskGroup)
+        private void AddAccessCells(Dictionary<string, TaskListCell> cells, WfReqTask task, List<WfReqTask> taskGroup)
         {
             cells[kOwner] = Metadata(context.DisplayLogic.Owners(taskGroup), taskGroup, WorkflowEditableFieldKeys.Owner, () => context.EditOwner(task));
             cells[kRuleAction] = Metadata(context.DisplayLogic.RuleActions(taskGroup), taskGroup, WorkflowEditableFieldKeys.RuleAction, () => context.EditRuleAction(task));
@@ -328,7 +347,7 @@ namespace FWO.Ui.Services
             return context.CanEdit(taskGroup, fieldKey) ? () => context.EditField(task, fieldKey) : null;
         }
 
-        private void AddObjectCells(Dictionary<string, ApprovalTaskListCell> cells, WfReqTask task, ApprovalTaskListTable table)
+        private void AddObjectCells(Dictionary<string, TaskListCell> cells, WfReqTask task, TaskListTable table)
         {
             if (ApprovalTaskDetailsEditorService.IsGroupTask(task))
             {
@@ -354,10 +373,10 @@ namespace FWO.Ui.Services
             return editable ? () => context.EditObjectTask(task) : null;
         }
 
-        private void AddGroupCells(Dictionary<string, ApprovalTaskListCell> cells, WfReqTask task, ApprovalTaskListTable table)
+        private void AddGroupCells(Dictionary<string, TaskListCell> cells, WfReqTask task, TaskListTable table)
         {
             List<WfReqTask> taskAsList = [task];
-            string memberField = table == ApprovalTaskListTable.Service ? ElemFieldType.service.ToString() : ElemFieldType.source.ToString();
+            string memberField = table == TaskListTable.Service ? ElemFieldType.service.ToString() : ElemFieldType.source.ToString();
             List<WfReqElement> members = [.. task.Elements.Where(element => element.Field == memberField)];
             string groupName = FirstNonEmpty(task.GetAddInfoValue(AdditionalInfoKeys.GrpName),
                 members.Select(member => member.GroupName).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name)));
@@ -374,24 +393,16 @@ namespace FWO.Ui.Services
             bool showMemberChanges = task.TaskType == WfTaskType.group_modify.ToString();
             cells[kContent] = new(displayedMembers.Select(member => MemberValue(member, table)).ToList(), editMembers)
             {
-                Badges = showMemberChanges ? [.. displayedMembers.Select(member => MemberBadge(member.RequestAction))] : null
+                Badges = showMemberChanges ? [.. displayedMembers.Select(member => MemberChangeBadge(member.RequestAction, userConfig))] : null
             };
             cells[kZone] = new(DistinctValues(members.Where(member => !IsRemoved(member))
                 .SelectMany(member => context.DisplayLogic.ZonesOf(member).Split(", ", StringSplitOptions.RemoveEmptyEntries))), editMembers);
         }
 
-        private string MemberValue(WfReqElement member, ApprovalTaskListTable table)
+        private string MemberValue(WfReqElement member, TaskListTable table)
         {
             return NameWithDetail(member.Name ?? "", ObjectContent(member, table));
         }
-
-        /// <summary>Returns the change badge of a group member, using the texts and colors of the card view.</summary>
-        private ApprovalTaskListBadge MemberBadge(string? requestAction) => requestAction switch
-        {
-            nameof(RequestAction.delete) => new(userConfig.GetText("remove_member"), "text-bg-danger"),
-            nameof(RequestAction.unchanged) => new(userConfig.GetText("unchanged"), "text-bg-secondary"),
-            _ => new(userConfig.GetText("add_member"), "text-bg-success")
-        };
 
         /// <summary>Shows a modification as "old -> new" (with an arrow); unchanged or new values are shown once.</summary>
         private static string Change(string? oldValue, string? newValue)
@@ -403,9 +414,9 @@ namespace FWO.Ui.Services
             return $"{oldValue} \u2192 {newValue}";
         }
 
-        private string ObjectContent(WfReqElement element, ApprovalTaskListTable table)
+        private string ObjectContent(WfReqElement element, TaskListTable table)
         {
-            return table == ApprovalTaskListTable.Service
+            return table == TaskListTable.Service
                 ? context.DisplayLogic.ServiceContent(element)
                 : NwObjDisplay.DisplayIp(element.IpString, element.IpEnd);
         }
@@ -418,56 +429,29 @@ namespace FWO.Ui.Services
         private static bool IsRemoved(WfReqElement element) =>
             string.Equals(element.RequestAction, RequestAction.delete.ToString(), StringComparison.OrdinalIgnoreCase);
 
-        private ApprovalTaskListCell Text(WfReqTask task, List<WfReqTask> taskGroup, string fieldKey, Func<WfReqTask, string?> selector)
+        private TaskListCell Text(WfReqTask task, List<WfReqTask> taskGroup, string fieldKey, Func<WfReqTask, string?> selector)
         {
             string value = selector(task) ?? "";
             Func<Task>? edit = context.CanEdit(taskGroup, fieldKey) ? () => context.EditText(task, fieldKey, value) : null;
-            return new ApprovalTaskListCell(DistinctValues(taskGroup.Select(member => selector(member) ?? "")), edit);
+            return new TaskListCell(DistinctValues(taskGroup.Select(member => selector(member) ?? "")), edit);
         }
 
-        private ApprovalTaskListCell Metadata(string value, List<WfReqTask> taskGroup, string fieldKey, Func<Task> edit)
+        private TaskListCell Metadata(string value, List<WfReqTask> taskGroup, string fieldKey, Func<Task> edit)
         {
-            return new ApprovalTaskListCell(SingleValue(value), context.CanEdit(taskGroup, fieldKey) ? edit : null);
+            return new TaskListCell(SingleValue(value), context.CanEdit(taskGroup, fieldKey) ? edit : null);
         }
 
-        private ApprovalTaskListCell TimeRestriction(WfReqTask task, List<WfReqTask> taskGroup)
+        private TaskListCell TimeRestriction(WfReqTask task, List<WfReqTask> taskGroup)
         {
             string value = context.DisplayLogic.TimeObjectDisplay(taskGroup, context.Visibility);
             Func<Task>? edit = context.CanEditTimeObject(taskGroup)
                 ? () => context.EditTargetDates(task, context.EditableTimeObjectField(taskGroup))
                 : null;
-            return new ApprovalTaskListCell(SingleValue(value), edit);
-        }
-
-        /// <summary>Formats a name with its technical detail as "name (detail)", or the non-empty one of both.</summary>
-        private static string NameWithDetail(string name, string detail)
-        {
-            if (string.IsNullOrWhiteSpace(name) || name == detail)
-            {
-                return detail;
-            }
-            return string.IsNullOrWhiteSpace(detail) ? name : $"{name} ({detail})";
+            return new TaskListCell(SingleValue(value), edit);
         }
 
         private static string FirstNonEmpty(string? first, string? second) =>
             !string.IsNullOrWhiteSpace(first) ? first : second ?? "";
 
-        private static ApprovalTaskListCell ReadOnly(string value) => new(SingleValue(value), null);
-
-        private static List<string> SingleValue(string? value) =>
-            string.IsNullOrWhiteSpace(value) ? [] : [value];
-
-        private static List<string> NonEmptyValues(IEnumerable<string> values) =>
-            [.. values.Where(value => !string.IsNullOrWhiteSpace(value))];
-
-        private static List<string> DistinctValues(IEnumerable<string> values) => [.. NonEmptyValues(values).Distinct()];
-
-        private static void AddIf(List<ApprovalTaskListColumn> columns, bool condition, ApprovalTaskListColumn column)
-        {
-            if (condition)
-            {
-                columns.Add(column);
-            }
-        }
     }
 }

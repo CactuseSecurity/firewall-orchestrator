@@ -6,6 +6,8 @@ namespace FWO.Data.Workflow
         /// <summary>Uses the existing ticket and task editors.</summary>
         Classic,
         /// <summary>Uses the consolidated planning view with implementation tasks.</summary>
-        PlanningView
+        PlanningView,
+        /// <summary>Uses the consolidated planning view with one request or implementation task per table row.</summary>
+        ListView
     }
 }

@@ -403,8 +403,10 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Creates a transient request task representing all request task elements in one bundle.
+        /// It keeps the id of the first bundled task, which receives the implementation tasks of the bundle.
         /// </summary>
-        private static WfReqTask CreateMergedBundleRequestTask(List<WfReqTask> bundleTasks)
+        /// <param name="bundleTasks">The request tasks of the bundle, at least one.</param>
+        public static WfReqTask CreateMergedBundleRequestTask(List<WfReqTask> bundleTasks)
         {
             WfReqTask mergedTask = new(bundleTasks[0])
             {

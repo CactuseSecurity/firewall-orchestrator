@@ -1,0 +1,59 @@
+@typeparam TItem
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="task-list @CssClass mt-3" data-table="@Table">
+    @* FancyTable appends columns added later at the end; a new key recreates it with the columns in their defined order. *@
+    <FancyTable @key="ColumnSignature" TItem="TItem"
+                Items="Items"
+                Columns="Columns"
+                EnableColumnResizing="true"
+                PaginationEnabled="true"
+                PageSize="kSinglePageSize"
+                ShowPaginationSummary="false"
+                ShowPageSizeSelector="true"
+                PageSizeTemplate="TableTitle"
+                TopBarClass="align-items-center"
+                PageSizeContainerClass="flex-grow-1 me-2"
+                RowClassSelector="RowClassSelector"
+                Texts="tableTexts" />
+</div>
+
+@code {
+    // Pagination is only enabled to get the top-bar slot for the table title; all rows stay on one page.
+    private const int kSinglePageSize = 100000;
+
+    /// <summary>The displayed table; it defines the title.</summary>
+    [Parameter] public TaskListTable Table { get; set; }
+    /// <summary>Css class of the view, added to the common task list class.</summary>
+    [Parameter] public string CssClass { get; set; } = "";
+    /// <summary>The rows of the table.</summary>
+    [Parameter] public IReadOnlyList<TItem> Items { get; set; } = [];
+    /// <summary>The columns in display order.</summary>
+    [Parameter] public IReadOnlyList<FancyColumn<TItem>> Columns { get; set; } = [];
+    /// <summary>Identifies the visible columns; a changed signature recreates the table with the columns in their order.</summary>
+    [Parameter] public string ColumnSignature { get; set; } = "";
+    /// <summary>Buttons shown in the top bar, right-aligned just before the search field.</summary>
+    [Parameter] public RenderFragment? HeaderButtons { get; set; }
+    /// <summary>Returns the css class of a row, or null for none.</summary>
+    [Parameter] public Func<TItem, string?> RowClassSelector { get; set; } = _ => null;
+
+    private FancyTableTexts tableTexts = FancyTableTexts.Default;
+
+    /// <summary>Initializes the localized table texts.</summary>
+    protected override void OnInitialized()
+    {
+        tableTexts = FancyTableTextFactory.Create(userConfig);
+    }
+
+    /// <summary>Shows the table title and the header buttons in the top bar, on the same line as the search field.</summary>
+    private RenderFragment<FancyPaginationContext<TItem>> TableTitle => _ =>
+        @<div class="d-flex align-items-center w-100">
+            <h6 class="mb-0 task-list-title">@(userConfig.GetText(TaskListHelper.TitleKey(Table)))</h6>
+            @if (HeaderButtons != null)
+            {
+                <div class="d-flex align-items-center ms-auto task-list-header-buttons">@HeaderButtons</div>
+            }
+        </div>;
+}

@@ -17,14 +17,15 @@
             List<List<WfReqTask>> shownListTaskGroups = [.. listTaskGroups.Where(IsShown)];
             <CascadingValue Value="@CreateTaskViewContext()">
                 @* the tables come from all tasks, so the access table and its filter button stay when no task matches the filter *@
-                @foreach (ApprovalTaskListTable table in ListTables(listTaskGroups))
+                @foreach (TaskListTable table in ApprovalTaskListRowBuilder.UsedTables(listTaskGroups))
                 {
                     <ApprovalTaskListBody @key="table" Table="table" TaskGroups="shownListTaskGroups" States="States"
                         ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
                         CanPromoteTask="CanShowTaskPromotion"
                         PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))"
+                        TaskActions="VisibleTaskActions" PerformTaskAction="PerformTaskAction"
                         Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons"
-                        HeaderButtons="@(table == ApprovalTaskListTable.Access ? AccessTaskButtons : null)" />
+                        HeaderButtons="@(table == TaskListTable.Access ? AccessTaskButtons : null)" />
                 }
             </CascadingValue>
         }
@@ -148,23 +149,14 @@
     private readonly ApprovalTaskComplianceService compliance = new();
     private ApprovalTaskCompliance? shownCompliance;
 
+    /// <summary>Returns whether the user may perform a configured action on the ticket.</summary>
+    /// <param name="action">The action.</param>
     private bool CanPerformTicketAction(WfStateAction action) => WfHandler.CanPerformActionOnActTicket(action);
 
-    private string ApprovalTaskViewTitle
-    {
-        get
-        {
-            string requester = WfHandler.ActTicket.Requester?.Name ?? "";
-            string metadata = $"{userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)}";
-            if (!string.IsNullOrWhiteSpace(requester))
-            {
-                metadata += $", {userConfig.GetText("requester")}: {requester}";
-            }
-            string headline = PreWorkflowTicketReferenceDisplay.TicketHeadline(userConfig.GetText("ticket"), userConfig.ReqPreWorkflowTicketReferenceLabel, WfHandler.ActTicket);
-            return $"{headline} ({metadata})";
-        }
-    }
+    private string ApprovalTaskViewTitle => TaskDetailsViewTitle.Build(userConfig, WfHandler.ActTicket, States);
 
+    /// <summary>Returns the task type, followed by the title if it is set and shown.</summary>
+    /// <param name="task">The request task.</param>
     private string TaskDisplayTitle(WfReqTask task)
     {
         string taskType = string.IsNullOrWhiteSpace(task.TaskType)
@@ -176,6 +168,12 @@
     /// <summary>The title of access tasks can be hidden in the settings; other tasks always show it.</summary>
     private bool ShowTitle(WfReqTask task) => !IsAccessTask(task) || AccessTaskVisibility.ShowTitle;
 
+    /// <summary>
+    /// Renders the header line of a task card: ids, promotion and configured action buttons, title (editable if allowed),
+    /// bundle size, state and, for access tasks with a configured policy check, the compliance status.
+    /// </summary>
+    /// <param name="task">The first task of the group, defining type, title and state.</param>
+    /// <param name="taskGroup">The request tasks: a single task or a bundle displayed as one.</param>
     private RenderFragment TaskHeader(WfReqTask task, IEnumerable<WfReqTask> taskGroup) => builder =>
     {
         builder.OpenElement(0, "span");
@@ -195,52 +193,75 @@
             builder.AddContent(10, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
             builder.CloseElement();
         }
+        builder.AddContent(11, TaskActionButtons([.. taskGroup]));
         if (ShowTitle(task) && CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
         {
-            builder.OpenElement(11, "button");
-            builder.AddAttribute(12, "type", "button");
-            builder.AddAttribute(13, "class", "btn btn-sm btn-secondary");
-            builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+            builder.OpenElement(111, "button");
+            builder.AddAttribute(112, "type", "button");
+            builder.AddAttribute(113, "class", "btn btn-sm btn-secondary");
+            builder.AddAttribute(114, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
                 () => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)));
-            builder.AddEventStopPropagationAttribute(15, "onclick", true);
-            builder.AddContent(16, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.AddEventStopPropagationAttribute(115, "onclick", true);
+            builder.AddContent(116, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
             builder.CloseElement();
         }
-        builder.OpenElement(17, "strong");
-        builder.AddAttribute(18, "class", "mr-2");
-        builder.AddContent(19, TaskDisplayTitle(task));
+        builder.OpenElement(117, "strong");
+        builder.AddAttribute(118, "class", "mr-2");
+        builder.AddContent(119, TaskDisplayTitle(task));
         builder.CloseElement();
         if (taskGroup.Count() > 1)
         {
-            builder.OpenElement(20, "span");
-            builder.AddAttribute(21, "class", "badge badge-secondary ml-2");
-            builder.AddContent(22, taskGroup.Count());
+            builder.OpenElement(120, "span");
+            builder.AddAttribute(121, "class", "badge badge-secondary ml-2");
+            builder.AddContent(122, taskGroup.Count());
             builder.CloseElement();
         }
-        builder.OpenElement(23, "span");
-        builder.AddAttribute(24, "class", "ml-auto");
-        builder.AddContent(25, States.GetName(task.StateId));
+        builder.OpenElement(123, "span");
+        builder.AddAttribute(124, "class", "ml-auto");
+        builder.AddContent(125, States.GetName(task.StateId));
         builder.CloseElement();
         if (compliance.IsConfigured && IsAccessTask(task))
         {
-            builder.OpenComponent<ApprovalComplianceButton>(26);
-            builder.AddComponentParameter(27, nameof(ApprovalComplianceButton.Compliance), compliance.ComplianceOf(taskGroup));
-            builder.AddComponentParameter(28, nameof(ApprovalComplianceButton.Loading), compliance.IsLoading);
-            builder.AddComponentParameter(29, nameof(ApprovalComplianceButton.Class), "btn-sm");
-            builder.AddComponentParameter(30, nameof(ApprovalComplianceButton.ShowReasons),
+            builder.OpenComponent<ApprovalComplianceButton>(126);
+            builder.AddComponentParameter(127, nameof(ApprovalComplianceButton.Compliance), compliance.ComplianceOf(taskGroup));
+            builder.AddComponentParameter(128, nameof(ApprovalComplianceButton.Loading), compliance.IsLoading);
+            builder.AddComponentParameter(129, nameof(ApprovalComplianceButton.Class), "btn-sm");
+            builder.AddComponentParameter(130, nameof(ApprovalComplianceButton.ShowReasons),
                 EventCallback.Factory.Create<ApprovalTaskCompliance>(this, OpenComplianceReasons));
             builder.CloseComponent();
         }
         builder.CloseElement();
     };
 
+    /// <summary>
+    /// Returns whether the promotion of a task is offered: if tasks may be promoted and the user may change the task, and the
+    /// ticket is not outdated, as the promotion would start from its displayed state.
+    /// </summary>
+    /// <param name="task">The request task.</param>
     private bool CanShowTaskPromotion(WfReqTask task)
     {
-        return CanPromoteTasks && !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(task);
+        return CanPromoteTasks && !WfHandler.ReadOnlyMode && !WfHandler.ActTicketOutdated && WfHandler.CanActOnReqTaskInCurrentPhase(task);
     }
+
+    /// <summary>The configured request task actions offered for a task or a bundle displayed as one.</summary>
+    private IReadOnlyList<WfStateAction> VisibleTaskActions(IReadOnlyList<WfReqTask> taskGroup) =>
+        WorkflowTaskActions.VisibleForRequestTasks(WfHandler, taskGroup);
+
+    /// <summary>Performs a configured task action on every task of the group and reloads the ticket afterwards.</summary>
+    private Task PerformTaskAction(IReadOnlyList<WfReqTask> taskGroup, WfStateAction action)
+    {
+        return RunWithProgress(() => WorkflowTaskActions.PerformOnRequestTasks(WfHandler, action, taskGroup));
+    }
+
+    /// <summary>Renders the buttons of the configured request task actions of a task or a bundle displayed as one.</summary>
+    /// <param name="taskGroup">The request tasks: a single task or a bundle displayed as one.</param>
+    private RenderFragment TaskActionButtons(IReadOnlyList<WfReqTask> taskGroup) =>
+        WorkflowTaskActions.Buttons(VisibleTaskActions(taskGroup), action => PerformTaskAction(taskGroup, action));
 
     private bool displayTaskPromotion;
 
+    /// <summary>Opens the promotion popup of a task.</summary>
+    /// <param name="task">The request task.</param>
     private async Task OpenTaskPromotion(WfReqTask task)
     {
         WfHandler.SelectReqTaskPopUp(task, ObjAction.displayPromote);
@@ -248,18 +269,22 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>Closes the promotion popup.</summary>
     private Task CloseTaskPromotion()
     {
         displayTaskPromotion = false;
         return Task.CompletedTask;
     }
 
+    /// <summary>Closes the promotion popup without promoting; returns true as expected by the popup.</summary>
     private bool CancelTaskPromotion()
     {
         displayTaskPromotion = false;
         return true;
     }
 
+    /// <summary>Promotes the task selected in the promotion popup and closes it.</summary>
+    /// <param name="task">The task with the selected target state.</param>
     private async Task PromoteSelectedTask(WfStatefulObject task)
     {
         await WfHandler.PromoteReqTask(task);
@@ -471,10 +496,12 @@
         set => editorService.textEditorMultiline = value;
     }
 
+    /// <summary>Returns the owners offered by the owner editor.</summary>
     private List<FwoOwner> GetOwnerOptions() => editorService.OwnerOptions();
     private List<Management> ManagementOptions => editorService.ManagementOptions;
     private bool CanCreateTimeObjectTask => editorService.CanCreateTimeObjectTask;
 
+    /// <summary>Passes the current workflow handler and user configuration to the editor service.</summary>
     protected override void OnParametersSet()
     {
         ConfigureEditorService();
@@ -509,6 +536,8 @@
         }
     }
 
+    /// <summary>Opens the popup with the reasons of a compliance result.</summary>
+    /// <param name="taskCompliance">The compliance result of a task or bundle.</param>
     private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
     {
         shownCompliance = taskCompliance;
@@ -532,6 +561,7 @@
 
     private bool showOnlyNotAllowed;
 
+    /// <summary>Switches the filter showing only the access tasks that are not allowed on or off.</summary>
     private void ToggleNotAllowedFilter()
     {
         showOnlyNotAllowed = !showOnlyNotAllowed;
@@ -566,6 +596,7 @@
         builder.CloseComponent();
     };
 
+    /// <summary>Checks all access tasks again; a failure is logged and leaves the previous results.</summary>
     private async Task RecheckCompliance()
     {
         try
@@ -578,67 +609,116 @@
         }
     }
 
+    /// <summary>Configures the editor service and loads the data needed by the display and the editors.</summary>
     protected override async Task OnInitializedAsync()
     {
         ConfigureEditorService();
         await editorService.InitializeAsync(apiConnection);
     }
 
+    /// <summary>Passes the current workflow handler, user configuration and refresh callback to the editor service.</summary>
     private void ConfigureEditorService() => editorService.Configure(WfHandler, userConfig, RefreshAfterOperation);
 
+    /// <summary>Returns the task groups of the ticket: single tasks or bundles displayed as one.</summary>
     private IEnumerable<List<WfReqTask>> GetTaskGroups()
     {
         ConfigureEditorService();
         return editorService.GetTaskGroups();
     }
 
-    /// <summary>Returns the list-view tables that contain at least one task, in display order.</summary>
-    private static List<ApprovalTaskListTable> ListTables(List<List<WfReqTask>> taskGroups)
-    {
-        HashSet<ApprovalTaskListTable> usedTables = [.. taskGroups
-            .Where(taskGroup => taskGroup.Count > 0)
-            .Select(taskGroup => ApprovalTaskListRowBuilder.TableOf(taskGroup[0]))];
-        return [.. Enum.GetValues<ApprovalTaskListTable>().Where(usedTables.Contains)];
-    }
-
+    /// <summary>Returns whether a task is an access task.</summary>
+    /// <param name="task">The request task.</param>
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
 
+    /// <summary>Returns whether a task creates, modifies or deletes a group.</summary>
+    /// <param name="task">The request task.</param>
     private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
 
+    /// <summary>Creates the display logic, visibility and editor callbacks shared by the task cards and the list view.</summary>
     private ApprovalTaskViewContext CreateTaskViewContext()
     {
         ConfigureEditorService();
         return editorService.CreateTaskViewContext();
     }
 
+    /// <summary>Returns whether the user may change a field of all given tasks.</summary>
+    /// <param name="tasks">The request tasks: a single task or a bundle displayed as one.</param>
+    /// <param name="fieldKey">The key of the editable field.</param>
     private bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {
         ConfigureEditorService();
         return editorService.CanEdit(tasks, fieldKey);
     }
 
+    /// <summary>Opens the owner editor of a task.</summary>
+    /// <param name="task">The request task.</param>
     internal Task OpenOwnerEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenOwnerEditor(task));
+    /// <summary>Opens the rule action editor of a task.</summary>
+    /// <param name="task">The request task.</param>
     internal Task OpenRuleActionEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenRuleActionEditor(task));
+    /// <summary>Opens the tracking editor of a task.</summary>
+    /// <param name="task">The request task.</param>
     internal Task OpenTrackingEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenTrackingEditor(task));
+    /// <summary>Opens the management editor of a task.</summary>
+    /// <param name="task">The request task.</param>
     internal Task OpenManagementEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenManagementEditor(task));
+    /// <summary>Opens the editor of the validity (time object) of a task.</summary>
+    /// <param name="task">The request task.</param>
+    /// <param name="fieldKey">The key of the edited validity field.</param>
     internal Task OpenTargetDatesEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenTargetDatesEditor(task, fieldKey));
+    /// <summary>Opens the creation of a time object task from the validity editor, if the user may change the validity.</summary>
     private Task OpenCreateTimeObjectTaskEditor() => RunEditorOperation(editorService.OpenCreateTimeObjectTaskEditor);
+    /// <summary>Opens the text editor of a field of a task; single-line for the title, multi-line otherwise.</summary>
+    /// <param name="task">The request task.</param>
+    /// <param name="fieldKey">The key of the edited field.</param>
+    /// <param name="value">The current value.</param>
     private Task OpenTextEditor(WfReqTask task, string fieldKey, string value) => RunEditorOperation(() => editorService.OpenTextEditor(task, fieldKey, value));
+    /// <summary>Opens the editor of the sources, destinations or services of a task.</summary>
+    /// <param name="task">The request task.</param>
+    /// <param name="fieldKey">The key of the edited element field.</param>
     internal Task OpenElementsEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenElementsEditor(task, fieldKey));
+    /// <summary>Opens the members editor of a group task.</summary>
+    /// <param name="task">The request task.</param>
     internal Task OpenGroupMembersEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenGroupMembersEditor(task));
+    /// <summary>Opens the editor of an existing object task.</summary>
+    /// <param name="task">The object task.</param>
     internal Task OpenExistingObjectTaskEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenExistingObjectTaskEditor(task));
+    /// <summary>Opens the creation of an object task from the elements editor.</summary>
     private Task OpenObjectTaskEditor() => RunEditorOperation(editorService.OpenObjectTaskEditor);
 
+    /// <summary>Saves the object task of the object task editor with the progress indicator.</summary>
+    /// <param name="task">The object task.</param>
     private Task SaveObjectTask(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTask(task));
+    /// <summary>Shows or hides the object task editor; hiding it resets its state.</summary>
+    /// <param name="display">Whether the editor is shown.</param>
     private Task HandleObjectTaskEditorDisplayChanged(bool display) => InvokeEditor(() => editorService.HandleObjectTaskEditorDisplayChanged(display));
+    /// <summary>Saves the object task of the object task editor without the progress indicator.</summary>
+    /// <param name="task">The object task.</param>
     internal Task SaveObjectTaskCore(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTaskCore(task));
+    /// <summary>Deletes the object task confirmed in the deletion popup with the progress indicator.</summary>
     private Task DeleteObjectTask() => InvokeEditor(editorService.DeleteObjectTask);
+    /// <summary>Saves the elements changed in the elements editor with the progress indicator.</summary>
+    /// <param name="fieldKey">The key of the edited element field.</param>
+    /// <param name="sources">The sources.</param>
+    /// <param name="destinations">The destinations.</param>
+    /// <param name="services">The services.</param>
     private Task SaveElements(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElements(fieldKey, sources, destinations, services));
+    /// <summary>Saves the elements changed in the elements editor without the progress indicator.</summary>
+    /// <param name="fieldKey">The key of the edited element field.</param>
+    /// <param name="sources">The sources.</param>
+    /// <param name="destinations">The destinations.</param>
+    /// <param name="services">The services.</param>
     internal Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElementsCore(fieldKey, sources, destinations, services));
+    /// <summary>Returns whether an element of another task of the ticket refers to an object task.</summary>
+    /// <param name="task">The object task.</param>
     internal bool IsObjectTaskReferenced(WfReqTask task) => InvokeEditor(() => editorService.IsObjectTaskReferenced(task));
+    /// <summary>Runs an operation with the progress indicator; ignored while another operation is running.</summary>
+    /// <param name="action">The operation.</param>
     private Task RunWithProgress(Func<Task> action) => InvokeEditor(() => editorService.RunWithProgress(action));
+    /// <summary>Refreshes the view after an operation of the editors.</summary>
     private Task RefreshAfterOperation() => RefreshAfterOperationCore();
 
+    /// <summary>Starts the compliance check in the background if the view is displayed and renders the view.</summary>
     private async Task RefreshAfterOperationCore()
     {
         try
@@ -656,53 +736,103 @@
         }
     }
 
+    /// <summary>Saves the rule action chosen in the rule action editor with the progress indicator.</summary>
+    /// <param name="ruleAction">The rule action; null for none.</param>
     private Task SaveRuleAction(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleAction(ruleAction));
+    /// <summary>Saves the rule action chosen in the rule action editor without the progress indicator.</summary>
+    /// <param name="ruleAction">The rule action; null for none.</param>
     internal Task SaveRuleActionCore(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleActionCore(ruleAction));
+    /// <summary>Saves the owner chosen in the owner editor with the progress indicator.</summary>
+    /// <param name="owner">The owner.</param>
     private Task SaveOwner(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwner(owner));
+    /// <summary>Saves the owner chosen in the owner editor without the progress indicator.</summary>
+    /// <param name="owner">The owner.</param>
     internal Task SaveOwnerCore(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwnerCore(owner));
+    /// <summary>Saves the tracking chosen in the tracking editor with the progress indicator.</summary>
+    /// <param name="tracking">The tracking; null for none.</param>
     private Task SaveTracking(Tracking? tracking) => InvokeEditor(() => editorService.SaveTracking(tracking));
+    /// <summary>Saves the tracking chosen in the tracking editor without the progress indicator.</summary>
+    /// <param name="tracking">The tracking; null for none.</param>
     internal Task SaveTrackingCore(Tracking? tracking) => InvokeEditor(() => editorService.SaveTrackingCore(tracking));
+    /// <summary>Saves the management chosen in the management editor with the progress indicator.</summary>
+    /// <param name="management">The management; null for none.</param>
     private Task SaveManagement(Management? management) => InvokeEditor(() => editorService.SaveManagement(management));
+    /// <summary>Saves the management chosen in the management editor without the progress indicator.</summary>
+    /// <param name="management">The management; null for none.</param>
     internal Task SaveManagementCore(Management? management) => InvokeEditor(() => editorService.SaveManagementCore(management));
+    /// <summary>Saves the validity chosen in the validity editor with the progress indicator.</summary>
+    /// <param name="model">The validity and time object.</param>
     private Task SaveTargetDates(TargetDatesEditorModel model) => InvokeEditor(() => editorService.SaveTargetDates(model));
+    /// <summary>Creates a time object task from the validity editor with the progress indicator.</summary>
+    /// <param name="model">The validity of the new time object.</param>
     private Task CreateTimeObjectTask(TargetDatesEditorModel model) => InvokeEditor(() => editorService.CreateTimeObjectTask(model));
+    /// <summary>Deletes the time object task no longer used after a change of the validity with the progress indicator.</summary>
     private Task DeleteFormerTimeObjectTask() => InvokeEditor(editorService.DeleteFormerTimeObjectTask);
+    /// <summary>Sets a new object task and its approvals to the lowest input state.</summary>
+    /// <param name="task">The new object task.</param>
     internal void InitializeNewObjectTaskState(WfReqTask task) => InvokeEditor(() => editorService.InitializeNewObjectTaskState(task));
+    /// <summary>Returns whether the deletion of the former time object task is offered after choosing another time object.</summary>
+    /// <param name="model">The chosen validity and time object.</param>
     internal bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ShouldOfferFormerTimeObjectDeletion(model));
+    /// <summary>Returns the tasks changed together with a task: the task itself or, with bundling, its bundled tasks.</summary>
+    /// <param name="task">The request task.</param>
     internal IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task) => InvokeEditor(() => editorService.GetTasksToUpdate(task));
+    /// <summary>Applies the chosen validity and time object to the active request task.</summary>
+    /// <param name="model">The chosen validity and time object.</param>
     internal void ApplyTimeObjectModel(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ApplyTimeObjectModel(model));
+    /// <summary>Saves the text of the text editor with the progress indicator.</summary>
+    /// <param name="value">The text.</param>
     private Task SaveText(string value) => InvokeEditor(() => editorService.SaveText(value));
+    /// <summary>Saves the text of the text editor without the progress indicator.</summary>
+    /// <param name="value">The text.</param>
     internal Task SaveTextCore(string value) => InvokeEditor(() => editorService.SaveTextCore(value));
+    /// <summary>Returns the comma separated ids of tasks.</summary>
+    /// <param name="tasks">The request tasks: a single task or a bundle displayed as one.</param>
     private static string TaskIds(IEnumerable<WfReqTask> tasks) => ApprovalTaskDetailsEditorService.TaskIds(tasks);
+    /// <summary>Returns whether the user may change a shown validity field of the tasks.</summary>
+    /// <param name="tasks">The request tasks: a single task or a bundle displayed as one.</param>
     internal bool CanEditTimeObject(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.CanEditTimeObject(tasks));
+    /// <summary>Returns the key of the validity field edited for the tasks: valid from if shown and changeable, otherwise valid to.</summary>
+    /// <param name="tasks">The request tasks: a single task or a bundle displayed as one.</param>
     internal string EditableTimeObjectField(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.EditableTimeObjectField(tasks));
+    /// <summary>Switches the element display of access tasks to the next mode: resolved, technical, unresolved groups.</summary>
     private void ToggleAccessElementDisplay() => InvokeEditor(editorService.ToggleAccessElementDisplay);
+    /// <summary>Returns the text key of the element display mode the toggle button switches to.</summary>
     private string NextDisplayModeTextKey() => InvokeEditor(editorService.NextDisplayModeTextKey);
 
+    /// <summary>Configures the editor service and runs an asynchronous operation of it.</summary>
+    /// <param name="operation">The operation.</param>
     private Task InvokeEditor(Func<Task> operation)
     {
         ConfigureEditorService();
         return operation();
     }
 
+    /// <summary>Configures the editor service and returns the result of an operation of it.</summary>
+    /// <param name="operation">The operation.</param>
     private T InvokeEditor<T>(Func<T> operation)
     {
         ConfigureEditorService();
         return operation();
     }
 
+    /// <summary>Configures the editor service and runs an operation of it.</summary>
+    /// <param name="operation">The operation.</param>
     private void InvokeEditor(Action operation)
     {
         ConfigureEditorService();
         operation();
     }
 
+    /// <summary>Configures the editor service and runs an operation opening an editor.</summary>
+    /// <param name="operation">The operation.</param>
     private async Task RunEditorOperation(Func<Task> operation)
     {
         ConfigureEditorService();
         await operation();
     }
 
+    /// <summary>Closes the view and notifies the parent.</summary>
     private async Task Close()
     {
         Display = false;
@@ -710,5 +840,6 @@
         await Closed();
     }
 
+    /// <summary>Closes the view from the popup, without waiting for the parent.</summary>
     private void ClosePopup() => _ = Close();
 }

@@ -49,9 +49,14 @@ namespace FWO.Test
             public List<long> RegisteredTicketIds { get; set; } = [];
             public object? LastTicketQueryVariables { get; private set; }
             public string? LastTicketQuery { get; private set; }
+            public bool FailTicketQuery { get; set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
+                if (FailTicketQuery && query == RequestQueries.getTicketById)
+                {
+                    throw new HttpRequestException("ticket query failed");
+                }
                 if (query == RequestQueries.getOwnerTicketIds)
                 {
                     List<TicketId> ids = RegisteredTicketIds.ConvertAll(id => new TicketId { Id = id });
@@ -1239,6 +1244,25 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Title, Is.EqualTo("Refreshed ticket"));
                 Assert.That(handler.TicketList.Single(), Is.SameAs(refreshedTicket));
                 Assert.That(handler.AllTicketImplTasks.Select(task => task.Id), Is.EqualTo(expectedImplTaskIds));
+            });
+        }
+
+        [Test]
+        public async Task ReloadActTicket_KeepsActiveTicketIfTheQueryFails()
+        {
+            TicketTestApiConn apiConn = new() { FailTicketQuery = true };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, new UserConfig());
+            WfTicket oldTicket = new() { Id = 7, Title = "Old ticket" };
+            handler.ActTicket = oldTicket;
+            handler.TicketList.Add(oldTicket);
+
+            bool reloaded = await handler.ReloadActTicket();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reloaded, Is.False);
+                Assert.That(handler.ActTicket, Is.SameAs(oldTicket));
+                Assert.That(handler.TicketList.Single(), Is.SameAs(oldTicket));
             });
         }
 

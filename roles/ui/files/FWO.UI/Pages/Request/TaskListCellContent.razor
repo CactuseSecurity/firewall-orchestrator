@@ -1,0 +1,43 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+@if (Cell.CanEdit)
+{
+    <button type="button" class="btn btn-link btn-sm p-0 text-start task-list-edit"
+            data-toggle="tooltip" title="@(userConfig.PureLine("edit"))" @onclick="Cell.Edit!">
+        @CellValues
+    </button>
+}
+else
+{
+    @CellValues
+}
+
+@code
+{
+    /// <summary>The displayed cell of a task list view; clicking an editable cell opens its editor.</summary>
+    [Parameter] public TaskListCell Cell { get; set; } = TaskListCell.Empty;
+
+    private RenderFragment CellValues =>
+        @<text>
+            @if (Cell.Values.Count == 0)
+            {
+                <span>-</span>
+            }
+            else
+            {
+                @for (int index = 0; index < Cell.Values.Count; index++)
+                {
+                    TaskListBadge? badge = Cell.Badge(index);
+                    <div class="task-list-value">
+                        <span>@Cell.Values[index]</span>
+                        @if (badge != null)
+                        {
+                            <span class="badge @badge.CssClass task-list-badge">@badge.Text</span>
+                        }
+                    </div>
+                }
+            }
+        </text>;
+}

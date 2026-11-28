@@ -33,12 +33,13 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Checks whether a configured state action may be offered and performed on the active ticket or its tasks. Read-only
-        /// actions are always allowed, all others need a user who is not read-only and may change the ticket.
+        /// actions are always allowed, all others need a user who is not read-only and may change the ticket, and a ticket
+        /// whose reload has not failed: with outdated states, the action would be sent with them and rejected.
         /// </summary>
         /// <param name="action">State action to check.</param>
         public bool CanPerformActionOnActTicket(WfStateAction action)
         {
-            return WfStateAction.IsReadonlyType(action.ActionType) || (!ReadOnlyMode && CanChangeActTicket());
+            return WfStateAction.IsReadonlyType(action.ActionType) || (!ReadOnlyMode && !ActTicketOutdated && CanChangeActTicket());
         }
 
         /// <summary>

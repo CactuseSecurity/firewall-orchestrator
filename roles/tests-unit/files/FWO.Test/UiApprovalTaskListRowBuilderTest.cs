@@ -70,7 +70,7 @@ internal class UiApprovalTaskListRowBuilderTest
         AccessTaskFieldVisibilityConfig visibility = new() { ShowTitle = false, ShowHandler = false, ShowAssigned = false };
 
         List<string> access = AccessColumnKeys(visibility);
-        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Address, visibility).Select(column => column.Key)];
+        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Address, visibility).Select(column => column.Key)];
 
         Assert.Multiple(() =>
         {
@@ -88,10 +88,10 @@ internal class UiApprovalTaskListRowBuilderTest
         });
     }
 
-    [TestCase(ApprovalTaskListTable.Address)]
-    [TestCase(ApprovalTaskListTable.Service)]
-    [TestCase(ApprovalTaskListTable.Other)]
-    public void VisibleColumns_NonAccessTablesFollowObjectTaskVisibility(ApprovalTaskListTable table)
+    [TestCase(TaskListTable.Address)]
+    [TestCase(TaskListTable.Service)]
+    [TestCase(TaskListTable.Other)]
+    public void VisibleColumns_NonAccessTablesFollowObjectTaskVisibility(TaskListTable table)
     {
         AccessTaskFieldVisibilityConfig accessVisibility = new() { ShowManagement = false, ShowReason = false };
         ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false, ShowAssigned = false };
@@ -122,10 +122,10 @@ internal class UiApprovalTaskListRowBuilderTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Address, mixed, objectVisibility), Is.SameAs(objectVisibility));
-            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Other, onlyObjects, objectVisibility), Is.SameAs(objectVisibility));
-            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Other, mixed, objectVisibility), Is.Null);
-            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Access, onlyObjects, objectVisibility), Is.Null);
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(TaskListTable.Address, mixed, objectVisibility), Is.SameAs(objectVisibility));
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(TaskListTable.Other, onlyObjects, objectVisibility), Is.SameAs(objectVisibility));
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(TaskListTable.Other, mixed, objectVisibility), Is.Null);
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(TaskListTable.Access, onlyObjects, objectVisibility), Is.Null);
         });
     }
 
@@ -134,7 +134,7 @@ internal class UiApprovalTaskListRowBuilderTest
     {
         AccessTaskFieldVisibilityConfig accessVisibility = new() { ShowManagement = false, ShowHandler = false, ShowAssigned = false };
 
-        List<string> other = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Other, accessVisibility, false, null)
+        List<string> other = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Other, accessVisibility, false, null)
             .Select(column => column.Key)];
 
         Assert.Multiple(() =>
@@ -151,7 +151,7 @@ internal class UiApprovalTaskListRowBuilderTest
     {
         ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false, ShowAssigned = false, ShowManagement = false, ShowReason = false };
 
-        List<string> access = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Access, new AccessTaskFieldVisibilityConfig(), false, objectVisibility)
+        List<string> access = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Access, new AccessTaskFieldVisibilityConfig(), false, objectVisibility)
             .Select(column => column.Key)];
 
         Assert.That(access, Is.SupersetOf((List<string>)[ApprovalTaskListRowBuilder.kManagement, ApprovalTaskListRowBuilder.kReason,
@@ -187,8 +187,8 @@ internal class UiApprovalTaskListRowBuilderTest
     {
         AccessTaskFieldVisibilityConfig visibility = new() { ShowFreeText = true };
 
-        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Address, visibility).Select(column => column.Key)];
-        List<string> service = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Service, visibility).Select(column => column.Key)];
+        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Address, visibility).Select(column => column.Key)];
+        List<string> service = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Service, visibility).Select(column => column.Key)];
 
         Assert.Multiple(() =>
         {
@@ -238,14 +238,14 @@ internal class UiApprovalTaskListRowBuilderTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(ApprovalTaskListRowBuilder.TableOf(CreateAccessTask()), Is.EqualTo(ApprovalTaskListTable.Access));
-            Assert.That(ApprovalTaskListRowBuilder.TableOf(networkObject), Is.EqualTo(ApprovalTaskListTable.Address));
-            Assert.That(ApprovalTaskListRowBuilder.TableOf(networkGroup), Is.EqualTo(ApprovalTaskListTable.Address));
-            Assert.That(ApprovalTaskListRowBuilder.TableOf(serviceObject), Is.EqualTo(ApprovalTaskListTable.Service));
-            Assert.That(ApprovalTaskListRowBuilder.TableOf(serviceGroup), Is.EqualTo(ApprovalTaskListTable.Service));
-            Assert.That(ApprovalTaskListRowBuilder.TableOf(timeObject), Is.EqualTo(ApprovalTaskListTable.Other));
+            Assert.That(ApprovalTaskListRowBuilder.TableOf(CreateAccessTask()), Is.EqualTo(TaskListTable.Access));
+            Assert.That(ApprovalTaskListRowBuilder.TableOf(networkObject), Is.EqualTo(TaskListTable.Address));
+            Assert.That(ApprovalTaskListRowBuilder.TableOf(networkGroup), Is.EqualTo(TaskListTable.Address));
+            Assert.That(ApprovalTaskListRowBuilder.TableOf(serviceObject), Is.EqualTo(TaskListTable.Service));
+            Assert.That(ApprovalTaskListRowBuilder.TableOf(serviceGroup), Is.EqualTo(TaskListTable.Service));
+            Assert.That(ApprovalTaskListRowBuilder.TableOf(timeObject), Is.EqualTo(TaskListTable.Other));
             Assert.That(ApprovalTaskListRowBuilder.TableOf(new WfReqTask { TaskType = WfTaskType.generic.ToString() }),
-                Is.EqualTo(ApprovalTaskListTable.Other));
+                Is.EqualTo(TaskListTable.Other));
         });
     }
 
@@ -256,8 +256,8 @@ internal class UiApprovalTaskListRowBuilderTest
         WfReqTask secondTask = new() { Id = 8, Title = "second", TaskType = WfTaskType.generic.ToString(), StateId = 2 };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields);
 
-        List<ApprovalTaskListRow> rows = builder.Build(Groups(task, secondTask), ApprovalTaskListTable.Access);
-        List<ApprovalTaskListRow> otherRows = builder.Build(Groups(task, secondTask), ApprovalTaskListTable.Other);
+        List<ApprovalTaskListRow> rows = builder.Build(Groups(task, secondTask), TaskListTable.Access);
+        List<ApprovalTaskListRow> otherRows = builder.Build(Groups(task, secondTask), TaskListTable.Other);
         ApprovalTaskListRow row = rows[0];
 
         Assert.Multiple(() =>
@@ -275,7 +275,7 @@ internal class UiApprovalTaskListRowBuilderTest
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kState).Text, Is.EqualTo("Approval"));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kHandler).Text, Is.EqualTo("alice"));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kReason).Text, Is.EqualTo("business need"));
-            Assert.That(row.Cell("unknown"), Is.SameAs(ApprovalTaskListCell.Empty));
+            Assert.That(row.Cell("unknown"), Is.SameAs(TaskListCell.Empty));
         });
     }
 
@@ -285,7 +285,7 @@ internal class UiApprovalTaskListRowBuilderTest
         WfReqTask task = CreateAccessTask();
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kTitleAndSource);
 
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Access)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Access)[0];
 
         Assert.Multiple(() =>
         {
@@ -311,7 +311,7 @@ internal class UiApprovalTaskListRowBuilderTest
             WorkflowEditableFieldKeys.Track, WorkflowEditableFieldKeys.Reason, WorkflowEditableFieldKeys.FreeText
         ];
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, allowed, canEditTimeObject: true);
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Access)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Access)[0];
 
         foreach (string key in new List<string>
         {
@@ -372,7 +372,7 @@ internal class UiApprovalTaskListRowBuilderTest
         };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kGroupMembersAndName);
 
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Address)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Address)[0];
         await row.Cell(ApprovalTaskListRowBuilder.kContent).Edit!();
         await row.Cell(ApprovalTaskListRowBuilder.kObject).Edit!();
 
@@ -382,9 +382,9 @@ internal class UiApprovalTaskListRowBuilderTest
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Values, Has.Count.EqualTo(3));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Values[0], Does.StartWith("member (").And.Contain("10.1.1.1"));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Values[1], Does.StartWith("old-member ("));
-            Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Badge(0), Is.EqualTo(new ApprovalTaskListBadge("add_member", "text-bg-success")));
-            Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Badge(1), Is.EqualTo(new ApprovalTaskListBadge("remove_member", "text-bg-danger")));
-            Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Badge(2), Is.EqualTo(new ApprovalTaskListBadge("unchanged", "text-bg-secondary")));
+            Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Badge(0), Is.EqualTo(new TaskListBadge("add_member", "text-bg-success")));
+            Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Badge(1), Is.EqualTo(new TaskListBadge("remove_member", "text-bg-danger")));
+            Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Badge(2), Is.EqualTo(new TaskListBadge("unchanged", "text-bg-secondary")));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kContent).Text, Does.Contain("(remove_member)"));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kZone).Text, Is.EqualTo("internal"));
             Assert.That(row.Cell(ApprovalTaskListRowBuilder.kRuleAction).Values, Is.Empty);
@@ -414,7 +414,7 @@ internal class UiApprovalTaskListRowBuilderTest
         };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields);
 
-        ApprovalTaskListCell content = builder.Build(Groups(task), ApprovalTaskListTable.Address)[0].Cell(ApprovalTaskListRowBuilder.kContent);
+        TaskListCell content = builder.Build(Groups(task), TaskListTable.Address)[0].Cell(ApprovalTaskListRowBuilder.kContent);
 
         Assert.Multiple(() =>
         {
@@ -451,7 +451,7 @@ internal class UiApprovalTaskListRowBuilderTest
         };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kContentOnly);
 
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Address)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Address)[0];
         await row.Cell(ApprovalTaskListRowBuilder.kContent).Edit!();
 
         Assert.Multiple(() =>
@@ -486,7 +486,7 @@ internal class UiApprovalTaskListRowBuilderTest
         };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields);
 
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Service)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Service)[0];
 
         Assert.Multiple(() =>
         {
@@ -504,7 +504,7 @@ internal class UiApprovalTaskListRowBuilderTest
         task.Elements[0].Name = "office-hours";
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kContentOnly);
 
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Other)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Other)[0];
         await row.Cell(ApprovalTaskListRowBuilder.kObject).Edit!();
 
         Assert.Multiple(() =>
@@ -520,7 +520,7 @@ internal class UiApprovalTaskListRowBuilderTest
         WfReqTask task = new() { Id = 22, TaskType = WfTaskType.generic.ToString() };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kSourceOnly);
 
-        ApprovalTaskListRow row = builder.Build(Groups(task), ApprovalTaskListTable.Other)[0];
+        ApprovalTaskListRow row = builder.Build(Groups(task), TaskListTable.Other)[0];
 
         Assert.Multiple(() =>
         {
@@ -546,7 +546,7 @@ internal class UiApprovalTaskListRowBuilderTest
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields);
         List<List<WfReqTask>> groups = [[task, bundledTask]];
 
-        List<ApprovalTaskListRow> rows = builder.Build(groups, ApprovalTaskListTable.Access);
+        List<ApprovalTaskListRow> rows = builder.Build(groups, TaskListTable.Access);
 
         Assert.Multiple(() =>
         {
@@ -565,8 +565,8 @@ internal class UiApprovalTaskListRowBuilderTest
     {
         AccessTaskFieldVisibilityConfig visibility = new();
 
-        List<string> access = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Access, visibility, true).Select(column => column.Key)];
-        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Address, visibility, true).Select(column => column.Key)];
+        List<string> access = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Access, visibility, true).Select(column => column.Key)];
+        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Address, visibility, true).Select(column => column.Key)];
 
         Assert.Multiple(() =>
         {
@@ -595,7 +595,7 @@ internal class UiApprovalTaskListRowBuilderTest
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields, complianceResults: results);
         List<List<WfReqTask>> groups = [[task, bundledTask], [uncheckedTask]];
 
-        List<ApprovalTaskListRow> rows = builder.Build(groups, ApprovalTaskListTable.Access);
+        List<ApprovalTaskListRow> rows = builder.Build(groups, TaskListTable.Access);
 
         Assert.Multiple(() =>
         {
@@ -619,7 +619,7 @@ internal class UiApprovalTaskListRowBuilderTest
         WfReqTask objectTask = ObjectTask(3, ElemFieldType.source);
         ApprovalTaskListRowBuilder builder = CreateBuilder(groupTask, kNoFields);
 
-        List<long> ids = [.. builder.Build(Groups(groupTask, laterObjectTask, objectTask), ApprovalTaskListTable.Address)
+        List<long> ids = [.. builder.Build(Groups(groupTask, laterObjectTask, objectTask), TaskListTable.Address)
             .Select(row => row.Task.Id)];
 
         Assert.That(ids, Is.EqualTo(new List<long> { 3, 5, 2 }));
@@ -627,7 +627,7 @@ internal class UiApprovalTaskListRowBuilderTest
 
     private static List<string> AccessColumnKeys(AccessTaskFieldVisibilityConfig visibility)
     {
-        return [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Access, visibility).Select(column => column.Key)];
+        return [.. ApprovalTaskListRowBuilder.VisibleColumns(TaskListTable.Access, visibility).Select(column => column.Key)];
     }
 
     private static WfReqTask ObjectTask(long id, ElemFieldType field)
